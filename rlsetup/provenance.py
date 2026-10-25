@@ -1,27 +1,50 @@
 """Run provenance: which code of this repo and of ocd_first_lap produced a result.
 
-`run_provenance()` is what every training/evaluation run stores next to its outputs.
+`run_provenance()` is what every training/evaluation run stores next to its outputs, together
+with `DrivingEnv.env_metadata()` (config, reference-line digest, QSS cache key).
+
+Code identity is recorded three ways, because a commit hash alone does not identify dirty or
+untracked code (D1_sim_runner §1, QA MINOR 9):
+  - git state of both repos, incl. sha256 of `git diff HEAD` (tracked changes; untracked files
+    are not in it);
+  - sha256 of every rlsetup/**/*.py file;
+  - ocd_lap's own `code_version` digest plus sha256 of the ocd_lap modules rlsetup imports that
+    `ocd_lap.provenance.capture_provenance` does not hash (OCD_LAP_EXTRA_SOURCES).
 """
 from pathlib import Path
+import hashlib
 import subprocess
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+# ocd_lap modules loaded by rlsetup but not in ocd_lap's code_version (simulation.SOURCES +
+# evaluate.py + provenance.py). env.py: DrivingEnv's base class; qss_lap.py, handling.py,
+# manoeuvres.py: QSS profile; rig.py, vertical_model.py: imported by handling.py; __init__.py.
+# tests/test_provenance.py fails if rlsetup starts importing a module covered by neither list.
+OCD_LAP_EXTRA_SOURCES = ('__init__.py', 'env.py', 'qss_lap.py', 'handling.py', 'manoeuvres.py',
+                         'rig.py', 'vertical_model.py')
+
+
+def sha256_file(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
 def git_state(path):
-    """{'commit', 'dirty' (tracked files modified), 'untracked' (untracked, non-ignored files)}.
+    """{'path', 'commit', 'dirty' (tracked files modified), 'untracked' (untracked, non-ignored
+    files), 'diff_sha256' (sha256 of `git diff HEAD`; e3b0c442... = empty diff)}.
     Values are None when `path` is not a git work tree."""
-    def git(*args):
-        r = subprocess.run(['git', '-C', str(path), *args], capture_output=True, text=True, check=False)
+    def git(*args, text=True):
+        r = subprocess.run(['git', '-C', str(path), *args], capture_output=True, text=text, check=False)
         return r.stdout if r.returncode == 0 else None
     commit = git('rev-parse', 'HEAD')
     status = git('status', '--porcelain')
-    if commit is None or status is None:
-        return {'path': str(path), 'commit': None, 'dirty': None, 'untracked': None}
+    diff = git('diff', 'HEAD', '--no-color', '--no-ext-diff', text=False)
+    if commit is None or status is None or diff is None:
+        return {'path': str(path), 'commit': None, 'dirty': None, 'untracked': None, 'diff_sha256': None}
     lines = [l for l in status.splitlines() if l]
     return {'path': str(path), 'commit': commit.strip(),
             'dirty': any(not l.startswith('??') for l in lines),
-            'untracked': any(l.startswith('??') for l in lines)}
+            'untracked': any(l.startswith('??') for l in lines),
+            'diff_sha256': hashlib.sha256(diff).hexdigest()}
 
 
 def ocd_first_lap_root():
@@ -29,13 +52,28 @@ def ocd_first_lap_root():
     return Path(ocd_lap.__file__).resolve().parents[1]
 
 
+def rlsetup_sources_sha256():
+    """{path relative to the repo root: sha256} of every .py file in the rlsetup package."""
+    pkg = REPO_ROOT / 'rlsetup'
+    return {str(p.relative_to(REPO_ROOT)): sha256_file(p)
+            for p in sorted(pkg.rglob('*.py')) if '__pycache__' not in p.parts}
+
+
+def ocd_lap_extra_sources_sha256():
+    """{'ocd_lap/<module>.py': sha256} for OCD_LAP_EXTRA_SOURCES (None if a file is missing)."""
+    lap_dir = ocd_first_lap_root() / 'ocd_lap'
+    return {f'ocd_lap/{f}': sha256_file(lap_dir / f) if (lap_dir / f).is_file() else None
+            for f in OCD_LAP_EXTRA_SOURCES}
+
+
 def run_provenance(track=None):
-    """This repo's and ocd_first_lap's git state plus ocd_lap's content digest `code_version`
-    (sources, OCD sources, the loaded ocd_native binary, packages; see ocd_lap/provenance.py).
-    Note: ocd_lap's digest does not cover every ocd_lap module (e.g. qss_lap.py, handling.py),
-    so the ocd_first_lap git state is recorded as well."""
+    """Git state of this repo and ocd_first_lap, sha256 of rlsetup sources, ocd_lap's content
+    digest `code_version` (its sources, OCD sources, the loaded ocd_native binary, packages; see
+    ocd_lap/provenance.py) and sha256 of the ocd_lap modules that digest omits."""
     from ocd_lap.provenance import capture_provenance, provenance_digest
     ocd = capture_provenance(track)
     return {'rlsetup': git_state(REPO_ROOT),
+            'rlsetup_sources_sha256': rlsetup_sources_sha256(),
             'ocd_first_lap': git_state(ocd_first_lap_root()),
-            'ocd_lap_code_version': provenance_digest(ocd)[:12]}
+            'ocd_lap_code_version': provenance_digest(ocd)[:12],
+            'ocd_lap_extra_sources_sha256': ocd_lap_extra_sources_sha256()}

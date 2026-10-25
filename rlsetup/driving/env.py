@@ -52,6 +52,7 @@ Observation (fixed scales, clipped to +-ObsConfig.clip; ObsConfig documents the 
     (ego at placement, nothing pressed [0, -1, -1]).
 """
 from collections import deque
+import hashlib
 import math
 import gymnasium as gym
 import numpy as np
@@ -134,6 +135,23 @@ class DrivingEnv(OCDRacingEnv):
         self._err_key = None
         self.obs_clipped_total = self.obs_values_total = 0
         self.evaluation = cfg.evaluation
+
+    # --- run metadata ---------------------------------------------------------------------------
+    def env_metadata(self):
+        """JSON-ready identity of this env for run metadata (QA MINOR 9): full EnvConfig, default
+        setup, track (+ sha256 of Track.path, which vector-env workers must match), reference
+        line (name, length, digest) and the QSS profile's cache key. Store it with
+        `rlsetup.provenance.run_provenance()`."""
+        track = self.track
+        return {'config': self.cfg.to_dict(), 'setup': self.setup.to_dict(),
+                'track': {'name': track.name, 'length_m': float(track.length),
+                          'path_sha256': hashlib.sha256(
+                              np.ascontiguousarray(track.path).tobytes()).hexdigest()},
+                'reference': {'name': self.ref.name, 'length_m': self.ref.length,
+                              'digest': self.ref.digest},
+                'qss': {'cache_key': self.qss.meta.get('key'), 'lap_time_s': float(self.qss.lap_time_s)},
+                'observation_size': int(self.observation_space.shape[0]),
+                'decision_dt_s': self.decision_dt}
 
     # --- actions ------------------------------------------------------------------------------
     def to_inputs(self, action):

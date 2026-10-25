@@ -103,7 +103,7 @@ def main():
     qss = qss_profile.load_or_build(track)
     env = DrivingEnv(EnvConfig(), track=track, qss=qss)
     out = dict(config=EnvConfig().to_dict(), qss_lap_time_s=qss.lap_time_s,
-               observation_size=env.observation_space.shape[0],
+               observation_size=env.observation_space.shape[0], env=env.env_metadata(),
                machine=platform.platform(), python=platform.python_version(),
                provenance=run_provenance(track.name))
     print(f'obs size {out["observation_size"]}, QSS p0 lap {qss.lap_time_s:.3f} s', flush=True)
