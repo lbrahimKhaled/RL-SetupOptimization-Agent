@@ -19,8 +19,11 @@ failure      off track (4.2 x 2.0 m footprint), non-finite state, stall (speed <
              P = P0 + kappa (c / 0.02 s) (T_rec / 3) e_exit^2 (RewardConfig.failure_penalty).
              e_exit for a non-finite state is the last finite offset.
 truncation   max_episode_s after hand-over (training) / eval_max_s (evaluation): truncated=True.
-             In training the base env's lap-completion check is put out of reach (progress starts
-             at -1e7 m), because finishing a lap is not an MDP terminal state for the driver.
+             Both must be whole multiples of the decision period (checked in __init__).
+             The base env's lap-completion check is put out of reach (progress starts at -1e7 m):
+             in training finishing a lap is not an MDP terminal state for the driver; in
+             evaluation the episode ends ('lap_complete', terminated) when this env has recorded
+             all eval_laps + 1 line crossings (one distance counter decides both, QA MINOR 3).
 reset        training: s0 ~ U[0, L) on Track.path, car placed on xi_ref abeam s0 with xi_ref
              heading at v0 = f * min v_qss over [s0, s0 + f v_qss(s0) settle_s + 50 m],
              f ~ U(0.3, 0.7); then `settle_s` (2 s) of the demo driver holding v0 (not part of the
@@ -35,7 +38,8 @@ info         s_track, s_ref, e_ref, heading_error, speed, progress_m (since hand
              (progress a ds, time b dt, smoothness b dt du^T W du, tracking c e^2, penalty P),
              obs_clipped; evaluation: line_crossings_s, laps (per-lap time and cost components,
              cost = time + smoothness + tracking, the undiscounted lap cost for the setup agent);
-             telemetry (backend.get_telemetry()) only with record_telemetry.
+             telemetry (backend.get_telemetry()) only with record_telemetry. On a non-finite
+             state e_ref, heading_error and speed are NaN.
 Observation (fixed scales, clipped to +-ObsConfig.clip; ObsConfig documents the scales):
     ego (9): speed, v_x, v_y, yaw rate, a_x, a_y (body frame: a_x = dv_x/dt - r v_y,
              a_y = dv_y/dt + r v_x over the last decision, r and v at the interval midpoint),
@@ -44,7 +48,8 @@ Observation (fixed scales, clipped to +-ObsConfig.clip; ObsConfig documents the 
     preview: N stations at d_k = 300 (k/N)^1.5 m ahead on Track.path: xi_ref, left-edge and
              right-edge points in the car frame (x forward, y left), divided by max(d_k, 10 m)
     last action (3); [gear / 8 if obs_gear]; history: (ego, last action) of the previous
-    history - 1 decisions, newest first.
+    history - 1 decisions, newest first; entries not yet filled by the settle phase hold
+    (ego at placement, nothing pressed [0, -1, -1]).
 """
 from collections import deque
 import math
@@ -96,6 +101,13 @@ class DrivingEnv(OCDRacingEnv):
         weights = RewardWeights(a=rw.a, b=rw.b, w=tuple(rw.w), c=rw.c, off_track_penalty=0.)
         if not all(math.isfinite(x) and x >= 0 for x in (rw.penalty_base, rw.penalty_kappa, rw.recovery_time_s)):
             raise ValueError('penalty constants must be finite and nonnegative')
+        self.dt_tick = CONTROL_STEPS * DT
+        self.decision_dt = cfg.action_repeat * self.dt_tick
+        for name in ('max_episode_s', 'eval_max_s'):   # QA MINOR 2: no partial last decision
+            n = getattr(cfg, name) / self.decision_dt
+            if not (math.isfinite(n) and n >= 1 and abs(n - round(n)) <= 1e-9 * max(1., n)):
+                raise ValueError(f'{name} must be a positive multiple of the decision period '
+                                 f'{self.decision_dt:g} s')
         setup = Setup() if setup is None else setup   # p0 (DECISIONS #4); never OCD's shipped car
         super().__init__(cfg.track if track is None else track.name, setup,
                          vmax=cfg.track_vmax_mps if track is None else track.vmax,
@@ -107,8 +119,6 @@ class DrivingEnv(OCDRacingEnv):
         self.ref = reference if reference is not None else ReferenceLine.from_track_path(self.track)
         self.grid = track_grid(self.track, self.ref, cfg.obs.grid_m)
         self.qss = qss if qss is not None else qss_profile.load_or_build(self.track)
-        self.dt_tick = CONTROL_STEPS * DT
-        self.decision_dt = cfg.action_repeat * self.dt_tick
         self.settle_driver = DemoDriver(self.ref, cfg.demo, pedal_deadzone=cfg.pedal_deadzone,
                                         control_dt_s=self.decision_dt)
         o = cfg.obs
@@ -236,9 +246,9 @@ class DrivingEnv(OCDRacingEnv):
         self._s_ref = ref.match((st['x'], st['y']), s_ref0)
         self._settle_steps = self.physics_steps = 0
         self.last_action = np.array([0., -1., -1.], dtype=np.float32)  # nothing pressed
-        self._hist = deque([np.zeros(EGO_SIZE + 3)] * (self.cfg.obs.history - 1),
-                           maxlen=self.cfg.obs.history - 1)
         self._kin = None
+        placed = np.concatenate([self._ego(), self.last_action])     # QA MINOR 4 (not zeros)
+        self._hist = deque([placed] * (self.cfg.obs.history - 1), maxlen=self.cfg.obs.history - 1)
         self.settle_driver.reset()
         n_decisions = round(self.cfg.settle_s / self.decision_dt)
         steps = self.cfg.action_repeat * CONTROL_STEPS
@@ -286,13 +296,11 @@ class DrivingEnv(OCDRacingEnv):
             self.max_time_s = self.cfg.eval_max_s
             d_line = float((L - self.s) % L)                # distance to the next line crossing
             self._lines = [d_line + k * float(L) for k in range(self.cfg.eval_laps + 1)]
-            self._progress0 = -(d_line + (self.cfg.eval_laps - 1) * L)   # base ends at the last line
             self._crossings = [0.] if d_line == 0. else []
         else:
             self.max_time_s = self.cfg.max_episode_s
-            self._progress0 = NO_LAP_PROGRESS_M
             self._lines, self._crossings = [], []
-        self.progress = self._progress0
+        self.progress = NO_LAP_PROGRESS_M     # the base lap check never fires; see step()
         self._dist = 0.
         self._laps, self._lap_cost = [], _zero_costs()
         self._episode_cost = _zero_costs()
@@ -355,6 +363,7 @@ class DrivingEnv(OCDRacingEnv):
                 if not nonfinite:  # same ds as OCDRacingEnv.step
                     L = float(self.track.length)
                     self._dist += (self.s - s0 + L / 2) % L - L / 2
+                # QA MINOR 1 (kept, as OCDRacingEnv): actual dt -> a shortened terminal tick inflates smoothness.
                 du = (action - prev_action) / dt
                 costs = dict(progress=rw.a * (self._dist - d0), time=rw.b * dt,
                              smoothness=rw.b * dt * float(np.sum(np.asarray(rw.w) * du ** 2)),
@@ -376,13 +385,16 @@ class DrivingEnv(OCDRacingEnv):
                         cause = 'wrong_way'
                     if cause:
                         terminated, truncated, self.done = True, False, True
-                elif base['lap_complete']:
-                    cause = 'lap_complete'
+                if base['lap_complete']:   # unreachable: progress starts at NO_LAP_PROGRESS_M
+                    raise RuntimeError('base lap-completion check fired')
                 if cause in FAILURES:
                     costs['penalty'] = rw.failure_penalty(self._last_e, self.dt_tick)
                     r -= costs['penalty']
                 if self.evaluation and not nonfinite:
                     self._time_laps(d0, self._distance(), t0, self.time_s, costs)
+                    if cause is None and len(self._crossings) == len(self._lines):
+                        cause = 'lap_complete'   # QA MINOR 3: all eval_laps + 1 crossings recorded
+                        terminated, truncated, self.done = True, False, True
                 self._add_costs(step_cost, costs)
                 total += r
                 if terminated or truncated:
@@ -405,6 +417,8 @@ class DrivingEnv(OCDRacingEnv):
                         speed=math.hypot(self.state['vx'], self.state['vy']))
             if cfg.record_telemetry:
                 info['telemetry'] = self.backend.get_telemetry()
+        else:  # QA MINOR 5: same keys, so loggers need no special case
+            info.update(e_ref=math.nan, heading_error=math.nan, speed=math.nan)
         if self.evaluation:
             info.update(line_crossings_s=list(self._crossings), laps=[dict(l) for l in self._laps])
         return obs, float(total), bool(terminated), bool(truncated), info

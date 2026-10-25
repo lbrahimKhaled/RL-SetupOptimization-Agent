@@ -73,3 +73,22 @@ def test_grid_rejects_reversed_reference(track):
     reversed_ref = ReferenceLine.from_xy(track.path[-2::-1, 1:])
     with pytest.raises(ValueError):
         TrackGrid(track, reversed_ref, 5.)
+
+
+def test_rejects_bad_paths(track):
+    """QA MINOR 10: open path, non-increasing s, duplicate point (zero-length segment)."""
+    good = track.path.copy()
+    ReferenceLine(good)
+    open_path = good[:-1]
+    s_bad = good.copy()
+    s_bad[5, 0] = s_bad[4, 0]
+    dup = np.insert(good, 5, good[5], axis=0)
+    dup[6:, 0] += 1e-3        # s still strictly increasing, but points 5 and 6 coincide
+    shifted = good.copy()
+    shifted[:, 0] += 1.
+    for bad in (open_path, s_bad, dup, shifted):
+        with pytest.raises(ValueError):
+            ReferenceLine(bad)
+    xy = track.path[:-1, 1:]
+    with pytest.raises(ValueError):           # duplicate CSV row through from_xy
+        ReferenceLine.from_xy(np.insert(xy, 10, xy[10], axis=0))

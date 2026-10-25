@@ -130,6 +130,16 @@ def test_settle_hands_over_with_its_last_action(env):
     assert info['speed'] == pytest.approx(info['start']['v0'], rel=.05)
 
 
+def test_initial_history_without_settle(make_env):
+    """QA MINOR 4: with no settle the history holds (ego at placement, nothing pressed)."""
+    env = make_env(EnvConfig(**NO_SETTLE))
+    obs, _ = env.reset(seed=1)
+    entry = np.r_[obs[0:9], [0., -1., -1.]].astype(np.float32)
+    np.testing.assert_array_equal(obs[135:147], entry)
+    np.testing.assert_array_equal(obs[147:159], entry)
+    assert obs[0] > 0.
+
+
 def test_placed_on_reference_without_settle(make_env):
     env = make_env(EnvConfig(**NO_SETTLE))
     for seed in range(5):
@@ -283,8 +293,41 @@ def test_evaluation_reset_is_fixed(make_env, track):
     assert a['start']['s0'] == pytest.approx(track.length - 200.)
     assert a['start']['fraction'] == .5
     assert env.max_time_s == env.cfg.eval_max_s
-    d_line = env._lines[0]
-    assert env.progress == pytest.approx(-(d_line + track.length))   # base ends after 2 laps
+    assert env._lines == pytest.approx([200., 200. + track.length, 200. + 2 * track.length], abs=40.)
+    assert env.progress < -1e6     # base lap check out of reach; this env counts crossings
+
+
+def test_evaluation_ends_on_recorded_crossings(make_env):
+    """QA MINOR 3: the evaluation episode ends (lap_complete, terminated) exactly when this env
+    has recorded eval_laps + 1 crossings. Line distances shortened to 5 m apart for speed."""
+    env = make_env()
+    env.reset(options={'evaluation': True})
+    env._lines = [1., 6., 11.]
+    policy = DemoPolicy(env, .5)
+    policy.reset()
+    for _ in range(100):
+        _, _, term, trunc, info = env.step(policy())
+        if term or trunc:
+            break
+        assert info['termination'] is None and len(info['line_crossings_s']) < 3
+    assert term and not trunc and info['termination'] == 'lap_complete'
+    assert len(info['line_crossings_s']) == 3 and len(info['laps']) == 2
+    assert env.progress < -1e6
+    with pytest.raises(RuntimeError):
+        env.step(np.zeros(3, np.float32))
+
+
+@pytest.mark.parametrize('kw', [dict(max_episode_s=.05), dict(max_episode_s=.02), dict(eval_max_s=900.01),
+                                dict(eval_max_s=0.), dict(action_repeat=1, max_episode_s=.03)])
+def test_time_limits_must_be_whole_decisions(make_env, kw):
+    """QA MINOR 2: max_episode_s / eval_max_s are positive multiples of the decision period."""
+    with pytest.raises(ValueError):
+        make_env(EnvConfig(**kw))
+
+
+def test_time_limits_accept_whole_decisions(make_env):
+    make_env(EnvConfig(action_repeat=1, max_episode_s=1.9))
+    make_env(EnvConfig(max_episode_s=.04, eval_max_s=900.))
 
 
 def test_telemetry_only_when_requested(make_env):
@@ -408,6 +451,8 @@ def test_nonfinite_state_terminates_with_penalty(make_env, monkeypatch, nan_at):
     assert r < -cfg.reward.penalty_base + 1.
     assert not obs.any()
     assert info['transition_dt_s'] == pytest.approx(nan_at * .002)
+    for key in ('e_ref', 'heading_error', 'speed'):        # QA MINOR 5: present, NaN
+        assert math.isnan(info[key])
 
 
 def test_stall_timer_resets_between_episodes(make_env):

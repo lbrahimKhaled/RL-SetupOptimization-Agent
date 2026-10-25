@@ -116,9 +116,11 @@ def main():
         lap = flying_lap(env, f)
         out['flying_laps'].append(lap)
         fl = lap['flying_lap'] or {}
+        diff = lap['lap1_minus_lap2_s']
+        diff = 'n/a' if diff is None else f'{diff:.3f} s'      # None if the demo lap failed
         print(f'\nflying lap f={f}: termination={lap["termination"]} truncation={lap["truncation"]}\n'
               f'  lap times {np.round(lap["lap_times_s"], 3).tolist()} s (lap 2 = flying lap; '
-              f'lap1 - lap2 = {lap["lap1_minus_lap2_s"]:.3f} s)\n'
+              f'lap1 - lap2 = {diff})\n'
               f'  flying-lap cost {fl.get("cost", float("nan")):.3f} = time {fl.get("time", 0):.3f} + '
               f'smoothness {fl.get("smoothness", 0):.4f} + tracking {fl.get("tracking", 0):.3f}\n'
               f'  episode return {lap["return_"]:.1f}, max |e| {lap["max_abs_e_m"]:.3f} m, '

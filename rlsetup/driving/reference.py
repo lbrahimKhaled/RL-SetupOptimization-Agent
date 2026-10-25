@@ -21,6 +21,8 @@ from ocd_lap.track import closed_path
 MATCH_RANGE_M = 15.       # = Track.match: search window around the hint
 MATCH_INTERP = 101        # = Track.match
 TANGENT_HALF_M = .5       # = OCDRacingEnv._frame
+CLOSE_TOL_M = 1e-6        # = closed_path: first/last point treated as the same point
+MIN_SEGMENT_M = 1e-6      # shorter segments count as duplicate points
 
 
 class ReferenceLine:
@@ -31,6 +33,13 @@ class ReferenceLine:
         path = np.asarray(path, dtype=float)
         if path.ndim != 2 or path.shape[1] != 3 or len(path) < 4 or not np.isfinite(path).all():
             raise ValueError('path must be a finite [s, x, y] array with at least 4 rows')
+        # QA MINOR 10: a duplicate point gives a zero tangent and NaN offsets downstream
+        if np.linalg.norm(path[-1, 1:] - path[0, 1:]) > CLOSE_TOL_M:
+            raise ValueError('path must be closed (last point = first point)')
+        if path[0, 0] != 0. or not (np.diff(path[:, 0]) > 0.).all():
+            raise ValueError('arc length s must start at 0 and increase strictly')
+        if not (np.linalg.norm(np.diff(path[:, 1:], axis=0), axis=1) > MIN_SEGMENT_M).all():
+            raise ValueError(f'path has a segment shorter than {MIN_SEGMENT_M} m (duplicate point?)')
         self.path = path
         self.length = float(path[-1, 0])
         self.name = name
