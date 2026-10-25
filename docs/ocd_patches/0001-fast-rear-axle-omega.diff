@@ -1,0 +1,98 @@
+ocd_first_lap patch 0001: fast rear-axle speed getter for the engine powertrain
+================================================================================
+Approved by Ibrahim: RL-SetupOptimization-Agent docs/DECISIONS.md #8 (2026-10-25).
+Applies to: ocd_first_lap working tree at commit 2147dcd PLUS Ibrahim's uncommitted Stage 6
+work (the binding.cpp context includes his set_external() hunk). Apply from the
+ocd_first_lap root with `git apply` or `patch -p1`, then ./scripts/build.sh.
+
+Why: in engine mode OCDBackend._sync_powertrain runs every 2 ms physics step and read the
+rear-axle speed through car.signals([...]), which makes OCD's LoggerComposer rebuild its whole
+~220-signal map per call (~18 us, ~1/3 of env step time).
+
+What: Car.rear_axle_omega() in src/binding.cpp returns the drivetrain state element
+omega_rear_axle_radps directly. The logged signal 'drivetrain/x_vec/omega_rear_axle_radps'
+is a ReferenceLogger pointer to that same double (eqns_.x_vec_), so the value is identical by
+construction. VehicleModel keeps drivetrain_model_ protected with no getter, so it is reached
+via a member pointer formed in a derived helper struct (standard C++; vendor OCD unchanged,
+QA gate's pin+patches check unaffected). signals() and get_telemetry() are unchanged.
+_sync_powertrain uses the new getter. A unit test checks getter == signal exactly over 300
+engine-mode steps (throttle then brake).
+
+Evidence (2026-10-25, M4): engine-mode Shanghai laps (vmax 12 default brakes; vmax 20 with
+12 kN m brakes), the env ScriptedPolicy full lap and 5000 random-action env steps give
+identical lap.csv / telemetry.csv sha256, identical obs+reward stream sha256 and identical
+full-precision lap time and return before and after. qa_gate.sh PASS before and after.
+OCDRacingEnv('Shanghai') throughput, median of 3 x 5000 steps:
+random 1893 -> 2939 steps/s, ScriptedPolicy 1817 -> 2952 steps/s.
+
+--- a/src/binding.cpp
++++ b/src/binding.cpp
+@@ -16,6 +16,14 @@
+   tam::ocd::steering_actuator::PT1SteeringActuatorModel,
+   tam::ocd::vehicle_dynamics::VehicleDynamicsDoubleTrackModel<
+     tam::ocd::tire_models::MF52, tam::ocd::aerodynamics::RideHeightAerodynamicsModel>>;
++// VehicleModel keeps its drivetrain model protected (in this OCD base class) and has no getter
++// for it. A member pointer formed inside a derived helper reads it without a vendor change.
++using Drivetrain = tam::ocd::drivetrain::DrivetrainModel_RWD_LSD;
++struct DrivetrainAccess : auxiliary::conditional_compilation::DtHelperVehicleModel<
++  Drivetrain, tam::ocd::steering_actuator::PT1SteeringActuatorModel,
++  Drivetrain::AuxiliaryInputType> {
++  static Drivetrain const & of(Veh const & v) { return v.*&DrivetrainAccess::drivetrain_model_; }
++};
+ struct Car {
+   Veh v;
+   void set_parameters(py::dict values) {
+@@ -56,6 +64,13 @@
+     }
+     return out;
+   }
++  // Rear-axle speed [rad/s]: the same double as signal 'drivetrain/x_vec/omega_rear_axle_radps'
++  // (that log entry points at this state element). The engine powertrain reads it every 2 ms
++  // step; signals() rebuilds the whole ~220-signal log map per call (~18 us), this does not.
++  double rear_axle_omega() const {
++    return DrivetrainAccess::of(v).get_x_vec()[
++      tam::ocd::drivetrain::rwd_lsd::States::omega_rear_axle_radps];
++  }
+   // Road height under each wheel [FL, FR, RL, RR] (z up, needs patches/0002) and a force and
+   // torque on the body (vehicle frame). Held until changed; reset() clears them. Post-rig input.
+   // Wind and the friction scales lambda_mue are reset to their defaults (0 and 1).
+@@ -107,5 +122,6 @@
+          py::arg("force_N") = std::array<double, 3>{0., 0., 0.},
+          py::arg("torque_Nm") = std::array<double, 3>{0., 0., 0.})
+     .def("signal_names", &Car::signal_names)
+-    .def("signals", &Car::signals, py::arg("names"));
++    .def("signals", &Car::signals, py::arg("names"))
++    .def("rear_axle_omega", &Car::rear_axle_omega);
+ }
+--- a/ocd_lap/backend.py
++++ b/ocd_lap/backend.py
+@@ -197,8 +197,10 @@
+ 
+     def _sync_powertrain(self):
+         """Read the axle speed and let the gearbox act on the time stepped since the last sync,
+-        so a capacity query and the step that follows it use the same gear."""
+-        self._omega = self.car.signals(['drivetrain/x_vec/omega_rear_axle_radps'])[0]
++        so a capacity query and the step that follows it use the same gear. Runs every 2 ms
++        step, so it uses the direct getter (same value as the logged signal, without
++        rebuilding OCD's whole signal map)."""
++        self._omega = self.car.rear_axle_omega()
+         self.powertrain.update_gear(self._omega, self._unsynced_s)
+         self._unsynced_s = 0.
+ 
+--- a/tests/test_stage2.py
++++ b/tests/test_stage2.py
+@@ -76,6 +76,14 @@
+         self.assertGreater(state['vx'], 30.)
+         self.assertGreater(backend.gear, 1)
+ 
++    def test_rear_axle_getter_equals_logged_signal(self):
++        backend = OCDBackend(powertrain='engine')
++        backend.reset(Setup(), StartPose(speed=20.))
++        name = ['drivetrain/x_vec/omega_rear_axle_radps']
++        for k in range(300):
++            backend.step(Inputs(.05, 1. if k < 150 else 0., 0. if k < 150 else .5))
++            self.assertEqual(backend.car.rear_axle_omega(), backend.car.signals(name)[0])  # exact
+ 
++
+ if __name__ == '__main__':
+     unittest.main()
