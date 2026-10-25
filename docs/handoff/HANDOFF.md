@@ -12,7 +12,7 @@ Goal of the current phase: build the **SAC driving agent** only; evaluate and tu
 | Architect sign-off on D1 deviations (2 fixes needed: A5 obs scales, N1 setup=None guard) | `docs/specs/D1_signoff.md` (DONE) |
 | **D2 agent spec** | `docs/specs/D2_agent.md` (DONE) |
 | QA review of D1 | `docs/handoff/D1_qa_review.md` (if it finished) |
-| sim-runner compliance + D2 throughput benchmark | `docs/handoff/D1_sim_runner.md` (if it finished) |
+| sim-runner compliance + D2 throughput benchmark (D1 PASS; use 4 workers, torch 1 thread; learner-bound above UTD 0.25) | `docs/handoff/D1_sim_runner.md` (DONE) |
 | ocd_first_lap speed patch (applied there, uncommitted) | `docs/ocd_patches/0001-fast-rear-axle-omega.diff` |
 
 If one of the "(if it finished)" files is missing or partial, rerun that agent with the same task (see "Resume prompts").

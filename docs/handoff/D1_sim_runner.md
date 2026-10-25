@@ -86,3 +86,51 @@ f=0.7: cost 217.356 = 192.033 + 0.716 + 24.607; return 10500.8; max |e| 0.830 m;
 QSS p0 lap 133.916 s; obs size 159.
 
 **Determinism: identical.** All non-timing fields of the two JSONs (flying laps incl. line_crossings_s to the last bit, returns, random-episode statistics and causes, config, provenance) are equal.
+
+## 4. D2 capacity (measured on the M4; throwaway scripts in runs/d2_capacity/, no source edited)
+
+### 4a. DrivingEnv throughput, SB3 SubprocVecEnv(start_method='forkserver'), random actions, total decisions/s
+Command: `.venv/bin/python runs/d2_capacity/vec_throughput.py --workers 1 2 4 6 8 10 --steps 2000` (+ repeats noted). Auto-resets (21 ms settle each) included.
+
+| Workers | random, 2000 vec steps | random, 5000 steps rep 1 / rep 2 | random, thread caps =1 (OMP/VECLIB/OPENBLAS/MKL) | demo-driver actions (60 s episodes, few resets) |
+|---|---|---|---|---|
+| 1 (DummyVecEnv) | 1,207 | – | – | 1,574 |
+| 1 (Subproc) | 1,136 | – | – | 1,218 |
+| 2 | 1,669 | – | – | – |
+| 4 | 1,875 | 1,340 / 1,484 | 2,355 | 3,143 |
+| 6 | 2,175 | – | – | – |
+| 8 | 2,652 | 1,537 / 1,771 | 2,369 | 4,309 |
+| 10 | 2,638 | – | – | – |
+
+Ceiling without a vec env (N independent processes, no lockstep; `runs/d2_capacity/indep_procs.py 1 4 8`): 1 → 1,257, 4 → 4,216, 8 → 5,667 decisions/s incl. resets (step-only 1,776 / 5,956 / 8,029).
+Reading: SubprocVecEnv scales poorly with random actions (lockstep: a 21 ms reset in any worker stalls all; ~0.2 ms IPC per step; 6 of 10 cores are E-cores). Run-to-run noise is large (±25 %). With long episodes (demo actions) 4 → 3.1k, 8 → 4.3k.
+
+### 4b. SB3 2.9.0 SAC `train()` gradient steps/s, CPU, 3×256 MLPs (actor + 2 critics, 868,362 policy params), batch 512, obs 159, act 3
+Command: `.venv/bin/python runs/d2_capacity/sac_train_speed.py --threads T --steps 1000` (dummy env, 20k random transitions in the buffer, 100 warm-up steps, train() only).
+
+| torch threads | grad steps/s (same process) | separate processes |
+|---|---|---|
+| 1 | 198 | 193 |
+| 2 | 157 | 156, 159 |
+| 4 | 149 | 157, 119 |
+| MPS (extra) | – | 60 |
+
+1 thread is fastest on this machine; more threads are slower. MPS is 3× slower than CPU at this size.
+
+### 4c. End-to-end SAC.learn() (SubprocVecEnv forkserver, torch threads 1, train_freq 1 vec step, batch 512, 3×256, untrained policy, 8,000 env decisions after 1,024 learning_starts)
+Command: `.venv/bin/python runs/d2_capacity/sac_e2e.py --workers 8 --grad 2 4 8` and `--workers 4 --grad 1 2 4`.
+
+| Workers | UTD (grad steps per env decision) | env decisions/s | grad steps/s |
+|---|---|---|---|
+| 8 | 0.25 | 597 | 149 |
+| 8 | 0.5 | 333 | 166 |
+| 8 | 1.0 | 169 | 169 |
+| 4 | 0.25 | 578 | 145 |
+| 4 | 0.5 | 328 | 164 |
+| 4 | 1.0 | 189 | 189 |
+
+### Balance
+- The learner is the bottleneck: env and learner are balanced at UTD ≈ grad rate / env rate ≈ 193 / 1,900–2,650 ≈ 0.07–0.10. At any UTD ≥ 0.25 SB3's synchronous loop spends most of its time in train(), and 8 workers give no gain over 4 (measured 597 vs 578 at UTD 0.25; 169 vs 189 at UTD 1).
+- Suggested: 4 workers (= P-core count), torch.set_num_threads(1). The UTD choice is the architect's; its measured cost: UTD 1 ≈ 170–190 decisions/s, UTD 0.5 ≈ 330, UTD 0.25 ≈ 580–600.
+- ESTIMATES (extrapolated from the rates above, not measured): 1 M decisions ≈ 1.5 h at UTD 1, ≈ 50 min at UTD 0.5, ≈ 28 min at UTD 0.25 per seed on the M4; 3 seeds in parallel would compete for the 4 P-cores.
+- Higher env throughput only helps with an asynchronous learner (collection overlapping training), which SB3 does not do.
