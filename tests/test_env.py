@@ -198,6 +198,13 @@ def test_off_track_terminates_with_offset_penalty(make_env):
     assert info['termination'] == 'off_track' and term and not trunc
     assert info['step_cost']['penalty'] == pytest.approx(env.cfg.reward.failure_penalty(info['e_ref'], .02))
     assert r < -50.
+    # QA M-1: the terminal decision is shortened (footprint left mid-tick), and the time cost
+    # must use the actual tick length, not the nominal 0.02 s
+    assert info['transition_dt_s'] < env.decision_dt - 1e-9
+    assert round(info['transition_dt_s'] / .02, 6) % 1 != 0
+    c = info['step_cost']
+    assert r == pytest.approx(c['progress'] - c['time'] - c['smoothness'] - c['tracking'] - c['penalty'], abs=1e-9)
+    assert info['episode_cost']['time'] == pytest.approx(info['time_s'], abs=1e-12)
     with pytest.raises(RuntimeError):
         env.step(np.zeros(3, np.float32))
 
@@ -309,3 +316,112 @@ def test_body_frame_accelerations_on_steady_circle():
     assert abs(ax) < .5
     # synthetic: pure rotation at constant body velocity
     assert body_accelerations((20., 1., .5), (20., 1., .5), .04) == pytest.approx((-.5, 10.))
+
+
+# --- QA M-1: critical-path tests (D1_qa_review.md) -------------------------------------------
+IDX_E, IDX_PREVIEW, IDX_LAST_ACTION, IDX_HISTORY = 9, 12, 132, 135   # default ObsConfig layout
+
+
+def preview_points(env, obs):
+    """Preview block back in metres, car frame: (N, 3 [ref, left, right], 2 [x, y])."""
+    n = env.cfg.obs.n_preview
+    return obs[IDX_PREVIEW:IDX_PREVIEW + 6 * n].reshape(n, 3, 2) * env.preview_scale[:, None]
+
+
+def offset_pose(env, s, d, speed=10.):
+    """StartPose d [m] to the left of xi_ref at xi_ref arc length s, with xi_ref heading."""
+    p, t = env.ref.frame(s)
+    x, y = p + d * np.array([-t[1], t[0]])
+    return StartPose(float(x), float(y), math.atan2(t[1], t[0]), speed)
+
+
+def test_observation_signs_left_of_reference(make_env):
+    """Car 1.5 m left of xi_ref: e = +1.5 m (obs +0.3), station-1 xi_ref point to the right
+    (y < 0), left edge y > 0, right edge y < 0; track position larger left than right."""
+    env = make_env(EnvConfig(**NO_SETTLE))
+    obs, info = env.reset(options={'start_pose': offset_pose(env, 500., 1.5)})
+    assert info['e_ref'] == pytest.approx(1.5, abs=.02)
+    assert obs[IDX_E] == pytest.approx(.3, abs=.005)
+    pts = preview_points(env, obs)
+    assert pts[0, 0, 1] < 0. and pts[0, 1, 1] > 0. and pts[0, 2, 1] < 0.
+    assert (pts[:, 0, 0] > 0.).all()                       # stations lie ahead
+    pos_left = env.track_position()
+    env.reset(options={'start_pose': offset_pose(env, 500., -1.5)})
+    assert info['e_ref'] > 0. > env._line_errors()[0]
+    assert pos_left > env.track_position()
+
+
+def test_preview_points_match_track_across_the_line(make_env, track):
+    """s0 = L - 3 m: preview xi_ref points equal the rotated track.point(s + d_k) - xy (wrap)."""
+    env = make_env(EnvConfig(**NO_SETTLE))
+    obs, _ = env.reset(options={'start_pose': offset_pose(env, track.length - 3., 0.)})
+    st = env.state
+    d = track.point(env.s + env.preview_d).T - [st['x'], st['y']]          # Track.point wraps
+    c, s = math.cos(st['yaw']), math.sin(st['yaw'])
+    expected = np.column_stack([c * d[:, 0] + s * d[:, 1], -s * d[:, 0] + c * d[:, 1]])
+    assert env.s > track.length - 10. and (env.s + env.preview_d[-1]) > track.length
+    np.testing.assert_allclose(preview_points(env, obs)[:, 0], expected, atol=.02)
+
+
+def test_history_is_newest_first_and_filled_by_settle(env):
+    """History entry k = (ego, last action) of the observation k decisions ago, newest first;
+    at hand-over it is already filled from the settle phase (not zeros)."""
+    obs0, _ = env.reset(seed=12)
+    assert np.all(obs0[IDX_HISTORY:] != 0.)
+    policy = DemoPolicy(env, .5)
+    policy.reset()
+    prev = obs0
+    for _ in range(3):
+        obs, *_ = env.step(policy())
+        np.testing.assert_array_equal(obs[135:147], np.r_[prev[0:9], prev[132:135]])
+        np.testing.assert_array_equal(obs[147:159], prev[135:147])
+        prev = obs
+
+
+@pytest.mark.parametrize('nan_at', [5, 15])     # physics step after hand-over: tick 1 / tick 2
+def test_nonfinite_state_terminates_with_penalty(make_env, monkeypatch, nan_at):
+    """A non-finite state ends the episode (terminated, not truncated) with the failure
+    penalty at the last finite offset, and an all-zero observation."""
+    cfg = EnvConfig(settle_s=0.)
+    env = make_env(cfg)
+    start = {'start_s': 4900., 'start_speed': 20.}
+    _, info0 = env.reset(options=start)
+    action = np.array([0., .3, -1.], np.float32)
+    if nan_at <= 10:
+        e_before = info0['e_ref']
+    else:  # last finite offset = end of tick 1; reproduce tick 1 with a 1-tick decision env
+        twin = make_env(EnvConfig(settle_s=0., action_repeat=1))
+        twin.reset(options=start)
+        e_before = twin.step(action)[4]['e_ref']
+    calls, orig = [0], env.backend.step
+
+    def step(inputs, steps=1):
+        st = orig(inputs, steps)
+        calls[0] += 1
+        return dict(st, vx=float('nan')) if calls[0] == nan_at else st
+    monkeypatch.setattr(env.backend, 'step', step)
+    obs, r, term, trunc, info = env.step(action)
+    assert calls[0] == nan_at
+    assert term and not trunc and info['termination'] == 'nonfinite'
+    assert info['step_cost']['penalty'] == pytest.approx(cfg.reward.failure_penalty(e_before, .02), abs=1e-9)
+    assert info['step_cost']['penalty'] >= cfg.reward.penalty_base
+    assert r < -cfg.reward.penalty_base + 1.
+    assert not obs.any()
+    assert info['transition_dt_s'] == pytest.approx(nan_at * .002)
+
+
+def test_stall_timer_resets_between_episodes(make_env):
+    """An episode truncated while stalled must not carry its stall time into the next one.
+    Start below the stall speed (2.9 m/s, not QA's 3.5 m/s): from 3.5 m/s the first tick is
+    still above 3 m/s and zeroes an inherited timer, so the bug would go unnoticed."""
+    env = make_env(EnvConfig(max_episode_s=1.9, **NO_SETTLE))
+    brake = np.array([0., -1., 1.], np.float32)
+    for episode in range(2):
+        env.reset(options={'start_s': 4900., 'start_speed': 2.9})
+        while True:
+            _, _, term, trunc, info = env.step(brake)
+            assert info['termination'] is None, (episode, info['time_s'])
+            if term or trunc:
+                break
+        assert trunc and info['time_s'] == pytest.approx(1.9)
+        assert info['speed'] < env.cfg.stall_speed_mps and env._stall_s > 1.5   # stalled at the end
