@@ -43,17 +43,21 @@ class RewardConfig:
 @dataclass(frozen=True)
 class ObsConfig:
     """Observation layout and fixed scales (review R4; no running normalisation, so a fine-tune
-    on another setup sees the same input scaling)."""
+    on another setup sees the same input scaling). Scales per D1_signoff A5. The layout and
+    scales are FROZEN from D2 on: changing them invalidates every trained driver."""
     n_preview: int = 20                  # stations ahead along Track.path arc length
     preview_horizon_m: float = 300.      # d_k = horizon * (k / N)^exponent, k = 1..N
     preview_exponent: float = 1.5
     preview_min_scale_m: float = 10.     # station k is divided by max(d_k, this)
     grid_m: float = 1.                   # precomputation grid on Track.path arc length
     history: int = 3                     # ticks (decisions) in the ego + action stack, incl. now
-    speed_scale_mps: float = 80.
+    speed_scale_mps: float = 80.         # speed and v_x
+    vy_scale_mps: float = 5.             # lateral velocity v_y (D1_signoff A5; p99 |v_y| ~ 0.7 m/s)
     accel_scale_mps2: float = 30.
     yaw_rate_scale_radps: float = 1.
-    angle_scale_rad: float = math.pi     # heading error and actual steer angle
+    steer_scale_rad: float = .6          # actual steer angle; = ocd_lap.env.MAX_STEER_RAD, so it is
+                                         # in action units and last_action[0] - steer = PT1 lag (A5)
+    heading_scale_rad: float = .5        # heading error to xi_ref; wrong way (pi/2) -> 3.14 (A5)
     slip_gain: float = 5.                # rear slip ratio * gain, then clipped to +-slip_clip
     slip_clip: float = 5.
     e_scale_m: float = 5.

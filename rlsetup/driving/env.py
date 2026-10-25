@@ -164,9 +164,9 @@ class DrivingEnv(OCDRacingEnv):
         self._kin_next = (cur, clock)
         slip = lambda x: min(o.slip_clip, max(-o.slip_clip, o.slip_gain * x))
         return np.array([math.hypot(st['vx'], st['vy']) / o.speed_scale_mps, st['vx'] / o.speed_scale_mps,
-                         st['vy'] / o.speed_scale_mps, st['yaw_rate'] / o.yaw_rate_scale_radps,
+                         st['vy'] / o.vy_scale_mps, st['yaw_rate'] / o.yaw_rate_scale_radps,
                          ax / o.accel_scale_mps2, ay / o.accel_scale_mps2,
-                         st['steer_actual'] / o.angle_scale_rad, slip(st['slip_rl']), slip(st['slip_rr'])])
+                         st['steer_actual'] / o.steer_scale_rad, slip(st['slip_rl']), slip(st['slip_rr'])])
 
     def _clock(self):
         return self._settle_steps + self.physics_steps
@@ -189,7 +189,7 @@ class DrivingEnv(OCDRacingEnv):
         pts = np.stack([ref, left, right], axis=1) - [st['x'], st['y']]          # (N, 3, 2)
         local = np.stack([c * pts[..., 0] + s * pts[..., 1], -s * pts[..., 0] + c * pts[..., 1]], axis=-1)
         preview = (local / self.preview_scale[:, None]).ravel()
-        parts = [ego, [e / o.e_scale_m, heading / o.angle_scale_rad, self.track_position()],
+        parts = [ego, [e / o.e_scale_m, heading / o.heading_scale_rad, self.track_position()],
                  preview, self.last_action]
         if self.cfg.obs_gear:
             parts.append([self.backend.gear / o.gear_scale])
@@ -263,7 +263,8 @@ class DrivingEnv(OCDRacingEnv):
     def reset(self, *, seed=None, options=None):
         gym.Env.reset(self, seed=seed)  # NOT OCDRacingEnv.reset (second backend.reset, R2.1)
         options = dict(options or {})
-        setup = options.get('setup', self.setup)
+        setup = options.get('setup')
+        setup = self.setup if setup is None else setup   # N1: None must never reach backend.reset
         self.evaluation = bool(options.get('evaluation', self.cfg.evaluation))
         for attempt in range(1, self.cfg.max_start_attempts + 1):
             s0, f, v0, pose = self._sample_start(options)

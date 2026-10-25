@@ -5,7 +5,7 @@ import pytest
 from gymnasium.utils.env_checker import check_env
 from ocd_lap.backend import OCDBackend, StartPose, Inputs
 from ocd_lap.car_setup import Setup
-from ocd_lap.env import OCDRacingEnv
+from ocd_lap.env import OCDRacingEnv, MAX_STEER_RAD
 from rlsetup.driving.config import EnvConfig, RewardConfig, ObsConfig
 from rlsetup.driving.demo_driver import DemoPolicy
 from rlsetup.driving.env import DrivingEnv, body_accelerations
@@ -89,6 +89,36 @@ def test_reset_determinism_and_setup_independent_start(make_env):
     assert idd['start']['s0'] != ia['start']['s0']
     lo, hi = env.cfg.start_speed_fraction
     assert lo <= ia['start']['fraction'] <= hi
+
+
+def test_setup_none_option_means_default_setup(make_env):
+    """N1 (D1_signoff): options={'setup': None} must not reach backend.reset (which would skip
+    the translator and drive OCD's shipped car); it means the env's default setup."""
+    env = make_env()
+    obs_a, ia = env.reset(seed=9)
+    state_a = dict(env.state)
+    obs_b, ib = env.reset(seed=9, options={'setup': None})
+    assert ib['setup'] == Setup() == ia['setup']
+    assert env.state == state_a
+    np.testing.assert_array_equal(obs_a, obs_b)
+
+
+def test_observation_scales(make_env):
+    """D1_signoff A5: v_y / 5 m/s, actual steer / 0.6 rad (action units), heading / 0.5 rad."""
+    o = ObsConfig()
+    assert o.steer_scale_rad == MAX_STEER_RAD
+    env = make_env(EnvConfig(**NO_SETTLE))
+    obs, info = env.reset(seed=3)
+    st = env.state
+    assert obs[2] == pytest.approx(st['vy'] / o.vy_scale_mps, abs=1e-6)
+    assert obs[6] == pytest.approx(st['steer_actual'] / o.steer_scale_rad, abs=1e-6)
+    assert obs[10] == pytest.approx(info['heading_error'] / o.heading_scale_rad, abs=1e-6)
+    for _ in range(10):
+        obs, *_ = env.step(np.array([.5, .2, -1.], np.float32))
+    st = env.state
+    assert abs(st['steer_actual']) > .05 and abs(st['vy']) > 0.
+    assert obs[2] == pytest.approx(st['vy'] / 5., rel=1e-5)
+    assert obs[6] == pytest.approx(st['steer_actual'] / .6, rel=1e-5)
 
 
 def test_settle_hands_over_with_its_last_action(env):
