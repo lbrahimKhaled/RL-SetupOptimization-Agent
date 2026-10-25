@@ -11,7 +11,7 @@ Goal of the current phase: build the **SAC driving agent** only; evaluate and tu
 | D1 env spec + architect review (review wins) | `docs/specs/D1_driving_env.md`, `docs/specs/D1_review.md` |
 | Architect sign-off on D1 deviations (2 fixes needed: A5 obs scales, N1 setup=None guard) | `docs/specs/D1_signoff.md` (DONE) |
 | **D2 agent spec** | `docs/specs/D2_agent.md` (DONE) |
-| QA review of D1 | `docs/handoff/D1_qa_review.md` (if it finished) |
+| QA review of D1 (no blockers; M-1 add 5 test groups; 12 minors) | `docs/handoff/D1_qa_review.md` (DONE) |
 | sim-runner compliance + D2 throughput benchmark (D1 PASS; use 4 workers, torch 1 thread; learner-bound above UTD 0.25) | `docs/handoff/D1_sim_runner.md` (DONE) |
 | ocd_first_lap speed patch (applied there, uncommitted) | `docs/ocd_patches/0001-fast-rear-axle-omega.diff` |
 
@@ -30,3 +30,6 @@ If one of the "(if it finished)" files is missing or partial, rerun that agent w
 ## Resume prompts
 1. "Read docs/handoff/HANDOFF.md. Check which handoff/spec files exist. Rerun any missing review (QA: qa-reviewer on D1; compliance: sim-runner on D1; architect: D1 sign-off + D2 spec), then have rl-coder fix blockers, then commit D1."
 2. After D1 is committed: "Have rl-coder implement docs/specs/D2_agent.md; then qa-reviewer + sim-runner verify; run the ~20 min smoke run."
+
+## NEXT ACTION (as of all D1 reviews landing)
+All four D1 reviews are in and committed. Next: rl-coder applies **D1 fix list** = D1_signoff A5 (obs scales) + N1 (setup=None guard) + D1_qa_review M-1 (5 test groups) + MINOR 2, 3, 4, 5, 8, 10 + provenance additions (D1_sim_runner §1 / QA minor 9). Then rerun full pytest + bench, commit "D1 complete", then implement D2_agent.md.
