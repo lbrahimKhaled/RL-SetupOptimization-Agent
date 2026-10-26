@@ -76,3 +76,51 @@ Recorded: rlsetup commit `2b32e3e` (dirty False, diff sha = empty-diff hash), oc
 - Eval step 0: lap 2 340.578 s clean, mean |e| 0.085 m, max |e| 0.63 m, min edge margin 0.96 m, front lock 0, spin upshifts 0, α 0.100, eval wall 19.7 s.
 - Eval step 25k: **deterministic off_track after 1,037 decisions (det_regression event)**; stochastic 0/3 (all off_track); Q_min 106.1 vs MC 76.4 (ratio 1.39, overestimating); α 0.0535; entropy −2.94; obs clip 0.0; training causes so far: off_track 53, stall 9, wrong_way 6.
 - **Throughput at 25k: 154 env steps/s, 77 grad steps/s** (wall_train 161.9 s, wall_eval 26.2 s cumulative). **CPU contention:** during this window other agents ran `pytest -q` (PID 75602), `pytest -q -x -m …` (PID 82663) and a qa-reviewer D2 training run (PID 81697, `--run-name a --set runs_root=/tmp/qa_d2/det/runs …`, 2 envs); load avg 5–7 on 4 P-cores. Throughput is therefore not a clean measurement.
+
+## Final results — smoke1_bc30 (sim-runner, 26 Oct, run ended 08:48:06; resume 10:53–10:56)
+Run ended on the wall-clock limit at **147,704 steps** (status `wall_clock_limit`, 0 rollbacks); process 1,377.5 s real, peak RSS 1.1 GB. Phases (status.json): demos 0.7 s (cached), BC 25.1 s, offline warm-up 31.7 s (5,000 grad steps), online warm-up 62.0 s (10,000 steps), RL 1,247.2 s (137,704 steps, 78,850 updates total).
+
+### Evaluations (evals.jsonl)
+| step | det result | lap 1 / lap 2 [s] | sto clean | Q_min / MC (ratio) | α | env/s | eval wall [s] |
+|---|---|---|---|---|---|---|---|
+| 0 | clean | 340.195 / 340.578 | 0/3 | 37.4 / 54.1 (0.69) | 0.100 | – | 19.7 |
+| 25k | off_track @1,037 dec | – | 0/3 | 106.1 / 76.4 (1.39) | 0.054 | 154 | 6.6 |
+| 50k | off_track @430 | – | 0/3 | 171.1 / 84.5 (2.02) | 0.072 | 131 | 1.7 |
+| 75k | off_track @485 | – | 2/3 (145.87, 145.05) | 156.9 / 122.0 (1.29) | 0.079 | 160 | 7.7 |
+| 100k | off_track @3,586 | – | 0/3 | 142.0 / 101.9 (1.39) | 0.069 | 142 | 9.7 |
+| 125k | off_track @1,390 | – | 0/3 | 138.5 / 82.1 (1.69) | 0.083 | 141 | 5.9 |
+| 147,704 | **clean** | **131.146 / 130.817** | **3/3** (137.45, 133.62, 137.22) | 161.9 / 150.0 (1.08) | 0.084 | 124 | 22.6 |
+| 150k (resume) | off_track | – | 3/3 | – | 0.084 | 172 | – |
+| 175k (resume) | off_track | – | 2/3 | – | 0.084 | 159 | – |
+
+Final lap 2 (147,704): mean |e| 0.61 m, max |e| 3.53 m, min edge margin 0.08 m, front-lock fraction 0.058, spin upshifts 22, smoothness share 0.029, tracking cost 387.5 (BC: 19.9). **Lap 2 = 130.8 s is 3.1 s faster than the QSS reference lap (133.916 s) after 148k steps; this needs scrutiny by qa/architect** (it is legal under the env rules, since there is no off_track and the edge margin is > 0, but the agent leaves ξref by up to 3.5 m and runs within 8 cm of the edge; the QSS lap is on the fixed reference line, so a shorter/wider line can beat it). The deterministic policy is unstable between evals: 5 of 6 post-unfreeze evals before the last were off_track, and both resume evals were off_track again.
+
+Training termination causes (cumulative to 147,704): off_track 127, time_limit 46, stall 12, wrong_way 8. Note: after resume, `train_causes_total` restarts from 0 (minor: not cumulative across resume).
+
+### §11.1 pass criteria
+| Criterion | Result | Evidence |
+|---|---|---|
+| No exceptions | **PASS** (smoke1_bc30 + resume). smoke1 (spec smoke preset) stopped cleanly at the BC gate. | logs `runs/D2/smoke_logs/train_bc30.log`, `resume_bc30.log` |
+| Throughput within 20 % of benchmark (328 env steps/s, 4 workers, UTD 0.5) | **FAIL as measured / not attributable**: per-eval windows 124–160 env steps/s (62–80 grad steps/s); train-only 147,704 / 1,046.3 s = 141 /s; RL phase incl. evals/probes/checkpoints 110 /s; resume 159–172 /s. This is 47–66 % below the benchmark, but other agents ran pytest + a qa D2 training run during 25 of 30 samples (load 5–9), and during the resume the full1 run was also running (load 15–17). A clean uncontended measurement was not possible. | `contention.log`, evals.jsonl |
+| Critic loss finite, |Q| < 2,000 | **PASS**: critic loss 1.06–73.2, all finite (53 progress rows); max |Q| over all 334,628 buffer transitions = 554.5 (Q(s,a_buffer) ∈ [−554.5, 308.7]; max |Q(s, a~π)| 553.4), all finite. Q overestimates soft MC by 1.08–2.02× after unfreeze (risk 3 to watch). | `/tmp/d2diag/qmax.py` |
+| Probe progress after unfreeze ≥ 0.5 × BC | **PASS, 0 rollbacks**: BC baseline 463.3 m; 27 probes 15k–145k, minimum 440.0 m (20k), then 560–914 m. | probes.jsonl |
+| α in [1e-4, 1] | **PASS**: 0.0451–0.1001 (progress.csv), 0.084 at the end | sb3/progress.csv |
+| Obs clip < 1 % | **PASS**: 0.0 in every eval, incl. resume | evals.jsonl |
+| Checkpoint save/load/resume | **PASS**: d2_report re-evaluation of last.zip reproduces logged lap 2 exactly (delta 0.000 s). Resume 147,704 → 175,000 steps in 191 s, exit 0, new SB3 log `sb3/resume1/`, last.zip and buffer rewritten. Resume adds no `phases` entry in status.json (only events); minor. | `resume_bc30.log` |
+| Report script runs (criteria FAIL, no crash) | **PASS on smoke1_bc30** (exit 0, 155 s; i, ii, v, vi PASS; iii plateau and iv seed-std FAIL as expected for 1 seed / short run). **Crash on smoke1** (gate-failed run, no last.zip), see above. | `runs/D2/smoke1_bc30/d2_report.md` |
+
+### Other requested numbers
+- BC gate: spec smoke preset (10 epochs) **FAIL** (det off_track at s = 1,598.8 m); with 30 epochs (early stop 18, best 15) **PASS**, BC lap 2 = **340.578 s**; stochastic 0/3 in both.
+- wall_eval_s vs wall_train_s (cumulative at 147,704): **73.7 s vs 1,046.3 s (7.0 %)** at a 25k interval with 3 stochastic laps. Probes + checkpoints + buffer save are in neither number: online+RL wall 1,309.2 s − 1,120.0 s = 189 s (14 %). Eval cost scales with how long the policy survives: a clean 2-lap det run + 3 clean stochastic laps (~16.9k decisions) took 22.6 s (~750 decisions/s). Estimate for a full-preset eval (det 2 laps + 10 stochastic laps of a lap-capable policy ≈ 40k decisions): ~55 s per 50k steps, i.e. ~15 % of the train time at 140 steps/s (estimate, not measured).
+- `replay_buffer.pkl`: **1,296,003,190 bytes (1.30 GB)**. This is the full 1e6 preallocated capacity (250,000 × 4 × 159 float32 obs + next_obs), so it is the same size for every run regardless of fill. Run folder 1.3 GB total; checkpoints ~7.8 MB each.
+- Free disk (`df -h ~`): 38 Gi at start, **36 Gi** at end (92 % used). 3 full seeds ≈ 4 GB of buffers + checkpoints: fits. The stale `data/demos/demos_ae584b8a813a.*` (134 MB) can be deleted.
+- Steps/hour (measured, contended): RL phase incl. all overheads **110 steps/s ≈ 397k steps/h**; train-only 141 /s ≈ 508k/h; whole pipeline 107 /s ≈ 387k/h. Uncontended might approach the benchmark ratio, but that is not measured.
+
+### Recommendation: total_timesteps for the full preset under a 3 h/seed cap
+Full-preset fixed cost ≈ 3–4 min (BC ~25 s, offline 20k grad steps at ~167/s ≈ 2 min, online warm-up 20k at ~160/s ≈ 2 min). At the measured contended end-to-end rate (~397k/h), 3 h gives **~1.15–1.2M steps** (estimate). **Recommend `total_timesteps = 1.2e6` with `max_wall_h = 3` as a backstop.** If the machine is left uncontended, measure the rate from full1's first evals and raise it.
+The running full1 uses `total_timesteps = 2e6, max_wall_h = 3`. At measured rates the wall cap will stop it before 2M (estimate ~1.2–1.5M). `d2_report.plateau` takes T = last eval step, so criterion (iii) is still evaluated correctly on a wall-capped run. Only the planned and actual T will differ.
+
+### Housekeeping
+- The detached worktree `/Users/ibrahimkhaled/Documents/rlsetup-wt-smoke` was removed after use (`git worktree remove`). smoke1_bc30's provenance records its path and commit `2b32e3e`.
+- ocd_first_lap at the end: `git status --short` 18 entries, diff sha `45f07e39…`, unchanged from the start and from D1. qa_gate was not run (not requested).
+- Diagnostic scripts (not in the repo): `/tmp/d2diag/bc_gate_diag.py`, `bc_onset.py`, `bc_epochs.py`, `qmax.py`.
