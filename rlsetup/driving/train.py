@@ -171,7 +171,7 @@ def _offline_warmup(run, model, demos, val_episodes):
         model.logger.record('warmup/mean_q_demo_batch', rec['mean_q_demo_batch'])
         model.logger.dump(step=b)
         run.log(f'offline block {b}: critic loss {rec["critic_loss"]:.3f}, mean Q {rec["mean_q_demo_batch"]:.1f}')
-    # Q vs soft MC on demo episodes (validation episodes first)
+    # Q vs soft MC (per-step and n-step-consistent) on demo episodes (validation episodes first)
     E = len(demos['ep_start_tr'])
     eps = list(val_episodes) + [e for e in range(E) if e not in set(val_episodes)]
     eps = eps[:w.q_mc_max_episodes]
@@ -187,7 +187,8 @@ def _offline_warmup(run, model, demos, val_episodes):
                 th.as_tensor(a).clamp(-cfg.bc.action_clip, cfg.bc.action_clip)).numpy()
         pairs.append(q_vs_mc(model.critic, o, a, demos['rewards'][sl], logp, gamma=model.gamma,
                              alpha=model.alpha, failed=str(demos['ep_cause'][e]) in FAILURES,
-                             stride=cfg.eval.q_mc_stride, min_left=cfg.eval.q_mc_min_left))
+                             stride=cfg.eval.q_mc_stride, min_left=cfg.eval.q_mc_min_left,
+                             n_steps=model.n_steps))
     summary = summarize_q_mc(pairs)
     append_jsonl(run.dir / 'warmup.jsonl', {'q_vs_mc_demo': summary, 'episodes': [int(e) for e in eps]})
     run.log(f'offline warm-up Q vs soft MC on demos: {summary}')

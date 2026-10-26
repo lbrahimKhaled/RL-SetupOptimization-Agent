@@ -14,10 +14,20 @@ Conventions
     uses the centre position, ignores yaw).
   - Front lock: min(kappa_FL, kappa_FR) < -0.12 (longitudinal slip ratio, telemetry).
     Spin upshift: the gear went up during a decision whose end state has max |rear slip| > 0.12.
-  - Soft Monte-Carlo return from decision k (SAC objective, alpha = current entropy coeff.):
-        MC_k = sum_{j>=0} gamma^j r_{k+j} - alpha sum_{j>=1} gamma^j log pi(a_{k+j} | s_{k+j})
-    truncated at the episode end (a completed evaluation lap is NOT a terminal state of the
-    training MDP, hence the >= 600 decisions-left rule: gamma^600 = 0.008).
+  - Soft Monte-Carlo returns from decision k (alpha = current entropy coeff.), both logged
+    (QA D2 M1, lead decision: log both):
+        per-step ('mc', SAC objective):
+          MC_k   = sum_{j>=0} gamma^j r_{k+j} - alpha sum_{j>=1} gamma^j log pi(a_{k+j} | s_{k+j})
+        n-step-consistent ('mc_nstep', n = model.n_steps):
+          MC^n_k = sum_{j>=0} gamma^j r_{k+j} - alpha sum_{m>=1} gamma^{mn} log pi(a_{k+mn} | s_{k+mn})
+    MC^n is the fixed point, along the trajectory, of SB3 2.9.0's n-step critic target
+    (NStepReplayBuffer + SAC.train: y = sum_{j<n} gamma^j r_{k+j} + gamma^n (Q(s_{k+n}, a') -
+    alpha log pi(a' | s_{k+n}))), which adds the entropy bonus only every n-th decision; so with
+    n = 3 the critic learns ~1/3 of the per-step entropy bonus and Q - MC (per-step) is biased
+    by about alpha E[log pi] (gamma/(1-gamma) - gamma^n/(1-gamma^n)). Compare Q with MC^n for
+    over/underestimation; MC is the SAC-objective reference. Both are truncated at the episode
+    end (a completed evaluation lap is NOT a terminal state of the training MDP, hence the >= 600
+    decisions-left rule: gamma^600 = 0.008).
 """
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -195,17 +205,27 @@ def lap_metrics(rep, cfg, lap=2):
     return out
 
 
-def soft_mc_returns(rewards, logp, gamma, alpha):
-    """MC_k for every k (module docstring), by the backward recursion
-    MC_k = r_k + gamma (MC_{k+1} - alpha log pi_{k+1}), MC_{T-1} = r_{T-1}."""
+def soft_mc_returns(rewards, logp, gamma, alpha, n_steps=1):
+    """MC_k for every k (module docstring): n_steps = 1 per-step soft MC, n_steps = n the
+    n-step-consistent soft MC (entropy at offsets n, 2n, ... only). Rewards and log pi past the
+    last decision count as 0. Computed as G_k - alpha E_k with G_k = r_k + gamma G_{k+1} and
+    E_k = gamma^n (log pi_{k+n} + E_{k+n}) (E_k = 0 for k + n > T - 1)."""
     r = np.asarray(rewards, dtype=float)
     lp = np.asarray(logp, dtype=float)
-    out = np.empty_like(r)
+    n = int(n_steps)
+    if n < 1:
+        raise ValueError(f'n_steps must be >= 1, got {n_steps}')
+    T = len(r)
+    g = np.empty_like(r)
     acc = 0.
-    for k in range(len(r) - 1, -1, -1):
-        acc = r[k] + (gamma * (acc - alpha * lp[k + 1]) if k + 1 < len(r) else 0.)
-        out[k] = acc
-    return out
+    for k in range(T - 1, -1, -1):
+        acc = r[k] + gamma * acc
+        g[k] = acc
+    ent = np.zeros_like(r)
+    gn = gamma ** n
+    for k in range(T - 1 - n, -1, -1):
+        ent[k] = gn * (lp[k + n] + ent[k + n])
+    return g - alpha * ent
 
 
 def mc_indices(n, failed, stride=100, min_left=600):
@@ -223,29 +243,37 @@ def q_values(critic, obs, actions):
     return qs.min(1).values.numpy().astype(float), qs.mean(1).numpy().astype(float)
 
 
-def q_vs_mc(critic, obs, actions, rewards, logp, *, gamma, alpha, failed, stride=100, min_left=600):
-    """Pairs (Q(s_k, a_k), MC_k) for one episode; obs[k] / actions[k] / rewards[k] / logp[k] per
-    decision k. Returns dict of arrays (empty if no k qualifies)."""
+def q_vs_mc(critic, obs, actions, rewards, logp, *, gamma, alpha, failed, stride=100, min_left=600, n_steps=1):
+    """Pairs (Q(s_k, a_k), MC_k, MC^n_k) for one episode; obs[k] / actions[k] / rewards[k] /
+    logp[k] per decision k; n_steps = the critic's n-step horizon (model.n_steps). Returns dict
+    of arrays (empty if no k qualifies): k, q_min, q_mean, mc (per-step), mc_nstep, n_steps."""
     ks = mc_indices(len(rewards), failed, stride, min_left)
     if len(ks) == 0:
-        return {'k': ks, 'q_min': np.zeros(0), 'q_mean': np.zeros(0), 'mc': np.zeros(0)}
+        z = np.zeros(0)
+        return {'k': ks, 'q_min': z, 'q_mean': z, 'mc': z, 'mc_nstep': z, 'n_steps': int(n_steps)}
     mc = soft_mc_returns(rewards, logp, gamma, alpha)[ks]
+    mcn = soft_mc_returns(rewards, logp, gamma, alpha, n_steps)[ks]
     q_min, q_mean = q_values(critic, np.asarray(obs)[ks], np.asarray(actions)[ks])
-    return {'k': ks, 'q_min': q_min, 'q_mean': q_mean, 'mc': mc}
+    return {'k': ks, 'q_min': q_min, 'q_mean': q_mean, 'mc': mc, 'mc_nstep': mcn, 'n_steps': int(n_steps)}
 
 
 def summarize_q_mc(pairs):
-    """Mean differences and ratios over a list of q_vs_mc results."""
-    q_min = np.concatenate([p['q_min'] for p in pairs]) if pairs else np.zeros(0)
-    q_mean = np.concatenate([p['q_mean'] for p in pairs]) if pairs else np.zeros(0)
-    mc = np.concatenate([p['mc'] for p in pairs]) if pairs else np.zeros(0)
+    """Mean differences and ratios over a list of q_vs_mc results, against the per-step soft MC
+    (keys without suffix) and the n-step-consistent soft MC (suffix '_nstep')."""
+    cat = lambda key: np.concatenate([p[key] for p in pairs]) if pairs else np.zeros(0)
+    q_min, q_mean, mc = cat('q_min'), cat('q_mean'), cat('mc')
     if mc.size == 0:
         return {'n': 0}
-    ratio = lambda q: float(q.mean() / mc.mean()) if mc.mean() != 0 else math.nan
-    return {'n': int(mc.size), 'mc_mean': float(mc.mean()), 'q_min_mean': float(q_min.mean()),
+    mcn = cat('mc_nstep')
+    ratio = lambda q, m: float(q.mean() / m.mean()) if m.mean() != 0 else math.nan
+    return {'n': int(mc.size), 'n_steps': int(pairs[0]['n_steps']),
+            'mc_mean': float(mc.mean()), 'q_min_mean': float(q_min.mean()),
             'q_mean_mean': float(q_mean.mean()), 'q_min_minus_mc': float((q_min - mc).mean()),
-            'q_mean_minus_mc': float((q_mean - mc).mean()), 'q_min_ratio': ratio(q_min),
-            'q_mean_ratio': ratio(q_mean)}
+            'q_mean_minus_mc': float((q_mean - mc).mean()), 'q_min_ratio': ratio(q_min, mc),
+            'q_mean_ratio': ratio(q_mean, mc),
+            'mc_nstep_mean': float(mcn.mean()), 'q_min_minus_mc_nstep': float((q_min - mcn).mean()),
+            'q_mean_minus_mc_nstep': float((q_mean - mcn).mean()), 'q_min_ratio_nstep': ratio(q_min, mcn),
+            'q_mean_ratio_nstep': ratio(q_mean, mcn)}
 
 
 # --- probe ---------------------------------------------------------------------------------------
@@ -317,6 +345,7 @@ def evaluate_model(model, envs, cfg, *, laps_path=None):
            'lap2': lap_metrics(det, cfg, lap=2)}
     critic = critic_of(model)
     alpha, gamma = float(model.alpha), float(model.gamma)
+    n_steps = int(getattr(model, 'n_steps', 1) or 1)          # SB3 n-step horizon of the critic target
     sto, pairs, logps = [], [], []
     from .env import FAILURES
     for k in range(cfg.stochastic_laps):
@@ -327,7 +356,7 @@ def evaluate_model(model, envs, cfg, *, laps_path=None):
         with torch_threads(1):
             pairs.append(q_vs_mc(critic, rep.obs[:-1], rep.trace['actions'], rep.trace['reward'], rep.logp,
                                  gamma=gamma, alpha=alpha, failed=rep.termination in FAILURES,
-                                 stride=cfg.q_mc_stride, min_left=cfg.q_mc_min_left))
+                                 stride=cfg.q_mc_stride, min_left=cfg.q_mc_min_left, n_steps=n_steps))
     clean_laps = [s['lap_s'] for s in sto if s['clean']]
     out.update(sto_laps=sto, sto_clean=len(clean_laps), sto_n=len(sto),
                sto_clean_rate=len(clean_laps) / len(sto) if sto else math.nan,

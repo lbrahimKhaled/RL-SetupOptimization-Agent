@@ -265,6 +265,59 @@ def test_soft_mc_exact():
     assert len(ev.mc_indices(599, False)) == 0
 
 
+def sb3_nstep_fixed_point(rewards, logp, gamma, alpha, n_steps):
+    """Brute force: Q on a deterministic chain s_0 .. s_{T-1} (s_{T-1} terminal) that SB3 2.9.0's
+    n-step critic target maps to itself. The targets come from a real NStepReplayBuffer
+    (`_get_samples`: n-step reward sum, discount gamma^m, done flag, index of next_obs) and
+    SAC.train's backup y = R + (1 - d) disc (Q(s') - alpha log pi(a'|s')), with a' = the chain's
+    own next action (log pi = logp of that state). Iterated until nothing changes."""
+    import gymnasium as gym
+    from stable_baselines3.common.buffers import NStepReplayBuffer
+    T = len(rewards)
+    rb = NStepReplayBuffer(T + 8, gym.spaces.Box(-1e6, 1e6, (1,), np.float32),
+                           gym.spaces.Box(-1, 1, (1,), np.float32), device='cpu', n_envs=1,
+                           n_steps=n_steps, gamma=gamma)
+    for k in range(T):
+        rb.add(np.array([[k]], np.float32), np.array([[k + 1]], np.float32), np.zeros((1, 1), np.float32),
+               np.array([rewards[k]], np.float32), np.array([k == T - 1]), [{}])
+    smp = rb._get_samples(np.arange(T))
+    R, disc = smp.rewards.numpy()[:, 0].astype(float), smp.discounts.numpy()[:, 0].astype(float)
+    done, nxt = smp.dones.numpy()[:, 0], smp.next_observations.numpy()[:, 0].astype(int)
+    lp = np.r_[logp, 0.]                                          # s_T (after the terminal) unused
+    q = np.zeros(T + 1)
+    for _ in range(T + 2):
+        new = q.copy()
+        new[:T] = R + (1. - done) * disc * (q[nxt] - alpha * lp[nxt])
+        if np.array_equal(new, q):
+            break
+        q = new
+    return q[:T]
+
+
+def test_nstep_soft_mc_is_sb3_fixed_point():
+    """QA D2 M1: MC^n (entropy only at offsets n, 2n, ...) equals the fixed point of SB3's n-step
+    target; the per-step soft MC does not (by about alpha E[log pi] (g/(1-g) - g^n/(1-g^n)))."""
+    rng = np.random.default_rng(3)
+    T, g, a = 50, .9, .3                                          # T not a multiple of n
+    r, lp = rng.normal(1., .5, T), rng.normal(-2., 1., T)
+    for n in (1, 2, 3):
+        fp = sb3_nstep_fixed_point(r, lp, g, a, n)
+        np.testing.assert_allclose(ev.soft_mc_returns(r, lp, g, a, n_steps=n), fp, rtol=1e-5, atol=1e-5)
+        brute = [sum(g ** j * r[k + j] for j in range(T - k)) - a * sum(g ** j * lp[k + j] for j in range(n, T - k, n))
+                 for k in range(T)]
+        np.testing.assert_allclose(ev.soft_mc_returns(r, lp, g, a, n_steps=n), brute, rtol=1e-12)
+    per_step = ev.soft_mc_returns(r, lp, g, a)
+    fp3 = sb3_nstep_fixed_point(r, lp, g, a, 3)
+    np.testing.assert_allclose(per_step, sb3_nstep_fixed_point(r, lp, g, a, 1), rtol=1e-5, atol=1e-5)
+    assert np.abs(per_step - fp3)[:30].min() > .5                # far from the end: clearly biased
+    # constant log pi far from the episode end: offset = alpha |log pi| (g/(1-g) - g^3/(1-g^3))
+    c = np.full(2000, -2.)
+    off = ev.soft_mc_returns(np.zeros(2000), c, g, a)[0] - ev.soft_mc_returns(np.zeros(2000), c, g, a, 3)[0]
+    assert off == pytest.approx(a * 2. * (g / (1 - g) - g ** 3 / (1 - g ** 3)), rel=1e-9)
+    with pytest.raises(ValueError):
+        ev.soft_mc_returns(r, lp, g, a, n_steps=0)
+
+
 def test_q_vs_mc_with_fake_critic():
     class Critic:
         def __call__(self, obs, act):
@@ -277,8 +330,21 @@ def test_q_vs_mc_with_fake_critic():
     np.testing.assert_allclose(out['q_min'], [0., 200.])
     np.testing.assert_allclose(out['q_mean'], [.5, 200.5])
     np.testing.assert_allclose(out['mc'], [2., 2.], rtol=1e-12)
+    np.testing.assert_allclose(out['mc_nstep'], [2., 2.], rtol=1e-12)          # log pi = 0: identical
     s = ev.summarize_q_mc([out])
     assert s['n'] == 2 and s['q_min_minus_mc'] == pytest.approx(98.) and s['q_min_ratio'] == pytest.approx(50.)
+    assert s['n_steps'] == 1 and s['q_min_minus_mc_nstep'] == pytest.approx(98.)
+    lp = np.full(n, -1.)                                     # entropy bonus: n-step MC gets less of it
+    o3 = ev.q_vs_mc(Critic(), obs, np.zeros((n, 3)), r, lp, gamma=.5, alpha=.1, failed=False, n_steps=3)
+    np.testing.assert_allclose(o3['mc'], ev.soft_mc_returns(r, lp, .5, .1)[[0, 100]])
+    np.testing.assert_allclose(o3['mc_nstep'], ev.soft_mc_returns(r, lp, .5, .1, 3)[[0, 100]])
+    assert (o3['mc'] > o3['mc_nstep']).all()
+    s3 = ev.summarize_q_mc([o3])
+    assert s3['n_steps'] == 3 and s3['mc_nstep_mean'] == pytest.approx(o3['mc_nstep'].mean())
+    assert s3['q_min_minus_mc_nstep'] == pytest.approx((o3['q_min'] - o3['mc_nstep']).mean())
+    assert s3['q_mean_ratio_nstep'] == pytest.approx(o3['q_mean'].mean() / o3['mc_nstep'].mean())
+    assert ev.q_vs_mc(Critic(), obs[:10], np.zeros((10, 3)), r[:10], lp[:10], gamma=.5, alpha=.1,
+                      failed=False, n_steps=3)['mc_nstep'].size == 0
 
 
 def test_lap_tagging_and_lap_metrics():
