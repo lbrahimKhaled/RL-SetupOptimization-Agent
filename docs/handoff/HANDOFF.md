@@ -47,3 +47,27 @@ Commits on `d1-driving-env`: `c25e2b0` N1 + A5, `7f7a101` QA M-1 tests, `a738b2a
 ## Ibrahim's instruction (26 Oct): unattended training
 When D2 tests + QA + the smoke run pass, launch the full 3-seed D2 run **detached** so it continues offline / after the session ends:
 `caffeinate -dimsu nohup scripts/run_d2_full.sh > runs/D2/full_stdout.log 2>&1 &` (script runs seeds 0,1,2 sequentially, resumes from last.zip + replay buffer if a seed folder already exists, then runs scripts/d2_report.py). Local CPU only, no internet needed. Survives terminal exit; NOT a reboot or a closed lid on battery (keep the Mac plugged in, lid open). Check progress: `tail runs/D2/full_stdout.log`, `runs/D2/<run>/seed*/evals.jsonl`. Wall budget per seed: from smoke extrapolation (default cap 3 h/seed until Ibrahim says otherwise).
+
+## D2 implemented (26 Oct 2026, rl-coder) — supersedes "Next: implement D2" above
+Spec `docs/specs/D2_agent.md`. Commits on `d1-driving-env`: `ef2c736` group 0, `0269b47` group 1, `dde334e` group 2, `4740643` group 3, `ae7c5eb` group 4, then "D2 implemented".
+- **Group 0 (lead decision):** `qss_profile.cache_key` also hashes ocd_lap `rig.py` and `vertical_model.py`; `data/qss_profile_Shanghai_p0.npz` rebuilt after asserting s, v, lap time (133.91610367943798 s), ggv, traction and drag identical to the old file. SB3 / sb3-contrib pinned to 2.9.0 in pyproject; `data/demos/` ignored.
+- **Code:** `rlsetup/driving/{train_config,policy,agent,vec,demos,bc,evaluate,callbacks,train}.py`, `rlsetup/runs.py`, `rlsetup/provenance.py` (`training_provenance`), `scripts/{collect_demos,d2_report}.py`; `env.py` adds `track_position` / `track_width_m` to eval-mode info (edge margin).
+- **Tests:** `.venv/bin/python -m pytest -q` → **111 passed in 74.4 s** (incl. slow); fast suite `-m "not slow"` → 107 passed in 9.3 s. New: `test_agent.py`, `test_demos_bc.py`, `test_callbacks.py`, `test_report.py`, `test_d2_slow.py` (+ helper `tests/sb3_helpers.py`).
+- **Mini pipeline (CLI, 2 workers, 36.6 s wall):** demos 5k (6 episodes) → BC 2 epochs → gate (fails, as expected after 2 epochs; `gate_required=False` in the test) → prefill 1,956 rows × 2 columns → offline 200 grad steps → online 3k steps (unfreeze at 1,000, 1 probe at 2,000: 107 m vs BC baseline 80 m) → evals at 0 and 3,000 → resume to 4,000 from `checkpoints/last.zip` + `replay_buffer.pkl` works → `d2_report.py` runs (criteria FAIL, no crash); deterministic re-eval of last.zip reproduces the logged deterministic return exactly (delta 0.0).
+- **Demo gate finding (measured, 30k-transition samples, fresh starts):** steering noise 0.1 → 13/32 episodes clean (**0.41 < 0.80, gate fails**, all failures off_track); noise 0.05 → 19/22 clean (0.86, passes). `ensure_demos` recollects automatically once with `fallback_steer_noise = 0.05`, so the 0.1 dataset is collected and then discarded on every new dataset key. Architect may want 0.05 as the default steering noise.
+- **Dataset key includes the rlsetup commit (spec §4)**, so every commit invalidates the cached demos (re-collect ~2–4 min, twice with the fallback). Collect them before the smoke run so the 20-min wall clock (counted from pipeline start) is spent on RL.
+- **Deviations from the spec (all small; details in the coder report):** extra `actions_clean` array in the demo npz (BC val MSE vs the clean demo action); automatic one-shot steering-noise fallback; `init_output_bias(actor, *, pedal_deadzone, ...)` takes the deadzone flag (the actor cannot know it); `last.zip` / `best.zip` live in `checkpoints/`; extra files `probes.jsonl`, `warmup.jsonl`, `bc/throttle_vs_rear_slip.png`; resumed runs log SB3 output to `sb3/resume<k>/` (SB3's CSV logger truncates `progress.csv`); resume may override only `total_timesteps`, `max_wall_h`, `save_replay_buffer`, `checkpoint_interval`; the BC gate's 3 stochastic laps use the 1-lap eval env; `full` refuses only on tracked uncommitted changes (untracked `.codex/`, `AGENTS.md` are not ours); full preset `max_wall_h = None` until Ibrahim answers D2 question 2.
+- **Unmeasured risk:** a full evaluation (2-lap deterministic + 10 stochastic laps) is ~40–80k decisions (~35–70 s, estimate); at ~330 decisions/s training that is 20–45 % overhead at a 50k interval. sim-runner should measure it in the smoke run (`wall_eval_s` vs `wall_train_s` in evals.jsonl).
+
+### Smoke-run commands (sim-runner)
+```sh
+cd /Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent
+.venv/bin/python scripts/collect_demos.py --preset smoke            # cache the demo dataset first (gate + fallback)
+.venv/bin/python -m rlsetup.driving.train --preset smoke --seed 0 --run-name smoke1
+.venv/bin/python scripts/d2_report.py runs/D2/smoke1                 # expect criteria FAIL, no crash
+.venv/bin/python -m rlsetup.driving.train --preset smoke --resume --seed 0 --run-name smoke1 --set max_wall_h=0.05   # resume check (~3 min)
+```
+Run folder: `runs/D2/smoke1/seed0/` (status.json, evals.jsonl, train_stats.jsonl, probes.jsonl, warmup.jsonl, sb3/progress.csv, checkpoints/, bc/, laps/, stdout.log). Smoke pass criteria: spec §11 step 1.
+
+## NEXT ACTION (as of D2 implemented)
+sim-runner runs the smoke preset (commands above), then qa-reviewer reviews D2.
