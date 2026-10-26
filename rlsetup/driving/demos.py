@@ -171,7 +171,7 @@ def collect_demos(env_cfg, demo_cfg, qss, track_sha, demo_dir, *, start_method='
         meta = json.loads(meta_path.read_text())
         if meta.get('key') == key and meta.get('npz_sha256') == sha256_file(path):
             log(f'demos: cached {path.name} ({meta["summary"]["transitions"]} transitions)')
-            return path, meta
+            return path, dict(meta, cached=True)
     t0 = datetime.datetime.now(datetime.timezone.utc)
     episodes = _collect_episodes(env_cfg, demo_cfg, qss, track_sha, start_method)
     arrays = _assemble(episodes)

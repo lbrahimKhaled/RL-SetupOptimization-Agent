@@ -46,6 +46,8 @@ def test_every_imported_ocd_lap_module_is_hashed():
     """Each ocd_lap module loaded by rlsetup is in ocd_lap's code_version or in
     OCD_LAP_EXTRA_SOURCES, so run provenance identifies all ocd_lap code a run used."""
     import rlsetup.driving.env, rlsetup.driving.qss_profile, rlsetup.driving.demo_driver  # noqa: F401
+    import rlsetup.driving.train, rlsetup.driving.demos, rlsetup.driving.evaluate  # noqa: F401
+    import ocd_lap.track  # noqa: F401  (train.py imports it inside the pipeline)
     from ocd_lap.simulation import SOURCES
     covered = set(SOURCES) | {'ocd_lap/evaluate.py', 'ocd_lap/provenance.py'} \
         | {f'ocd_lap/{f}' for f in OCD_LAP_EXTRA_SOURCES}
