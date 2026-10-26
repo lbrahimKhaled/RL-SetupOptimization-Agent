@@ -45,8 +45,43 @@ Commits on `d1-driving-env`: `c25e2b0` N1 + A5, `7f7a101` QA M-1 tests, `a738b2a
 - **Next:** implement `docs/specs/D2_agent.md`.
 
 ## Ibrahim's instruction (26 Oct): unattended training
-When D2 tests + QA + the smoke run pass, launch the full 3-seed D2 run **detached** so it continues offline / after the session ends:
-`caffeinate -dimsu nohup scripts/run_d2_full.sh > runs/D2/full_stdout.log 2>&1 &` (script runs seeds 0,1,2 sequentially, resumes from last.zip + replay buffer if a seed folder already exists, then runs scripts/d2_report.py). Local CPU only, no internet needed. Survives terminal exit; NOT a reboot or a closed lid on battery (keep the Mac plugged in, lid open). Check progress: `tail runs/D2/full_stdout.log`, `runs/D2/<run>/seed*/evals.jsonl`. Wall budget per seed: from smoke extrapolation (default cap 3 h/seed until Ibrahim says otherwise).
+When D2 tests + QA + the smoke run pass, launch the full 3-seed D2 run **detached** so it keeps running offline and after the session ends. Local CPU only, no internet. Wall cap 3 h per seed until Ibrahim says otherwise. Implemented in `scripts/run_d2_full.sh` (follow-up commit 4); exact behaviour below.
+
+**Launch** (from the repo root, because the redirect path is relative; `runs/D2/` must exist; the tracked tree must be clean, otherwise the `full` preset refuses with exit 4 for every seed):
+```sh
+cd /Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent
+scripts/run_d2_full.sh --dry-run                                     # prints the commands it would run, runs nothing
+caffeinate -dimsu nohup scripts/run_d2_full.sh > runs/D2/full_stdout.log 2>&1 &
+```
+**Env vars** (defaults): `RUN_NAME=full1` (folder `runs/D2/$RUN_NAME/seed<k>`), `MAX_WALL_H=3`, `TOTAL_STEPS=2000000`. Example: `RUN_NAME=full2 MAX_WALL_H=4 caffeinate -dimsu nohup scripts/run_d2_full.sh > runs/D2/full2_stdout.log 2>&1 &`. `RUNS_ROOT` and `PYTHON_BIN` exist only for the tests.
+
+**What it runs**, using `/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/.venv/bin/python` and `cd` to the repo root, with no TTY needed:
+1. `scripts/collect_demos.py --preset full` once (cache hit if the dataset exists; currently `data/demos/demos_1c612cde2770.npz`).
+2. Seeds 0, 1, 2 in order, each decided from its folder:
+   - `status.json` phase `done` (state completed / wall_clock_limit / collapsed): **skip**.
+   - state `bc_gate_failed` / `demo_gate_failed`: **skip, counted as a failure** (rerunning is deterministic). Move the folder away to retry.
+   - `checkpoints/last.zip` exists: **resume**, `-m rlsetup.driving.train --resume --seed k --preset full --run-name $RUN_NAME --set max_wall_h=$MAX_WALL_H --set total_timesteps=$TOTAL_STEPS`.
+   - otherwise **fresh** with the same arguments minus `--resume`. A leftover folder without last.zip is first moved to `runs/D2/$RUN_NAME/_aborted/seed<k>.<timestamp>/` (never deleted). If step 1 failed, fresh starts are skipped as failures; resumes still run.
+   A failing seed does not stop the next one.
+3. `scripts/d2_report.py runs/D2/$RUN_NAME`.
+Every seed logs timestamped start/end lines with the action, exit code and duration, followed by a summary. The script exits 1 if any step failed, else 0. Only one instance can run per run name: the lock file `runs/D2/$RUN_NAME/.run_d2_full.lock` holds the PID, and a stale lock from a dead process is taken over.
+
+**Progress:** `tail -f runs/D2/full_stdout.log`; per seed `runs/D2/full1/seed*/{status.json,evals.jsonl,stdout.log}`.
+**Stop:** `pkill -f run_d2_full.sh; pkill -f 'rlsetup.driving.train.*--run-name full1'`. The seed is resumable afterwards, like after a hard kill.
+
+**What survives what:**
+- **Terminal close / session end / logout of the shell:** survives (nohup, background).
+- **Idle / display sleep:** prevented by caffeinate (`-s` prevents system sleep only on AC power).
+- **Closed lid on battery = system sleep:** the run is suspended, not killed. The wall clock keeps counting towards `max_wall_h` (time.time()). Keep the Mac plugged in with the lid open.
+- **Reboot, power loss, kill -9:** the script and the training die. **Recovery:** relaunch the same command. Finished seeds are skipped and the interrupted seed resumes:
+  - Model: from `checkpoints/last.zip`, saved atomically at every evaluation (50k) and checkpoint (100k), so at most 50k steps are lost.
+  - Replay buffer: from `replay_buffer.pkl`, saved atomically right after the demo prefill, every `replay_buffer_save_every` steps (default = `checkpoint_interval` = 100k) and at the end. It can lag last.zip by up to 50k transitions. `status.json` `replay_buffer_step` says when it was saved.
+  - A kill before the first last.zip (during demos/BC/offline warm-up): fresh restart after the folder is moved to `_aborted/`.
+  - last.zip present but no buffer: resume with an empty buffer. This adds a `warnings` entry and a `resume_without_replay_buffer` event to `status.json`.
+  - **A resumed seed gets a fresh `MAX_WALL_H` budget**: `max_wall_h` counts from the start of each process, so a crash-resume can use up to 2× the cap for that seed.
+  - Rows of `train_stats.jsonl` / `probes.jsonl` written after the last save are not rolled back, so a resumed seed can have rows with steps above its resume step. `evals.jsonl` is not affected, because last.zip is saved with every eval.
+- **Disk:** about 1.3 GB `replay_buffer.pkl` per seed, plus 1.3 GB transient during a save (measured 1.4 s per save), plus `step_<n>.zip` every 100k. 38 GiB was free on 26 Oct.
+- **Known gap (sim-runner, D2_smoke.md):** `d2_report.py` raises FileNotFoundError when a seed has no last.zip (gate-failed seed). The script records the report's non-zero exit; the seeds are unaffected.
 
 ## D2 implemented (26 Oct 2026, rl-coder) — supersedes "Next: implement D2" above
 Spec `docs/specs/D2_agent.md`. Commits on `d1-driving-env`: `ef2c736` group 0, `0269b47` group 1, `dde334e` group 2, `4740643` group 3, `ae7c5eb` group 4, then "D2 implemented".
@@ -58,6 +93,12 @@ Spec `docs/specs/D2_agent.md`. Commits on `d1-driving-env`: `ef2c736` group 0, `
 - **Dataset key includes the rlsetup commit (spec §4)**, so every commit invalidates the cached demos (re-collect ~2–4 min, twice with the fallback). Collect them before the smoke run so the 20-min wall clock (counted from pipeline start) is spent on RL.
 - **Deviations from the spec (all small; details in the coder report):** extra `actions_clean` array in the demo npz (BC val MSE vs the clean demo action); automatic one-shot steering-noise fallback; `init_output_bias(actor, *, pedal_deadzone, ...)` takes the deadzone flag (the actor cannot know it); `last.zip` / `best.zip` live in `checkpoints/`; extra files `probes.jsonl`, `warmup.jsonl`, `bc/throttle_vs_rear_slip.png`; resumed runs log SB3 output to `sb3/resume<k>/` (SB3's CSV logger truncates `progress.csv`); resume may override only `total_timesteps`, `max_wall_h`, `save_replay_buffer`, `checkpoint_interval`; the BC gate's 3 stochastic laps use the 1-lap eval env; `full` refuses only on tracked uncommitted changes (untracked `.codex/`, `AGENTS.md` are not ours); full preset `max_wall_h = None` until Ibrahim answers D2 question 2.
 - **Unmeasured risk:** a full evaluation (2-lap deterministic + 10 stochastic laps) is ~40–80k decisions (~35–70 s, estimate); at ~330 decisions/s training that is 20–45 % overhead at a 50k interval. sim-runner should measure it in the smoke run (`wall_eval_s` vs `wall_train_s` in evals.jsonl).
+
+### D2 follow-ups (26 Oct, rl-coder; lead decisions 1-2): these supersede the matching bullets above
+- **Demo steering noise default 0.05** (`DemoDataConfig.noise_std = (0.05, 0.1, 0.1)`). The fallback is kept with `fallback_steer_noise = 0.025` (PLACEHOLDER, unmeasured) and only runs if 0.05 fails the gate. Smoke collection at 0.05 gave clean 0.887 and the fallback was not needed.
+- **Demo dataset key** = sha256 of (EnvConfig, DemoDataConfig without workers, sha256 of `rlsetup/driving/{env,config,demo_driver,reference,qss_profile,demos}.py`, ocd_lap code_version, QSS cache-key sha). The rlsetup commit is no longer in the key, so commits that don't touch those files keep the cache (verified: `collect_demos.py --preset full` at `08abe04` hits `demos_1c612cde2770`).
+- **Crash-safe resume:** `TrainConfig.replay_buffer_save_every` (None = `checkpoint_interval`, 0 = end only; also overridable on resume). The buffer is also saved after the prefill. All model/buffer saves are atomic. Resume without a buffer gives an empty buffer plus a warning instead of FileNotFoundError.
+- **`scripts/run_d2_full.sh`**: see the unattended-training section above.
 
 ### Smoke-run commands (sim-runner)
 ```sh
