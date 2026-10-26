@@ -2,12 +2,16 @@
 
     .venv/bin/python scripts/evals_to_tb.py runs/D2/full1/seed0
 
-Writes <seed_dir>/tb_evals/ (rebuilt from scratch on every call, so it is safe to rerun while
-training). Point TensorBoard at the seed folder to see these next to SB3's own losses in sb3/.
+Appends to <seed_dir>/tb_evals/: each call writes only evaluations newer than the last one
+mirrored (kept in tb_evals/last_step.txt) into a new event file in the same folder. TensorBoard
+merges the files of a folder; deleting and rewriting them instead leaves a running TensorBoard
+on the stale, deleted file. Point TensorBoard at the seed folder to see these next to SB3's own
+losses in sb3/.
 """
+import calendar
 import json
-import shutil
 import sys
+import time
 from pathlib import Path
 
 from torch.utils.tensorboard import SummaryWriter
@@ -16,14 +20,20 @@ from torch.utils.tensorboard import SummaryWriter
 def main(seed_dir):
     seed_dir = Path(seed_dir)
     out = seed_dir / 'tb_evals'
-    shutil.rmtree(out, ignore_errors=True)
-    writer = SummaryWriter(str(out))
+    out.mkdir(exist_ok=True)
+    marker = out / 'last_step.txt'
+    last = int(marker.read_text()) if marker.exists() else -1
+    writer = None
     for line in (seed_dir / 'evals.jsonl').read_text().splitlines():
         try:
             e = json.loads(line)
         except json.JSONDecodeError:   # line being written right now
             continue
         step = e['step']
+        if step <= last:
+            continue
+        writer = writer or SummaryWriter(str(out))
+        wall = calendar.timegm(time.strptime(e['utc'], '%Y-%m-%dT%H:%M:%SZ')) if e.get('utc') else None
         scalars = {
             'lap/deterministic_lap2_s': e.get('lap2_s') if e.get('det_clean') else None,
             'lap/deterministic_clean': float(bool(e.get('det_clean'))),
@@ -41,8 +51,11 @@ def main(seed_dir):
             scalars[f'failures_cumulative/{k}'] = v
         for tag, value in scalars.items():
             if value is not None:
-                writer.add_scalar(tag, float(value), step)
-    writer.close()
+                writer.add_scalar(tag, float(value), step, walltime=wall)
+        last = step
+    if writer:
+        writer.close()
+        marker.write_text(str(last))
 
 
 if __name__ == '__main__':
