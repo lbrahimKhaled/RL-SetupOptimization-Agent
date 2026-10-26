@@ -148,3 +148,13 @@ Launcher `run_d2_full.sh` killed (seeds 1, 2 will NOT run). Seed 0 training (PID
 
 ## 26 Oct — Ibrahim: deadline moved to 16:00
 Same watcher (`runs/D2/stop_at_lap.sh`), DEADLINE=1600: stop right after the first evaluation at/after 16:00 (or a clean lap 2 <= 95 s); resumes after the ~13:55 wall cap.
+
+
+## 26 Oct 22:11 — R1 run `r1_warm` launched (DECISIONS #19, #20)
+- Spec: `docs/specs/R1_time_optimal.md` (+ Amendment 1). Coder: `docs/handoff/R1_coder.md`. QA: `docs/handoff/R1_qa_review.md`.
+- Run dir `runs/D2/r1_warm/seed0`, stdout `runs/D2/r1_warm_stdout.log`, TB refresher `runs/D2/refresh_r1.sh`.
+- TensorBoard (127.0.0.1:6006) runs: `full1_old_reward` vs `r1_warm_new_reward`.
+- Command: `caffeinate -dimsu nohup .venv/bin/python -m rlsetup.driving.train --preset r1_warm --seed 0 --run-name r1_warm --init-from runs/D2/full1/seed0/checkpoints/best.zip --set warm.load_optimizers=False --set warm.actor_lr=0.0001 --set guard.threshold=0.65 --set stop.plateau=False --set total_timesteps=3000000 --set max_wall_h=4.0`
+- Resume after a crash: same command with `--resume` (no `--init-from` re-application).
+- 1.0M check (DECISIONS #20). Open for Ibrahim: setup loss = lap time? z_drv dropped/deferred? seeds 1–2 from scratch or warm?
+- Follow-up: `StopConfig.start_step` so plateau ignores pre-unfreeze evals.
