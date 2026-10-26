@@ -67,3 +67,114 @@ Reading (mine, [J]): the post-unfreeze collapse comes from the fresh replay buff
 10. Disk: the five smoke/diagnostic folders hold ~4.8 GB (SB3 pickles the whole preallocated 1M buffer, ~1.2 GB each, even for 20k transitions); 27 GiB free. Safe to delete the diagnostic folders' `replay_buffer.pkl`; I left them.
 
 Not done (as instructed): no commit; full `r1_warm` not launched.
+
+---
+
+# Amendment 1 + QA fixes (rl-coder, 26 Oct 2026, evening; on top of 6226341, not committed)
+
+## Summary
+Amendment 1 (preload full1's buffer relabelled to R1, source Adam states, offline critic 25k, online critic 20k, guard 0.65) and the QA findings M1, m1, m2, m5a, m6 (+ the optional m5b, m7) are implemented and tested. On the §D smoke, **S1, S2 and S3 pass and S4 fails, both on the prescribed run and on the single fallback rerun. Per the spec this escalates to the architect.** The full run was not launched.
+
+## Files
+| File | Change |
+|---|---|
+| `rlsetup/driving/relabel.py` (new) | `relabel_to_time_pbrs(rb, env_cfg_src, env_cfg_dst)`, numpy, in place, returns stats; `decision_duration()`. |
+| `rlsetup/driving/agent.py` | `warm_start` also copies actor / critic / ent_coef Adam states (`warm.load_optimizers`), sets `model.actor_lr = warm.actor_lr`, also compares `n_steps` and `target_entropy` (QA m7); InitMismatch instead of `assert` (QA m6). New `default_init_buffer()`, `preload_buffer()` (checks class, buffer_size, n_envs, n_steps, gamma, obs_shape, action_dim -> InitMismatch; relabel; `cut_nstep_chains`; `min_train_transitions = 0`; sha256 of the pkl). |
+| `rlsetup/driving/train_config.py` | `WarmStartConfig`: `critic_warmup_steps` 20k (was 100k), `load_optimizers`, `init_buffer`, `relabel`, `offline_critic_grad_steps` 25k, `offline_block` 1k, `actor_lr`. `r1_warm`: guard 0.65. `r1_warm_smoke`: total 150k, max_wall_h 0.5 (safety cap only; the step count ends it), inherits warm settings. |
+| `rlsetup/driving/train.py` | default init_buffer resolved before config.json is written; QA m2: missing init_from / its config.json / init_buffer -> exit 6 **before** the run folder exists; warm branch: preload + relabel (status `init_buffer`, provenance `init_buffer` path/sha256/transitions), `_offline_critic()` (blocks -> warmup.jsonl `block, grad_steps, critic_loss, mean_q_fixed_batch`; phase `offline_warmup`); CLI `--init-buffer`. |
+| `rlsetup/driving/callbacks.py` | QA M1: `DrivingEvalCallback._schedule` adds an eval at `critic_check_at` (if pending and off the grid); QA m1: `critic_check_value` returns None for non-finite input -> `critic_not_converged`. |
+| `tests/relabel_truth.py`, `tests/test_relabel.py` (new) | C1, C2, config refusal. |
+| `tests/test_r1.py`, `tests/test_r1_slow.py` | C3, C4, preload, CLI `--init-buffer`; QA M1, m1, m2, m5a, m5b/m7 tests; presets / defaults updated; slow test 12 covers preload, relabel, offline blocks, the extra eval at the unfreeze. |
+
+## Deviation: relabel formula refined (needed for C1)
+Two parts of the spec formula left C1 errors above its tolerances, measured against env ground truth:
+- **Linear first-tick offset (e+e')/2:** non-failure error up to **2.6e-3** (tolerance 1e-3).
+- **Failure decisions** that ended after one tick or a shortened tick: errors up to **2.3** (tolerance 0.05). The formula charges a first-tick tracking term the env never charged, and S uses 0.02 s instead of the shortened tick.
+
+Two refinements, both from stored data only:
+- **Cubic Hermite e(t)** with de/dt = v_x sin h + v_y cos h, taken from obs and next_obs.
+- **Duration D of failure decisions**, recovered from next_obs's body accelerations. env.py computes these over the true elapsed time: a_x' = dv_x/D − r̄ v̄_y and a_y' = dv_y/D + r̄ v̄_x. A least-squares fit gives D, rounded to 2 ms. Ticks then end at min(j·dt, D), and S uses the first tick's length. If |A| < 1 m/s² (e.g. a stalled car), the full-length formula is used.
+
+Measured max errors after refinement: **non-failure 9.0e-5, failure 6.1e-5**. On full1's buffer, D was identified for 106 of the 108 failure rows. Everything else follows §A: P_old, stall rule, term_new, F, flags.
+
+## Tests (actual output, final code)
+- `.venv/bin/python -m pytest -q -m "not slow"` -> **172 passed, 5 deselected in 16.23s**
+- `.venv/bin/python -m pytest -q -m slow` -> **5 passed, 172 deselected in 125.80s** (incl. updated test 12)
+- C1 `test_relabel_matches_env_ground_truth`: 13 scenarios, 355 transitions, covering off-track ×6, stall ×3, time limit and wrong-way. dones and timeouts are exactly equal; reward max errors are 9.0e-5 (non-failure) and 6.1e-5 (failure).
+- C2 `test_relabelled_nstep_samples_match`: SB3 n-step samples for the same indices have equal dones, discounts and next_obs; returns match within the C1 tolerances.
+- C3 `test_preload_buffer_refuses_mismatches`: refuses buffer_size, n_envs, gamma, obs_shape and a missing file.
+- C4 `test_warm_start_copies_optimizer_states`: Adam states equal the source's (the source was trained 3 steps so the moments are non-empty).
+- QA: `test_critic_check_eval_scheduled_at_unfreeze` (interval 50k, check at 20k -> records at 0, 20k, 50k, 100k; the check only at 20k), `test_nan_critic_check_is_not_converged`, `test_missing_init_files_refused_before_run_dir`, `test_nonfinite_under_time_pbrs` (NaN at physics step 5 and 15; exact asserts as QA item 3), `test_warm_start_refuses_more_mismatches` (action space, n_critics, critic LayerNorm, n_steps, target_entropy).
+
+## Relabel of full1's buffer (S1)
+`runs/D2/full1/seed0/replay_buffer.pkl` (sha256 `b7da046f…c2de5`): 250,000 rows × 4 envs, full, saved at step 3,000,000, so the window is steps 2.0M–3.0M. Load 0.7–1.8 s, relabel 0.7 s.
+
+| Quantity | Relabel | full1 train_stats, 2.0M < step ≤ 3.0M |
+|---|---|---|
+| failures (dones ∧ ¬timeouts) | 108 | 108 (103 off_track + 4 wrong_way + 1 stall) |
+| stalls | 1 | 1 |
+| timeouts (old) | 612 | 612 time_limit |
+| nonfinite | 0 | 0 |
+
+**S1 classification: exact.**
+
+Mean R_new − R_old per non-failure row is **+0.0967** (S 0.0449 + T 0.0496 + F 0.0023), not the spec's ≈ +0.06 + F = 0.062. The spec figure used the deterministic eval lap's smoothness (0.0034 per decision). Stochastic driving by best.zip, measured in the env (6 training episodes, 7,946 decisions), gives smoothness 0.041 and tracking 0.074 per decision, so the buffer's 0.045 / 0.050 is consistent. C1 confirms the per-row exactness. I count S1 as passed with this explanation.
+
+## §D smoke, prescribed run: `--preset r1_warm_smoke --seed 0 --run-name r1_warm_smoke_a1 --init-from runs/D2/full1/seed0/checkpoints/best.zip`
+Exit 0, `completed` at 150,000 steps.
+- **Offline critic:** 25,000 grad steps in 150.6 s; critic loss 11.9 -> 10.1 (full1's own late-run mean is 4.7, median 2.4); mean Q on the fixed batch 194.4 -> 198.4.
+- **Online critic:** 20k env steps in 84 s.
+- **RL:** 130k env steps in 652 s, about 220 env steps/s including a probe every 5k (≈ 255/s without probes).
+
+| | Result |
+|---|---|
+| S2 | step-0 det lap 2 **122.84531256503526 s**, clean -> PASS |
+| S3 | extra eval at **step 20,000** (actor still the loaded one: lap 2 unchanged): critic_check **0.0469** <= 0.08 -> PASS. Q_min − MC^n: −9.99 (step 0) -> −9.80 (20k). |
+| S4 | **FAIL**: 1 rollback (115k: probe 775 m = 0.622 × 1,246.7); det clean 1/6 post-unfreeze evals (25k only; 50k–150k off_track); sto clean 2,1,1,0,0,3 of 3 at 25k–150k; best post-unfreeze clean lap 2 124.616 s > 123.85. No collapse; other probes 0.71–0.97. |
+
+Post-unfreeze evals (det lap 2 / sto clean / lap-2 tracking cost / max \|e\| / min edge margin):
+- 25k: 124.616 s, 2/3, 640, 5.59 m, 0.27 m
+- 50k–125k: det off_track
+- 150k: det off_track in lap 2 (lap 1 123.92 s), sto 3/3 (125.2–125.4 s)
+
+Training failures: 19 off_track and 1 stall in 150k steps. The rate is about 1.3 per 10k, compared with 2 per 10k while still frozen.
+
+## Fallback (the one prescribed rerun): `... --run-name r1_warm_smoke_a1_fallback --set warm.load_optimizers=False --set warm.actor_lr=0.0001`
+Exit 0, `completed` at 150,000.
+
+| | Result |
+|---|---|
+| S2 | 122.84531256503526 s -> PASS |
+| S3 | critic_check **0.0478** at step 20,000 -> PASS |
+| S4 | **FAIL**: 0 rollbacks, no collapse, all 26 probes ok (min 0.69 × baseline); best post-unfreeze clean lap 2 **123.789 s** (<= 123.85, ok); but det clean **2/6** (25k 123.789 s, 50k 123.881 s; 75k–150k off_track) and sto **1/3 at 75k, 0/3 at 100k** (3/3 at 25k, 50k, 125k, 150k). |
+
+Trend of the lap-2 metrics:
+
+| Step | Lap-2 tracking cost | max \|e\| | min edge margin | Sto laps |
+|---|---|---|---|---|
+| 20k | 211 | 2.35 m | 0.35 m | 124.5–124.8 s |
+| 25k | 411 | 3.71 m | 0.24 m | |
+| 50k | 523 | 5.39 m | 0.18 m | |
+| 125k–150k | | | | 125.5–126.2 s |
+
+Over the same span α went 0.0434 -> 0.0335 and Q_min − MC^n went −10.0 -> +5.6 (100k) -> −4.1 (150k). Training failures: 18 off_track and 1 wrong_way in 150k.
+
+## Reading (mine, [J]); for the architect
+- **Buffer preload fixed the fresh-buffer collapse.** With fresh optimizers and actor lr 1e-4, the guard never fired. The CollapseGuard criterion is no longer the problem.
+- **What fails is S4's eval criteria.** Within about 30k steps of the unfreeze, R1 moves the driver off ξref, as intended: lap-2 tracking cost doubles, max \|e\| goes 2.4 -> 5.4 m and the edge margin shrinks. Over the same span the laps get slower, not faster (det 122.85 -> 123.8–123.9 s; sto 124.6 -> 125.5–126 s), and the deterministic lap starts crashing.
+- Looks like an early re-optimisation transient of the new objective, or a real regression; 130k steps cannot separate the two. Nothing in the runs points to an implementation fault:
+  - the relabel is exact to < 1e-4 against the env;
+  - the critic check is 0.047 at the unfreeze;
+  - the step-0 lap is reproduced exactly;
+  - the actor stays frozen through both critic phases (digests identical).
+- Choices I see, none of which I made: run longer before judging S4 (the plateau logic / 3M cap); loosen S4 for the transient; keep a small tracking term in R1 initially; lower the actor lr further; or a from-scratch R1 run. These are architect / Ibrahim calls (§11-style decisions).
+
+## Housekeeping
+- **Deleted** (as allowed): the four diagnostic folders `r1_warm_smoke_cw100k`, `r1_warm_smoke_ctrl_reftrack`, `r1_warm_smoke_diag_optstate`, `r1_warm_smoke_diag_buffer_reftrack`.
+- **Kept:**
+  - `r1_warm_smoke` (old results above), 1.2 GB;
+  - `r1_warm_smoke_a1`, 1.3 GB;
+  - `r1_warm_smoke_a1_fallback`, 1.3 GB.
+
+  Each holds a ~1.3 GB replay_buffer.pkl that can be deleted if the lead does not want to resume them. 29 GiB free.
+- `data/demos` cache is still invalidated, as noted before. Nothing committed; full `r1_warm` not launched.

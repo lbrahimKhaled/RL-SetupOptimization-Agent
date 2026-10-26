@@ -293,10 +293,12 @@ class DrivingEvalCallback(BaseCallback):
     appends one JSON line to `evals_path`, saves the replay buffer (`buffer_saver`, if given;
     QA D2 m4: last.zip and the buffer stay paired after a hard kill), then last.zip, and best.zip
     on a new best CLEAN deterministic lap 2. A clean -> failed deterministic regression is an event.
-    Critic check (R1 §2.6): at the first evaluation with step >= `critic_check_at` (None: never)
-    the record gets critic_check = |Q_min - MC^n| / |MC^n| (q_vs_mc, n-step-consistent soft MC;
+    Critic check (R1 §2.6; QA M1): an extra evaluation is scheduled at `critic_check_at` (None:
+    never) if it is not on the interval grid, so the check sees the critic at the unfreeze (the
+    PhaseCallback runs first in the same step, the actor has not moved yet); the first evaluation
+    with step >= critic_check_at gets critic_check = |Q_min - MC^n| / |MC^n| (q_vs_mc, n-step-consistent soft MC;
     per-step MC if the n-step values are absent) and critic_check_tol; above the tol (or not
-    computable) -> event 'critic_not_converged' (training continues). `records` keeps every record
+    computable / non-finite) -> event 'critic_not_converged' (training continues). `records` keeps every record
     of this process (PlateauStop reads it)."""
 
     def __init__(self, eval_fn, interval, evals_path, ckpt_dir, *, stats=None, best_lap2=math.inf,
@@ -320,15 +322,22 @@ class DrivingEvalCallback(BaseCallback):
         self.t_mark = time.perf_counter()
         self.mark_steps, self.mark_updates = self.model.num_timesteps, self.model._n_updates
         n = self.model.num_timesteps
-        self.next_eval = (n // self.interval + 1) * self.interval
+        self._schedule(n)
         if n == 0:
             self.evaluate()
+
+    def _schedule(self, n):
+        """next_eval = the next interval multiple after step n, or critic_check_at if earlier and
+        still pending (QA M1)."""
+        self.next_eval = (n // self.interval + 1) * self.interval
+        c = self.critic_check_at
+        if c is not None and not self.critic_check_done and c > n:
+            self.next_eval = min(self.next_eval, c)
 
     def _on_step(self):
         if self.model.num_timesteps >= self.next_eval:
             self.evaluate()
-            while self.next_eval <= self.model.num_timesteps:
-                self.next_eval += self.interval
+            self._schedule(self.model.num_timesteps)
         return True
 
     def _on_training_end(self):
@@ -386,12 +395,13 @@ class DrivingEvalCallback(BaseCallback):
 
 def critic_check_value(q):
     """|q_min_minus_mc_nstep| / |mc_nstep_mean| of a summarize_q_mc dict (per-step keys if the
-    n-step ones are absent); None if not computable (no pairs or MC mean 0)."""
+    n-step ones are absent); None if not computable (no pairs, MC mean 0, non-finite: QA m1), which
+    the eval callback treats as not converged."""
     q = q or {}
     num, den = q.get('q_min_minus_mc_nstep'), q.get('mc_nstep_mean')
     if num is None or den is None:
         num, den = q.get('q_min_minus_mc'), q.get('mc_mean')
-    if num is None or not den:
+    if num is None or not den or not (math.isfinite(num) and math.isfinite(den)):
         return None
     return abs(float(num)) / abs(float(den))
 

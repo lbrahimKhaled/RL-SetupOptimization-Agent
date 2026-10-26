@@ -115,11 +115,21 @@ class EvalConfig:
 
 @dataclass(frozen=True)
 class WarmStartConfig:
-    """init_mode 'warm' (R1 spec §2.5, §3): load a trained model, critic-only phase, unfreeze."""
-    critic_warmup_steps: int = 100_000   # actor + alpha frozen, critics learn the new reward online
+    """init_mode 'warm' (R1 spec §2.5, §3 as amended by Amendment 1 §B): load a trained model and
+    its Adam states, preload its replay buffer relabelled to the new reward, offline critic phase,
+    online critic phase (actor + alpha frozen), unfreeze."""
+    critic_warmup_steps: int = 20_000    # online critic phase: actor + alpha frozen (Amendment 1: was 100k)
     load_critics: bool = True            # critics + target critics from init_from
-    load_alpha: bool = True              # log_ent_coef from init_from (optimizer fresh)
-    min_buffer_batches: int = 10         # no grad step until buffer >= agent.batch_size * this
+    load_alpha: bool = True              # log_ent_coef from init_from
+    load_optimizers: bool = True         # actor / critic / ent_coef Adam states from init_from
+    init_buffer: str | None = None       # replay_buffer.pkl to preload (CLI --init-buffer); None =
+                                         # <init_from>/../../replay_buffer.pkl; missing -> refuse
+    relabel: bool = True                 # relabel the preloaded buffer ref_tracking -> time_pbrs (relabel.py)
+    offline_critic_grad_steps: int = 25_000   # critic grad steps on the preloaded buffer before learn()
+    offline_block: int = 1_000           # ... in blocks of this many (critic loss + mean Q logged per block)
+    actor_lr: float | None = None        # actor Adam lr from the unfreeze on (None = agent.learning_rate)
+    min_buffer_batches: int = 10         # no grad step until buffer >= agent.batch_size * this (0 with a
+                                         # preloaded buffer)
     critic_check_tol: float = .08        # |Q_min - MC| / |MC| at the unfreeze eval; above -> warning
 
 
@@ -203,24 +213,25 @@ def _smoke():
 
 
 def _r1_warm():
-    """R1 (time_pbrs reward) warm-started from a trained ref_tracking driver (--init-from):
-    critic-only phase 100k, then full SAC; guard 0.75 x the loaded actor's probe; 3M cap, 4 h,
-    plateau stop (R1 spec §2.4, §3, §5)."""
+    """R1 (time_pbrs reward) warm-started from a trained ref_tracking driver (--init-from) with
+    its Adam states and its replay buffer relabelled to R1: offline critic 25k grad steps, online
+    critic phase 20k, then full SAC; guard 0.65 x the loaded actor's probe; 3M cap, 4 h, plateau
+    stop (R1 spec §2.4, §5, Amendment 1)."""
     c = TrainConfig(preset='r1_warm')
     return replace(c, total_timesteps=3_000_000, max_wall_h=4.,
                    env=replace(c.env, reward=replace(c.env.reward, mode='time_pbrs')),
                    agent=replace(c.agent, init_mode='warm'),
-                   guard=replace(c.guard, threshold=.75),
+                   guard=replace(c.guard, threshold=.65),
                    stop=replace(c.stop, plateau=True))
 
 
 def _r1_warm_smoke():
-    """r1_warm for 15 min: critic-only 10k, eval every 25k with 3 stochastic laps, probe every
-    5k, no plateau stop, dirty tree allowed (R1 spec §2.4, §8 A2-A6)."""
+    """r1_warm to 150k env steps (Amendment 1 §D: offline critic 25k grad steps, online critic
+    20k, then 130k RL; ~15 min): eval every 25k with 3 stochastic laps, probe every 5k, no
+    plateau stop, dirty tree allowed. max_wall_h 0.5 is only a safety cap (the step count ends it)."""
     c = _r1_warm()
-    return replace(c, preset='r1_warm_smoke', max_wall_h=.25, checkpoint_interval=25_000,
-                   strict_provenance=False,
-                   warm=replace(c.warm, critic_warmup_steps=10_000),
+    return replace(c, preset='r1_warm_smoke', total_timesteps=150_000, max_wall_h=.5,
+                   checkpoint_interval=25_000, strict_provenance=False,
                    eval=replace(c.eval, interval=25_000, stochastic_laps=3),
                    guard=replace(c.guard, interval=5_000),
                    stop=replace(c.stop, plateau=False))

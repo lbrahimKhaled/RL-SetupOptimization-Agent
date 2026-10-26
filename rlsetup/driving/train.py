@@ -19,14 +19,16 @@ Pipeline (AgentConfig.init_mode = 'bc'):
   5  PhaseCallback unfreezes; CollapseGuard watches the next GuardConfig.window steps
 'bias_only': steps 1 + 5 only (no demos, no BC, nothing frozen; guard baseline = probe of the
 bias-initialized actor).
-'warm' (R1 spec §2.5, §2.6; requires --init-from): build the model, `agent.warm_start` (actor,
-critics, targets, log alpha from init_from; fresh optimizers, buffer and step counter 0; actor
-+ alpha frozen; no gradient step before agent.batch_size x warm.min_buffer_batches
-transitions), no demos / BC / offline warm-up; guard baseline = probe of the loaded actor;
-unfreeze at warm.critic_warmup_steps; critic check at the first evaluation at or after it;
-init_from (path, sha256, source steps, source rlsetup commit) in provenance.json and status.json.
-A source whose spaces / gamma / architecture / env config (without reward) differ -> status
-'init_mismatch', exit 6.
+'warm' (R1 spec §2.5, §2.6, Amendment 1 §B; requires --init-from): build the model,
+`agent.warm_start` (actor, critics, targets, log alpha and Adam states from init_from; step
+counter 0; actor + alpha frozen), `agent.preload_buffer` (init_from's replay_buffer.pkl or
+--init-buffer, relabelled to the run's reward, status 'init_buffer'), no demos / BC; guard
+baseline = probe of the loaded actor; offline critic phase (warm.offline_critic_grad_steps in
+blocks, warmup.jsonl); learn(): online critic phase until warm.critic_warmup_steps, then unfreeze
+(actor lr warm.actor_lr if set); critic check at the first evaluation at or after the unfreeze;
+init_from / init_buffer (path, sha256, source steps, source rlsetup commit) in provenance.json
+and status.json. A source whose spaces / gamma / architecture / env config (without reward) or
+buffer layout differ, or a missing buffer -> status 'init_mismatch', exit 6.
 StopConfig.plateau adds PlateauStop (stop reason 'plateau').
 Run folder runs/D2/<run_name>/seed<k>/ (spec §7); checkpoints/last.zip and best.zip live in
 checkpoints/. A resumed run logs SB3 output to sb3/resume<k>/ (SB3's CSV logger would truncate
@@ -238,6 +240,36 @@ def _offline_warmup(run, model, demos, val_episodes):
     return rows, summary
 
 
+def _offline_critic(run, model):
+    """Amendment 1 §B step 4: actor + alpha frozen, cfg.warm.offline_critic_grad_steps critic
+    grad steps on the preloaded buffer in blocks of cfg.warm.offline_block; per block the critic
+    loss and mean Q_min on a fixed batch of buffer rows (warmup.q_probe_batch) -> warmup.jsonl."""
+    from ..runs import append_jsonl
+    from .evaluate import q_values
+    cfg, w = run.cfg, run.cfg.warm
+    rb = model.replay_buffer
+    n = rb.size() * rb.n_envs
+    idx = np.random.default_rng(cfg.seed).choice(n, size=min(cfg.warmup.q_probe_batch, n), replace=False)
+    rows, cols = idx // rb.n_envs, idx % rb.n_envs
+    obs, act = rb.observations[rows, cols], rb.actions[rows, cols]
+    done, b = 0, 0
+    while done < w.offline_critic_grad_steps:
+        k = min(w.offline_block, w.offline_critic_grad_steps - done)
+        model.train(k, cfg.agent.batch_size)
+        done += k
+        q_min, _ = q_values(model.critic, obs, act)
+        rec = {'block': b, 'grad_steps': done,
+               'critic_loss': float(model.logger.name_to_value.get('train/critic_loss', np.nan)),
+               'mean_q_fixed_batch': float(q_min.mean())}
+        append_jsonl(run.dir / 'warmup.jsonl', rec)
+        model.logger.record('warmup/critic_loss', rec['critic_loss'])
+        model.logger.record('warmup/mean_q_fixed_batch', rec['mean_q_fixed_batch'])
+        model.logger.dump(step=b)
+        run.log(f"offline critic block {b}: {done} grad steps, critic loss {rec['critic_loss']:.3f}, "
+                f"mean Q {rec['mean_q_fixed_batch']:.1f}")
+        b += 1
+
+
 def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
     """One seed of D2 training. Returns an exit code."""
     import torch as th
@@ -256,6 +288,15 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
     if (cfg.agent.init_mode == 'warm') != (cfg.init_from is not None):
         raise ValueError("init_from is required for init_mode 'warm' and only allowed with it "
                          f'(init_mode {cfg.agent.init_mode!r}, init_from {cfg.init_from!r})')
+    if cfg.init_from is not None and cfg.warm.init_buffer is None:   # recorded in config.json
+        from .agent import default_init_buffer
+        cfg = replace(cfg, warm=replace(cfg.warm, init_buffer=default_init_buffer(cfg.init_from)))
+    if cfg.init_from is not None:   # QA m2: refuse before the run folder exists (it would block a relaunch)
+        need = [Path(cfg.init_from), Path(cfg.init_from).resolve().parents[1] / 'config.json', Path(cfg.warm.init_buffer)]
+        missing = [str(p) for p in need if not p.is_file()]
+        if missing:
+            print(f'refusing to warm start: missing {missing}')
+            return EXIT_INIT_MISMATCH
     rl_git = git_state(REPO_ROOT)
     if cfg.strict_provenance and rl_git['dirty'] and not allow_dirty:
         print(f'refusing to run preset {cfg.preset} (strict_provenance): rlsetup has uncommitted changes '
@@ -362,22 +403,32 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
             baseline = pr.mean_progress_m
             run.status(bc_baseline_m=baseline, bc_probe=pr.progress_m, baseline_source='bias_only')
         elif a.init_mode == 'warm':
-            from .agent import warm_start, InitMismatch
+            from .agent import warm_start, preload_buffer, InitMismatch
             try:
                 init = warm_start(model, cfg.init_from, cfg)
+                t = time.time()
+                buf = preload_buffer(model, cfg.warm.init_buffer, cfg.init_from, cfg)
             except InitMismatch as e:
                 run.status(state='init_mismatch', stop_reason=str(e))
                 log(str(e))
                 return EXIT_INIT_MISMATCH
             prov['init_from'] = {k: init[k] for k in ('path', 'sha256', 'src_num_timesteps', 'src_rlsetup_commit',
                                                       'src_config_sha256', 'src_alpha')}
+            prov['init_buffer'] = {k: buf[k] for k in ('path', 'sha256', 'transitions')}
             write_json(run_dir / 'provenance.json', prov)
             log(f"warm start from {init['path']} (step {init['src_num_timesteps']}, alpha {init['src_alpha']:.4f}); "
-                f"actor {init['actor_sha256'][:12]}, log alpha {init['log_ent_coef_sha256'][:12]}")
+                f"actor {init['actor_sha256'][:12]}, log alpha {init['log_ent_coef_sha256'][:12]}; optimizers "
+                f"{'loaded' if cfg.warm.load_optimizers else 'fresh'}; buffer {buf['transitions']} transitions "
+                f"({time.time() - t:.1f} s), relabel {buf['relabel']}")
             pr = probe(model, envs['probe'], starts)
             baseline = pr.mean_progress_m
             run.status(bc_baseline_m=baseline, bc_probe=pr.progress_m, baseline_source='init_from', init_from=init,
-                       lifetime_steps_offset=init['src_num_timesteps'])
+                       init_buffer=buf, lifetime_steps_offset=init['src_num_timesteps'])
+            run.status(phase='offline_warmup')
+            t = time.time()
+            _offline_critic(run, model)
+            record_phase(run_dir, 'offline_warmup', wall_s=time.time() - t, env_steps=0,
+                         grad_steps=int(model._n_updates))
             unfreeze_at = critic_check_at = cfg.warm.critic_warmup_steps
         else:
             raise ValueError(f'unknown init_mode {a.init_mode!r}')
@@ -558,6 +609,8 @@ def parse_args(argv=None):
     p.add_argument('--init-from', default=None, metavar='PATH',
                    help="model .zip to warm start from (required iff agent.init_mode == 'warm'; its run folder "
                         "must hold config.json); stored as an absolute path")
+    p.add_argument('--init-buffer', default=None, metavar='PATH',
+                   help='replay_buffer.pkl to preload with --init-from (default: the run folder of --init-from)')
     p.add_argument('--allow-dirty', action='store_true',
                    help='strict_provenance preset with uncommitted rlsetup changes (recorded)')
     p.add_argument('--allow-code-change', action='store_true',
@@ -579,6 +632,10 @@ def main(argv=None):
     cfg = replace(apply_overrides(PRESETS[args.preset](), args.overrides), seed=args.seed)
     if args.init_from is not None:
         cfg = replace(cfg, init_from=str(Path(args.init_from).resolve()))
+    if args.init_buffer is not None:
+        if args.init_from is None:
+            sys.exit('error: --init-buffer needs --init-from')
+        cfg = replace(cfg, warm=replace(cfg.warm, init_buffer=str(Path(args.init_buffer).resolve())))
     if (cfg.agent.init_mode == 'warm') != (cfg.init_from is not None):
         sys.exit(f"error: --init-from is required iff agent.init_mode == 'warm' (init_mode {cfg.agent.init_mode!r})")
     return run_pipeline(cfg, args.run_name, allow_dirty=args.allow_dirty, argv=full_argv)

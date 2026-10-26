@@ -236,10 +236,24 @@ class TinyEnv160(TinyEnv):
         return np.zeros(OBS + 1, np.float32), {}
 
 
-def _save_source(tmp_path, name, cfg, env_cls=TinyEnv, write_config=True):
+def _save_source(tmp_path, name, cfg, env_cls=TinyEnv, write_config=True, train=0, n_envs=1, buffer=False):
     """A trained-looking source run folder: <name>/seed0/{config.json, provenance.json,
-    checkpoints/best.zip}; parameters and log alpha perturbed away from a fresh init."""
-    src = build_model(cfg, DummyVecEnv([env_cls]))
+    checkpoints/best.zip[, replay_buffer.pkl]}; `train` gradient steps on a random buffer (Adam
+    states), then parameters and log alpha perturbed away from a fresh init."""
+    src = build_model(cfg, DummyVecEnv([env_cls] * n_envs))
+    if train or buffer:
+        rng = np.random.default_rng(0)
+        obs_n = src.observation_space.shape[0]
+        for _ in range(600):
+            src.replay_buffer.add(rng.uniform(-1, 1, (n_envs, obs_n)).astype(np.float32),
+                                  rng.uniform(-1, 1, (n_envs, obs_n)).astype(np.float32),
+                                  rng.uniform(-1, 1, (n_envs, 3)).astype(np.float32),
+                                  rng.normal(size=n_envs).astype(np.float32), rng.uniform(size=n_envs) < .02,
+                                  [{}] * n_envs)
+    if train:
+        from stable_baselines3.common.logger import configure
+        src.set_logger(configure(None, []))
+        src.train(train, 64)
     with th.no_grad():
         for p in src.policy.parameters():
             p.add_(.01)
@@ -250,6 +264,8 @@ def _save_source(tmp_path, name, cfg, env_cls=TinyEnv, write_config=True):
     src.save(d / 'checkpoints' / 'best.zip')
     if write_config:
         (d / 'config.json').write_text(config_json(cfg))
+    if buffer:
+        src.save_replay_buffer(d / 'replay_buffer.pkl')
     runs.write_json(d / 'provenance.json', {'rlsetup': {'commit': 'f' * 40}})
     return src, d / 'checkpoints' / 'best.zip'
 
@@ -263,8 +279,8 @@ def _warm_cfg(src_path=None, **warm):
 
 
 def test_warm_start_copies_policy_and_alpha(tmp_path):
-    src, path = _save_source(tmp_path, 'src', tiny_cfg())
-    cfg = _warm_cfg(path)
+    src, path = _save_source(tmp_path, 'src', tiny_cfg(), train=3)
+    cfg = _warm_cfg(path, load_optimizers=False)
     model = build_model(cfg, DummyVecEnv([TinyEnv]))
     info = warm_start(model, path, cfg)
     a, b = src.policy.state_dict(), model.policy.state_dict()
@@ -486,13 +502,15 @@ def test_r1_presets():
     full, warm, smoke = PRESETS['full'](), PRESETS['r1_warm'](), PRESETS['r1_warm_smoke']()
     assert full == TrainConfig(preset='full') and full.strict_provenance and PRESETS['smoke']().strict_provenance is False
     assert warm.env == dataclasses.replace(full.env, reward=R1()) and warm.agent.init_mode == 'warm'
-    assert (warm.total_timesteps, warm.max_wall_h, warm.guard.threshold, warm.stop.plateau) == (3_000_000, 4., .75, True)
-    assert warm.strict_provenance and warm.warm.critic_warmup_steps == 100_000 and warm.agent == dataclasses.replace(
-        full.agent, init_mode='warm')
-    assert (smoke.max_wall_h, smoke.warm.critic_warmup_steps, smoke.eval.interval, smoke.eval.stochastic_laps,
+    assert (warm.total_timesteps, warm.max_wall_h, warm.guard.threshold, warm.stop.plateau) == (3_000_000, 4., .65, True)
+    w = warm.warm                                                  # Amendment 1 §B
+    assert (w.critic_warmup_steps, w.offline_critic_grad_steps, w.load_optimizers, w.relabel, w.init_buffer,
+            w.actor_lr) == (20_000, 25_000, True, True, None, None)
+    assert warm.strict_provenance and warm.agent == dataclasses.replace(full.agent, init_mode='warm')
+    assert (smoke.max_wall_h, smoke.warm, smoke.eval.interval, smoke.eval.stochastic_laps,          # Amendment 1 §D
             smoke.guard.interval, smoke.checkpoint_interval, smoke.stop.plateau, smoke.strict_provenance) == \
-        (.25, 10_000, 25_000, 3, 5_000, 25_000, False, False)
-    assert smoke.env == warm.env and smoke.guard.threshold == .75 and smoke.total_timesteps == 3_000_000
+        (.5, warm.warm, 25_000, 3, 5_000, 25_000, False, False)
+    assert smoke.env == warm.env and smoke.guard.threshold == .65 and smoke.total_timesteps == 150_000
 
 
 def test_dirty_tree_refused_by_strict_presets(monkeypatch, tmp_path):
@@ -506,7 +524,11 @@ def test_dirty_tree_refused_by_strict_presets(monkeypatch, tmp_path):
         raise Reached
     monkeypatch.setattr(provenance, 'git_state', lambda path: {'dirty': True})
     monkeypatch.setattr(runs, 'make_run_dir', make_run_dir)
-    init = dict(init_from=str(tmp_path / 'x.zip'))
+    ck = tmp_path / 'src' / 'seed0' / 'checkpoints'
+    ck.mkdir(parents=True)
+    for f in (ck / 'x.zip', ck.parent / 'config.json', ck.parent / 'replay_buffer.pkl'):
+        f.write_text('')
+    init = dict(init_from=str(ck / 'x.zip'))
     assert T.run_pipeline(dataclasses.replace(PRESETS['r1_warm'](), **init), 'r') == T.EXIT_DIRTY
     assert T.run_pipeline(PRESETS['full'](), 'r') == T.EXIT_DIRTY
     with pytest.raises(Reached):
@@ -530,6 +552,11 @@ def test_cli_init_from_absolute(monkeypatch, tmp_path):
         T.main(['--preset', 'r1_warm_smoke', '--run-name', 'r'])
     with pytest.raises(SystemExit):
         T.main(['--preset', 'smoke', '--run-name', 'r', '--init-from', 'a/b.zip'])
+    assert seen['cfg'].warm.init_buffer is None                     # default resolved in run_pipeline
+    T.main(['--preset', 'r1_warm_smoke', '--run-name', 'r', '--init-from', 'a/b.zip', '--init-buffer', 'c/rb.pkl'])
+    assert seen['cfg'].warm.init_buffer == str((tmp_path / 'c' / 'rb.pkl').resolve())
+    with pytest.raises(SystemExit):
+        T.main(['--preset', 'r1_warm_smoke', '--run-name', 'r', '--init-buffer', 'c/rb.pkl'])
 
 
 def test_resume_warm_frozen_phase_and_strict_rule(tmp_path, monkeypatch):
@@ -546,7 +573,7 @@ def test_resume_warm_frozen_phase_and_strict_rule(tmp_path, monkeypatch):
     runs.append_jsonl(d / 'evals.jsonl', {'step': 0, 'det_clean': True, 'lap2_s': 122.8, 'sto_lap_mean_s': 124.7})
     assert T.resume_pipeline(d, [], argv=['x']) == T.EXIT_OK
     k = seen['callbacks']
-    assert k['unfreeze_at'] == 100_000 and k['critic_check_at'] == 100_000 and k['critic_check_done'] is False
+    assert k['unfreeze_at'] == 20_000 and k['critic_check_at'] == 20_000 and k['critic_check_done'] is False
     assert k['plateau_history'] == [(0, 122.8, 124.7)]
     assert seen['model'].freeze_actor and seen['model'].freeze_ent_coef
     with pytest.raises(ValueError, match='init_from'):
@@ -561,3 +588,159 @@ def test_resume_warm_frozen_phase_and_strict_rule(tmp_path, monkeypatch):
     raw['preset'] = 'smoke'
     (d / 'config.json').write_text(json.dumps(raw))
     assert T.resume_pipeline(d, [], argv=['x']) == T.EXIT_OK
+
+
+# --- Amendment 1: optimizer states (C4), buffer preload (C3) ---------------------------------------
+def _opt_equal(a, b):
+    sa, sb = a.state_dict(), b.state_dict()
+    if sa['param_groups'] != sb['param_groups'] or set(sa['state']) != set(sb['state']):
+        return False
+    return all(th.equal(sa['state'][i][k], sb['state'][i][k]) for i in sa['state'] for k in sa['state'][i])
+
+
+def test_warm_start_copies_optimizer_states(tmp_path):
+    """C4: with load_optimizers (default) the actor / critic / ent_coef Adam states equal the source's."""
+    src, path = _save_source(tmp_path, 'src', tiny_cfg(), train=3)
+    cfg = _warm_cfg(path, actor_lr=1e-4)
+    model = build_model(cfg, DummyVecEnv([TinyEnv]))
+    warm_start(model, path, cfg)
+    assert src.actor.optimizer.state_dict()['state']                # the source really has Adam moments
+    for name in ('actor', 'critic'):
+        assert _opt_equal(getattr(model, name).optimizer, getattr(src, name).optimizer), name
+    assert _opt_equal(model.ent_coef_optimizer, src.ent_coef_optimizer)
+    assert model.ent_coef_optimizer.param_groups[0]['params'][0] is model.log_ent_coef
+    assert model.actor_lr == 1e-4 and model.freeze_actor
+
+
+def test_preload_buffer_relabels_and_cuts(tmp_path):
+    from rlsetup.driving.agent import preload_buffer, default_init_buffer
+    src, path = _save_source(tmp_path, 'src', tiny_cfg(), buffer=True)
+    assert default_init_buffer(path) == str(path.parents[1].resolve() / 'replay_buffer.pkl')
+    cfg = _warm_cfg(path)
+    model = build_model(cfg, DummyVecEnv([TinyEnv]))
+    model.min_train_transitions = 5_120
+    r_old = src.replay_buffer.rewards[:600].copy()
+    info = preload_buffer(model, default_init_buffer(path), path, cfg)
+    rb = model.replay_buffer
+    assert rb.pos == 600 and info['transitions'] == 600 and info['cut_row'] == 599 and rb.dones[599, 0] == 1.
+    assert info['relabel']['rows'] == 600 and model.min_train_transitions == 0 and len(info['sha256']) == 64
+    assert not np.array_equal(rb.rewards[:600], r_old)
+    norelabel = build_model(_warm_cfg(path, relabel=False), DummyVecEnv([TinyEnv]))
+    info = preload_buffer(norelabel, default_init_buffer(path), path, _warm_cfg(path, relabel=False))
+    assert info['relabel'] is None and np.array_equal(norelabel.replay_buffer.rewards[:599], r_old[:599])
+
+
+def test_preload_buffer_refuses_mismatches(tmp_path):
+    """C3: buffer_size, n_envs, gamma, observation shape; missing file."""
+    from rlsetup.driving.agent import preload_buffer
+    c = tiny_cfg()
+    variants = {'buffer_size': dict(cfg=dataclasses.replace(c, agent=dataclasses.replace(c.agent, buffer_size=4_000))),
+                'n_envs': dict(cfg=c, n_envs=2),
+                'gamma': dict(cfg=dataclasses.replace(c, env=dataclasses.replace(
+                    c.env, reward=dataclasses.replace(c.env.reward, gamma=.99)))),
+                'obs_shape': dict(cfg=c, env_cls=TinyEnv160)}
+    for key, kw in variants.items():
+        _, path = _save_source(tmp_path, key, kw.pop('cfg'), buffer=True, **kw)
+        cfg = _warm_cfg(path)
+        model = build_model(cfg, DummyVecEnv([TinyEnv]))
+        with pytest.raises(InitMismatch, match=key):
+            preload_buffer(model, path.parents[1] / 'replay_buffer.pkl', path, cfg)
+    with pytest.raises(InitMismatch, match='missing'):
+        preload_buffer(model, tmp_path / 'nope.pkl', path, cfg)
+
+
+# --- QA review of 475bbe2 (docs/handoff/R1_qa_review.md) ------------------------------------------
+def test_missing_init_files_refused_before_run_dir(monkeypatch, tmp_path):
+    """QA m2: a missing init_from / config.json / init_buffer exits 6 before the run folder exists."""
+    from rlsetup import provenance
+    from rlsetup.driving import train as T
+    monkeypatch.setattr(provenance, 'git_state', lambda path: {'dirty': False})
+    monkeypatch.setattr(runs, 'make_run_dir', lambda *a, **k: pytest.fail('run dir created'))
+    ck = tmp_path / 'src' / 'seed0' / 'checkpoints'
+    ck.mkdir(parents=True)
+    zip_, conf, buf = ck / 'x.zip', ck.parent / 'config.json', ck.parent / 'replay_buffer.pkl'
+    cfg = dataclasses.replace(PRESETS['r1_warm_smoke'](), init_from=str(zip_))
+    for present in ((), (zip_,), (zip_, conf)):
+        for f in present:
+            f.write_text('')
+        assert T.run_pipeline(cfg, 'r') == T.EXIT_INIT_MISMATCH
+    buf.write_text('')
+    other = dataclasses.replace(cfg, warm=dataclasses.replace(cfg.warm, init_buffer=str(tmp_path / 'none.pkl')))
+    assert T.run_pipeline(other, 'r') == T.EXIT_INIT_MISMATCH
+
+
+def test_critic_check_eval_scheduled_at_unfreeze(tmp_path):
+    """QA M1: interval 50k, critic_check_at 20k -> an extra eval record at exactly 20,000 with the
+    check; afterwards the 50k grid continues; no second check."""
+    from rlsetup.driving.callbacks import DrivingEvalCallback
+    model = make_model(fill=0)
+    q = {'q_min_minus_mc_nstep': 2., 'mc_nstep_mean': 200.}
+    cb = DrivingEvalCallback(lambda m, n: {'det_clean': True, 'lap2_s': 123., 'q_vs_mc': q}, 50_000,
+                             tmp_path / 'evals.jsonl', tmp_path, critic_check_at=20_000, critic_check_tol=.08)
+    cb.init_callback(model)
+    model.num_timesteps = 0
+    cb.on_training_start({}, {})
+    for n in range(4, 120_001, 4):
+        model.num_timesteps = n
+        cb.on_step()
+    recs = runs.read_jsonl(tmp_path / 'evals.jsonl')
+    assert [r['step'] for r in recs] == [0, 20_000, 50_000, 100_000]
+    assert [('critic_check' in r) for r in recs] == [False, True, False, False]
+    assert recs[1]['critic_check'] == pytest.approx(.01)
+
+
+def test_nan_critic_check_is_not_converged(tmp_path):
+    """QA m1: a non-finite critic check is None and raises critic_not_converged."""
+    from rlsetup.driving.callbacks import DrivingEvalCallback
+    assert critic_check_value({'q_min_minus_mc_nstep': math.nan, 'mc_nstep_mean': 200.}) is None
+    assert critic_check_value({'q_min_minus_mc_nstep': 1., 'mc_nstep_mean': math.inf}) is None
+    model = make_model(fill=0)
+    events = []
+    cb = DrivingEvalCallback(lambda m, n: {'q_vs_mc': {'q_min_minus_mc_nstep': math.nan, 'mc_nstep_mean': 1.}},
+                             50_000, tmp_path / 'evals.jsonl', tmp_path, critic_check_at=0, critic_check_tol=.08,
+                             on_event=lambda k, **d: events.append((k, d)))
+    cb.init_callback(model)
+    model.num_timesteps = 0
+    cb.on_training_start({}, {})
+    assert events == [('critic_not_converged', {'step': 0, 'critic_check': None, 'tol': .08})]
+
+
+@pytest.mark.parametrize('nan_at', [5, 15])        # physics step: tick 1 / tick 2
+def test_nonfinite_under_time_pbrs(make_env, monkeypatch, nan_at):
+    """QA m5a: terminated 'nonfinite', P = 100, Phi' = 0, F = -Phi(s), r = progress - time - P + F,
+    obs all zero."""
+    env = make_env(EnvConfig(settle_s=0., reward=R1()))
+    _, info0 = env.reset(options={'start_s': 4900., 'start_speed': 20.})
+    phi_prev = info0['phi']
+    calls, orig = [0], env.backend.step
+
+    def step(inputs, steps=1):
+        st = orig(inputs, steps)
+        calls[0] += 1
+        return dict(st, vx=float('nan')) if calls[0] == nan_at else st
+    monkeypatch.setattr(env.backend, 'step', step)
+    obs, r, term, trunc, info = env.step(np.array([0., .3, -1.], np.float32))
+    assert term and not trunc and info['termination'] == 'nonfinite' and info['truncation'] is None
+    c = info['step_cost']
+    assert c['penalty'] == 100. and info['phi'] == 0. and info['shaping'] == -phi_prev and phi_prev != 0.
+    assert r == c['progress'] - c['time'] - 100. + info['shaping']
+    assert not obs.any()
+
+
+class TinyEnvA2(TinyEnv):
+    action_space = gym.spaces.Box(-1., 1., (2,), np.float32)
+
+
+def test_warm_start_refuses_more_mismatches(tmp_path):
+    """QA m5b / m7: action space, n_critics, critic LayerNorm / policy class, n_steps, target_entropy."""
+    c = tiny_cfg()
+    ag = lambda **kw: dataclasses.replace(c, agent=dataclasses.replace(c.agent, **kw))
+    cases = {'action space': dict(cfg=c, env_cls=TinyEnvA2), 'n_critics': dict(cfg=ag(n_critics=3)),
+             'critic LayerNorm': dict(cfg=ag(critic_layernorm=False)), 'n_steps': dict(cfg=ag(n_steps=1)),
+             'target_entropy': dict(cfg=ag(target_entropy=-2.))}
+    for msg, kw in cases.items():
+        _, path = _save_source(tmp_path, msg.replace(' ', '_'), kw.pop('cfg'), **kw)
+        cfg = _warm_cfg(path)
+        model = build_model(cfg, DummyVecEnv([TinyEnv]))
+        with pytest.raises(InitMismatch, match=msg):
+            warm_start(model, path, cfg)

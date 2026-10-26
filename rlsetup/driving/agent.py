@@ -16,9 +16,11 @@ StagedSAC relies on SB3 2.9.0 `SAC.train()` internals (pinned in pyproject; test
 The freeze flags, actor_lr and min_train_transitions are pickled with the model;
 `_setup_model` re-applies requires_grad after `load()`.
 
-`warm_start` (R1 spec §2.5) copies actor, critics, target critics and log alpha of a trained
-model into a freshly built one (optimizers, replay buffer and step counters stay fresh) and
-freezes actor + alpha for the critic-only phase.
+`warm_start` (R1 spec §2.5, Amendment 1 §B) copies actor, critics, target critics, log alpha
+and (WarmStartConfig.load_optimizers) the Adam states of a trained model into a freshly built
+one (step counters stay 0) and freezes actor + alpha for the critic phases. `preload_buffer`
+loads the source's replay buffer, relabels it to the new reward (relabel.py) and cuts the
+n-step chain at its last row.
 """
 from pathlib import Path
 import hashlib
@@ -145,12 +147,15 @@ def _env_without_reward(env):
 def warm_start(model, init_from, cfg):
     """Initialize the fresh StagedSAC `model` (built for TrainConfig `cfg`) from the saved model
     `init_from` (R1 spec §2.5). Refuses (InitMismatch) unless observation / action space, gamma,
-    policy class, net_arch, n_critics and critic LayerNorm are equal, and the source run's
+    n_steps, target_entropy, policy class, net_arch, n_critics and critic LayerNorm are equal, and
+    the source run's
     config.json (at Path(init_from).parents[1]) has the same EnvConfig apart from `reward`,
     with an equal reward.gamma. Copies the policy state (actor, critic, critic_target; only
     actor.* with cfg.warm.load_critics=False) and, with cfg.warm.load_alpha, log_ent_coef in
     place. Optimizers, replay buffer, num_timesteps and _n_updates stay fresh; no output-bias
-    init. Sets model.min_train_transitions = batch_size * min_buffer_batches and freezes actor +
+    init. cfg.warm.load_optimizers: also the actor / critic / ent_coef optimizer state_dicts.
+    Sets model.min_train_transitions = batch_size * min_buffer_batches (preload_buffer sets it to
+    0), model.actor_lr = cfg.warm.actor_lr (it only acts after the unfreeze) and freezes actor +
     alpha. Returns {'path', 'sha256', 'src_num_timesteps', 'src_alpha', 'src_config_sha256',
     'src_rlsetup_commit' (from the source provenance.json, None if absent), 'actor_sha256',
     'log_ent_coef_sha256' (after loading)}."""
@@ -170,8 +175,10 @@ def warm_start(model, init_from, cfg):
         bad.append(f'observation space {src.observation_space} != {model.observation_space}')
     if src.action_space != model.action_space:
         bad.append(f'action space {src.action_space} != {model.action_space}')
-    if src.gamma != model.gamma:
-        bad.append(f'gamma {src.gamma} != {model.gamma}')
+    for key in ('gamma', 'n_steps', 'target_entropy'):            # QA m7: + n_steps, target_entropy
+        a, b = getattr(src, key, None), getattr(model, key, None)
+        if a != b:
+            bad.append(f'{key} {a} != {b}')
     if type(src.policy) is not type(model.policy):
         bad.append(f'policy class {type(src.policy).__name__} != {type(model.policy).__name__}')
     for key in ('net_arch', 'n_critics'):
@@ -194,12 +201,19 @@ def warm_start(model, init_from, cfg):
     else:
         missing, unexpected = model.policy.load_state_dict(
             {k: v for k, v in state.items() if k.startswith('actor.')}, strict=False)
-        assert not unexpected and all(not k.startswith('actor.') for k in missing)
+        if unexpected or any(k.startswith('actor.') for k in missing):     # QA m6: no assert
+            raise InitMismatch(f'actor state_dict mismatch: unexpected {unexpected}, missing {missing}')
     if w.load_alpha:
         if src.log_ent_coef is None or model.log_ent_coef is None:
             raise InitMismatch('load_alpha needs a learned entropy coefficient in both models')
         with th.no_grad():
             model.log_ent_coef.copy_(src.log_ent_coef)
+    if w.load_optimizers:
+        model.actor.optimizer.load_state_dict(src.actor.optimizer.state_dict())
+        model.critic.optimizer.load_state_dict(src.critic.optimizer.state_dict())
+        if model.ent_coef_optimizer is not None and src.ent_coef_optimizer is not None:
+            model.ent_coef_optimizer.load_state_dict(src.ent_coef_optimizer.state_dict())
+    model.actor_lr = w.actor_lr
     model.min_train_transitions = cfg.agent.batch_size * w.min_buffer_batches
     model.set_frozen(True, True)
     prov = {}
@@ -211,3 +225,50 @@ def warm_start(model, init_from, cfg):
             'src_rlsetup_commit': (prov.get('rlsetup') or {}).get('commit'),
             'actor_sha256': param_digest(model.actor),
             'log_ent_coef_sha256': None if model.log_ent_coef is None else param_digest(model.log_ent_coef)}
+
+
+def default_init_buffer(init_from):
+    """<run folder of init_from>/replay_buffer.pkl (init_from = <run>/checkpoints/<name>.zip)."""
+    return str(Path(init_from).resolve().parents[1] / 'replay_buffer.pkl')
+
+
+def preload_buffer(model, path, init_from, cfg):
+    """Amendment 1 §B step 3: load the replay buffer at `path` into `model`; refuse (InitMismatch)
+    unless buffer class, buffer_size, n_envs, n_steps, gamma, observation and action shapes equal
+    the model's own buffer; with cfg.warm.relabel relabel it from the source env config (config.json
+    of init_from's run folder) to cfg.env (relabel.relabel_to_time_pbrs); mark the last row of every
+    env column as an episode end (callbacks.cut_nstep_chains); min_train_transitions = 0.
+    Returns {'path', 'sha256', 'rows', 'transitions', 'full', 'cut_row', 'relabel' (stats or None)}."""
+    from stable_baselines3.common.save_util import load_from_pkl
+    from .callbacks import cut_nstep_chains
+    from .config import EnvConfig
+    from .relabel import relabel_to_time_pbrs
+    from .train_config import config_from_dict
+    path = Path(path).resolve()
+    if not path.is_file():
+        raise InitMismatch(f'init_buffer {path} missing')
+    rb, cur = load_from_pkl(path), model.replay_buffer
+    bad = []
+    if type(rb) is not type(cur):
+        bad.append(f'buffer class {type(rb).__name__} != {type(cur).__name__}')
+    for key in ('buffer_size', 'n_envs', 'n_steps', 'gamma', 'obs_shape', 'action_dim'):
+        a, b = getattr(rb, key, None), getattr(cur, key, None)
+        if a != b:
+            bad.append(f'{key} {a} != {b}')
+    if bad:
+        raise InitMismatch(f'cannot preload {path}: ' + '; '.join(bad))
+    stats = None
+    if cfg.warm.relabel:
+        cfg_path = Path(init_from).resolve().parents[1] / 'config.json'
+        src_env = config_from_dict(EnvConfig, json.loads(cfg_path.read_text())['env'])
+        stats = relabel_to_time_pbrs(rb, src_env, cfg.env)
+    rb.device = model.device
+    model.replay_buffer = rb
+    cut = cut_nstep_chains(rb)
+    model.min_train_transitions = 0
+    h = hashlib.sha256()
+    with path.open('rb') as f:
+        for chunk in iter(lambda: f.read(1 << 24), b''):
+            h.update(chunk)
+    return {'path': str(path), 'sha256': h.hexdigest(), 'rows': int(rb.size()), 'transitions': int(rb.size() * rb.n_envs),
+            'full': bool(rb.full), 'cut_row': None if cut is None else int(cut), 'relabel': stats}
