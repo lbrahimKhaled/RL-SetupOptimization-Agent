@@ -112,3 +112,11 @@ Run folder: `runs/D2/smoke1/seed0/` (status.json, evals.jsonl, train_stats.jsonl
 
 ## NEXT ACTION (as of D2 implemented)
 sim-runner runs the smoke preset (commands above), then qa-reviewer reviews D2.
+
+## FULL D2 RUN LAUNCHED (26 Oct 10:54 EET) — running unattended
+- Code pinned: detached worktree `/Users/ibrahimkhaled/Documents/rlsetup-wt-full` at **f17be23** (its `.venv` is a symlink to this repo's venv). Edits in this repo do NOT affect the run.
+- Command: `cd rlsetup-wt-full && RUNS_ROOT=<this repo>/runs/D2 nohup caffeinate -dimsu ./scripts/run_d2_full.sh > runs/D2/full_stdout.log &` (seeds 0,1,2 sequential, max_wall_h 3, total_timesteps 2e6, then d2_report).
+- Results: `runs/D2/full1/seed{0,1,2}/` (evals.jsonl, status.json, checkpoints/), log `runs/D2/full_stdout.log`, report `runs/D2/full1/d2_report.md` at the end (~9 h worst case).
+- Check: `tail runs/D2/full_stdout.log`; `pgrep -fl run_d2_full`. Stop: `pkill -f run_d2_full.sh; pkill -f rlsetup.driving.train`.
+- Smoke result (smoke1_bc30, 148k steps, ~22 min, CPU-contended): BC lap 2 340.6 s → final deterministic lap 2 **130.8 s clean** (< 140.6 target, < 133.9 QSS). One lap only; intermediate evals 25k–125k went off track. Verify the sub-QSS lap (track usage vs safe line) before trusting it.
+- Known issues in the pinned code (fixed later in this repo, not in the run): QA M1 (Q-vs-MC diagnostic biased ~+25 by n-step entropy), M2/m1/m3/m4 (resume provenance + resume edge cases — only matter if a seed crashes and resumes), m2 (d2_report crashes if a seed has no last.zip → rerun report with fixed code if so).
