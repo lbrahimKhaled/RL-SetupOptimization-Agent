@@ -24,3 +24,10 @@ Newest last. Each entry: date, decision, who decided, why. OPEN items stay in PR
 11. **No gear in the observation** (strict "driver does not see the setup"; gear at a given speed leaks final drive).
 12. **D2 done criterion = architect's proposal:** 3 seeds with a clean deterministic flying lap on p0; lap 2 ≤ 140.6 s (1.05 × 133.9 s QSS); < 0.2 s improvement over the last 20 % of steps; seed std ≤ 0.2 s; ≥ 9/10 stochastic laps clean; env steps + wall time logged.
 13. Architect decisions adopted (technical, not OPEN): 25 Hz decisions (action repeat 2, rewards summed, reward (1) unchanged per 50 Hz tick); γ = 0.992; settle 2.0 s; off-track P = P0 + 30·c·e_exit² (P0 = 50); stall/wrong-way termination; setup agent scores the undiscounted evaluation-lap cost, never the training return.
+
+## 2026-10-26 — D2 technical decisions (lead; not OPEN items)
+14. Demo steering noise default **0.05** (measured clean fraction 0.41 at 0.1, 0.86–0.89 at 0.05); fallback 0.025 (PLACEHOLDER). Supersedes D2_agent.md §4's 0.1.
+15. Demo-dataset cache key = sha256 of the six demo-relevant rlsetup sources (not the rlsetup commit), so unrelated commits don't force recollection. Supersedes D2_agent.md §4.
+16. Crash-safe training: replay buffer saved atomically at every checkpoint (1.3 GB, 1.4 s each; 38 GiB free); resume without a buffer continues with a warning.
+17. Unattended full run: `scripts/run_d2_full.sh`, 3 seeds sequential, default `MAX_WALL_H=3` per seed (Ibrahim asked for training to continue offline; no explicit hour budget given, so 3 h/seed cap until he says otherwise).
+18. BC needs the full preset's 30 epochs (smoke preset's 10 stops before the val-NLL minimum at epoch 15; gate fails at 10, passes at 30 with a clean 340.6 s lap).
