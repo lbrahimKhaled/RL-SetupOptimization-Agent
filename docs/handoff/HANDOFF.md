@@ -158,3 +158,4 @@ Same watcher (`runs/D2/stop_at_lap.sh`), DEADLINE=1600: stop right after the fir
 - Resume after a crash: same command with `--resume` (no `--init-from` re-application).
 - 1.0M check (DECISIONS #20). Open for Ibrahim: setup loss = lap time? z_drv dropped/deferred? seeds 1–2 from scratch or warm?
 - Follow-up: `StopConfig.start_step` so plateau ignores pre-unfreeze evals.
+- **1.0M check (23:36):** stop rule not met (post-unfreeze best clean det lap 2 = 123.04 s < 124.0; sto clean last 5 = 0.36), so the run continues to 3M / 4 h. Not faster yet: det clean in 7/20 post-unfreeze evals (123.04–124.29 s), sto mean 125.0–126.2 s (init 124.77), 1 rollback at 160k. Line freed: mean |e| 0.43 → 0.6–0.8 m, max 2.4 → 3–6 m, min edge margin 0.35 → 0.12–0.25 m; lap smoothness 10 → 22–39; progress_jumps 0.
