@@ -43,3 +43,7 @@ Commits on `d1-driving-env`: `c25e2b0` N1 + A5, `7f7a101` QA M-1 tests, `a738b2a
 - **Results:** full suite `.venv/bin/python -m pytest -q -s` → 71 passed in 18.2 s (fast suite 69 in ~4–5 s); settles 200/200 first attempt, ΣFz within 5 % 200/200, worst 2.550 %. `scripts/bench_env.py` (runs/bench/bench_env_d1_complete.json): random 1,693 decisions/s (1,189 incl. resets, reset 22.4 ms, 44 stall / 12 off_track); demo 1,698/s; flying lap f = 0.5 → 268.375 s, f = 0.7 → 192.033 s, identical to the pre-fix bench, clip 0.
 - **Open finding:** `qss_profile.cache_key` hashes handling.py but not rig.py / vertical_model.py, which handling.py imports. Left unchanged, because changing the key invalidates `data/qss_profile_Shanghai_p0.npz`. Architect or Ibrahim to decide.
 - **Next:** implement `docs/specs/D2_agent.md`.
+
+## Ibrahim's instruction (26 Oct): unattended training
+When D2 tests + QA + the smoke run pass, launch the full 3-seed D2 run **detached** so it continues offline / after the session ends:
+`caffeinate -dimsu nohup scripts/run_d2_full.sh > runs/D2/full_stdout.log 2>&1 &` (script runs seeds 0,1,2 sequentially, resumes from last.zip + replay buffer if a seed folder already exists, then runs scripts/d2_report.py). Local CPU only, no internet needed. Survives terminal exit; NOT a reboot or a closed lid on battery (keep the Mac plugged in, lid open). Check progress: `tail runs/D2/full_stdout.log`, `runs/D2/<run>/seed*/evals.jsonl`. Wall budget per seed: from smoke extrapolation (default cap 3 h/seed until Ibrahim says otherwise).
