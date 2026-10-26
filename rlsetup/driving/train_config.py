@@ -43,8 +43,11 @@ class DemoDataConfig:
     """Demonstration data (spec §4 step 2). Everything except `workers` enters the dataset key."""
     n_transitions: int = 200_000         # whole episodes are collected until at least this many
     fraction_range: tuple = (.35, .65)   # f_demo ~ U(lo, hi) per episode (speed fraction of v_qss)
-    noise_std: tuple = (.1, .1, .1)      # i.i.d. Gaussian per dim per decision, action units
-    fallback_steer_noise: float = .05    # gate failed -> recollect once with this steering noise
+    noise_std: tuple = (.05, .1, .1)     # i.i.d. Gaussian per dim [steer, throttle, brake] per decision,
+                                         # action units. Steering 0.05 = lead decision 26 Oct (spec said
+                                         # 0.1): measured clean fraction 0.41 at 0.1, 0.86 at 0.05
+    fallback_steer_noise: float = .025   # gate failed -> recollect once with this steering noise (only
+                                         # if noise_std[0] is larger). PLACEHOLDER: 0.025 not measured
     min_clean_fraction: float = .8       # gate: share of episodes without a failure
     seed: int = 12345                    # independent of the training seed; reset seed = seed + ep
     workers: int = 4                     # collection processes (does not change the data)

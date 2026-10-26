@@ -22,7 +22,8 @@ code_version, sha256 of the QSS cache key). Arrays:
 Transition t of episode e: obs row ep_start_obs[e] + (t - ep_start_tr[e]), next obs = that + 1.
 
 Gate: >= min_clean_fraction of the episodes end without a failure; else `ensure_demos`
-recollects once with steering noise `fallback_steer_noise`.
+recollects once with steering noise `fallback_steer_noise` (default 0.05 -> 0.025; with the
+default noise the fallback runs only if 0.05 fails the gate).
 """
 from collections import Counter, deque
 from dataclasses import asdict, replace

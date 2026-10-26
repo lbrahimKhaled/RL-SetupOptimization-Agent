@@ -95,6 +95,34 @@ def test_demo_collection_is_byte_identical(tmp_path, tiny_demos, track, qss):
     assert path3 == path2 and meta3['created_utc'] == meta2['created_utc']
 
 
+def test_demo_noise_default_and_fallback(monkeypatch):
+    """Lead decision 26 Oct: steering noise 0.05 by default; the fallback (0.025) runs only if
+    0.05 fails the gate; a failing fallback raises."""
+    c = DemoDataConfig()
+    assert c.noise_std == (.05, .1, .1) and c.fallback_steer_noise == .025
+    clean = {}
+    calls = []
+
+    def fake_collect(env_cfg, demo_cfg, *a, **k):
+        calls.append(demo_cfg.noise_std)
+        return 'p', {'summary': {'clean_fraction': clean[demo_cfg.noise_std[0]]}}
+    monkeypatch.setattr(D, 'collect_demos', fake_collect)
+    run = lambda: D.ensure_demos(None, c, None, None, None, log=lambda *_: None)
+    clean.update({.05: .86, .025: .9})
+    assert run()[2] == c and calls == [(.05, .1, .1)]                 # passes: fallback is a no-op
+    calls.clear()
+    clean[.05] = .5
+    _, meta, used = run()
+    assert used.noise_std == (.025, .1, .1) and calls == [(.05, .1, .1), (.025, .1, .1)]
+    assert meta['fallback_from']['clean_fraction'] == .5
+    clean[.025] = .7
+    with pytest.raises(D.DemoGateFailed):
+        run()
+    with pytest.raises(D.DemoGateFailed):                              # already at the fallback noise
+        D.ensure_demos(None, dataclasses.replace(c, noise_std=(.025, .1, .1)), None, None, None,
+                       log=lambda *_: None)
+
+
 def test_dataset_key_ignores_workers_only(qss):
     prov = {'rlsetup': {'commit': 'a'}, 'ocd_lap_code_version': 'b'}
     k = D.dataset_key(SHORT, TINY, qss, prov)[0]
