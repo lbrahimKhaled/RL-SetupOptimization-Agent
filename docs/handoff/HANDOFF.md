@@ -137,5 +137,8 @@ Source: `docs/handoff/D2_qa_review.md` + the provenance finding in `docs/handoff
 - Not done: m5 (lap-2 tagging at decision granularity, document only) and m7 (`run_d2_full.sh` does not continue seeds stopped by the wall-clock limit) were not in this fix list.
 - Tests (26 Oct, during the full1 run, fast suite only): `.venv/bin/python -m pytest -q -m "not slow"` → 131 passed, 4 deselected in 15.8 s. The slow suite (`test_d2_slow.py`, CLI mini pipeline + resume + report) was **not** run, to leave the CPU to full1. Run it after full1 finishes.
 
-## 26 Oct 12:20 — Ibrahim: only seed 0, stop ~13:30
+## 26 Oct 12:20 — Ibrahim: only seed 0 (13:30 stop CANCELLED 12:22, see below)
 Launcher `run_d2_full.sh` killed (seeds 1, 2 will NOT run). Seed 0 training (PID 7154) kept alive under `caffeinate -w`. `runs/D2/stop_seed0_at.sh` (detached, log `runs/D2/stop_seed0.log`) stops it right after the first evaluation at/after 13:30 (SIGINT, then SIGTERM after 60 s), then refreshes `docs/results/D2_full1/SEEDS.md`. Driver to use: `runs/D2/full1/seed0/checkpoints/best.zip` (best clean deterministic lap). Ibrahim mentioned ~90 s laps: not reachable for this OCD car (QSS 133.9 s; real SF70H 1:31.9 needs SF70H tyres/aero).
+
+## 26 Oct 12:22 — Ibrahim: train seed 0 until a clean lap ≤ 95 s
+`runs/D2/stop_at_lap.sh` (detached; log `runs/D2/stop_at_lap.log`) replaces the 13:30 stopper. It stops seed 0 once evals.jsonl has a clean deterministic lap 2 ≤ 95 s. If the run first ends on its built-in caps (2M steps / 3 h, ~13:55), it resumes ONCE from the pinned worktree with total_timesteps 6M and max_wall_h 8, then stops when that ends. Lead's assessment, told to Ibrahim: 95 s is not reachable for this OCD car (QSS 133.9 s; tyre/aero limited; needs SF70H tyre + aero data), so in practice the run ends on the caps or when Ibrahim stops it: `pkill -f stop_at_lap.sh; pkill -f rlsetup.driving.train`.
