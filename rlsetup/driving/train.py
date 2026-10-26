@@ -2,6 +2,8 @@
 
     .venv/bin/python -m rlsetup.driving.train --preset full --seed 0 --run-name NAME [--set k=v ...]
     .venv/bin/python -m rlsetup.driving.train --resume --run-name NAME --seed 0 [--set total_timesteps=3000000]
+    .venv/bin/python -m rlsetup.driving.train --preset r1_warm --seed 0 --run-name r1_warm \
+        --init-from runs/D2/full1/seed0/checkpoints/best.zip
 
 Pipeline (AgentConfig.init_mode = 'bc'):
   1 build the vec env + StagedSAC, init_output_bias(actor)
@@ -17,6 +19,15 @@ Pipeline (AgentConfig.init_mode = 'bc'):
   5  PhaseCallback unfreezes; CollapseGuard watches the next GuardConfig.window steps
 'bias_only': steps 1 + 5 only (no demos, no BC, nothing frozen; guard baseline = probe of the
 bias-initialized actor).
+'warm' (R1 spec §2.5, §2.6; requires --init-from): build the model, `agent.warm_start` (actor,
+critics, targets, log alpha from init_from; fresh optimizers, buffer and step counter 0; actor
++ alpha frozen; no gradient step before agent.batch_size x warm.min_buffer_batches
+transitions), no demos / BC / offline warm-up; guard baseline = probe of the loaded actor;
+unfreeze at warm.critic_warmup_steps; critic check at the first evaluation at or after it;
+init_from (path, sha256, source steps, source rlsetup commit) in provenance.json and status.json.
+A source whose spaces / gamma / architecture / env config (without reward) differ -> status
+'init_mismatch', exit 6.
+StopConfig.plateau adds PlateauStop (stop reason 'plateau').
 Run folder runs/D2/<run_name>/seed<k>/ (spec §7); checkpoints/last.zip and best.zip live in
 checkpoints/. A resumed run logs SB3 output to sb3/resume<k>/ (SB3's CSV logger would truncate
 progress.csv). last.zip / best.zip / replay_buffer.pkl are written atomically (temp file + rename);
@@ -29,9 +40,12 @@ resume_empty_buffer_min_batches transitions. Resume is not bit-identical to an u
 restart; the last loaded row is marked as an episode end so n-step targets do not chain across
 the cut).
 Resume checks the code against provenance.json (rlsetup commit + diff sha, ocd_lap code_version)
-and refuses on a mismatch (exit 5) unless --allow-code-change, and refuses a full-preset run with
-uncommitted rlsetup changes (exit 4) unless --allow-dirty; both flags are recorded in the
-'resume' event together with the code state.
+and refuses on a mismatch (exit 5) unless --allow-code-change, and refuses a run with
+TrainConfig.strict_provenance (configs written before R1: preset 'full') and uncommitted rlsetup
+changes (exit 4) unless --allow-dirty; both flags are recorded in the 'resume' event together
+with the code state. A new run with strict_provenance refuses a dirty tree the same way. Resume
+never re-applies init_from; a run resumed in its frozen phase ('bc' or 'warm') stays frozen until
+its unfreeze step.
 """
 from dataclasses import replace
 from pathlib import Path
@@ -42,7 +56,7 @@ import time
 import traceback
 import numpy as np
 
-EXIT_OK, EXIT_GATE, EXIT_COLLAPSED, EXIT_DIRTY, EXIT_CODE_CHANGED = 0, 2, 3, 4, 5
+EXIT_OK, EXIT_GATE, EXIT_COLLAPSED, EXIT_DIRTY, EXIT_CODE_CHANGED, EXIT_INIT_MISMATCH = 0, 2, 3, 4, 5, 6
 RESUME_OVERRIDABLE = {'total_timesteps', 'max_wall_h', 'save_replay_buffer', 'checkpoint_interval',
                       'replay_buffer_save_every'}
 
@@ -102,14 +116,22 @@ class Run:
             self.status(state='collapsed', stop_reason='collapsed')
         elif kind == 'wall_clock_limit':
             self.status(stop_reason='wall_clock_limit')
+        elif kind == 'plateau':
+            self.status(stop_reason='plateau')
+        elif kind == 'critic_not_converged':
+            _warn(self, data['step'], f"critic check {data['critic_check']} above tol {data['tol']} at the first "
+                                      f"evaluation after the critic-only phase (critic_not_converged)")
 
 
 def _callbacks(run, model, envs, starts, baseline, *, unfreeze_at, guard_start=None, rollbacks=0,
-               best_lap2=float('inf'), last_det_clean=None, wall0=(0., 0.), t0=None, buffer_saved_step=None):
+               best_lap2=float('inf'), last_det_clean=None, wall0=(0., 0.), t0=None, buffer_saved_step=None,
+               critic_check_at=None, critic_check_done=False, plateau_history=()):
     """`buffer_saved_step`: step of a replay-buffer save made before learn() (the prefill save at
-    step 0), so the step-0 evaluation does not save the same buffer again."""
+    step 0), so the step-0 evaluation does not save the same buffer again. `critic_check_at`:
+    step of the R1 critic check (None: none); `plateau_history`: PlateauStop entries of earlier
+    processes. Returns (callbacks, guard, wall, plateau)."""
     from .callbacks import (PhaseCallback, CollapseGuard, TrainStatsCallback, DrivingEvalCallback,
-                            CheckpointCallback, WallClockLimit, ReplayBufferSaver)
+                            CheckpointCallback, WallClockLimit, ReplayBufferSaver, PlateauStop)
     from .evaluate import probe, evaluate_model
     cfg, d = run.cfg, run.dir
     saver = ReplayBufferSaver(d / 'replay_buffer.pkl', lambda n: run.status(replay_buffer_step=int(n)),
@@ -124,15 +146,17 @@ def _callbacks(run, model, envs, starts, baseline, *, unfreeze_at, guard_start=N
         lambda m, n: evaluate_model(m, envs, cfg.eval, laps_path=d / 'laps' / f'step_{n}_det.npz'),
         cfg.eval.interval, d / 'evals.jsonl', d / 'checkpoints', stats=stats, best_lap2=best_lap2,
         last_det_clean=last_det_clean, on_event=run.event, train_wall0=wall0[0], eval_wall0=wall0[1],
-        buffer_saver=saver)
+        buffer_saver=saver, critic_check_at=critic_check_at, critic_check_tol=cfg.warm.critic_check_tol,
+        critic_check_done=critic_check_done)
+    plateau = PlateauStop(cfg.stop, evalcb, history=plateau_history, on_event=run.event)
     wall = WallClockLimit(cfg.max_wall_h, t0=t0, on_event=run.event)
     ckpt = CheckpointCallback(cfg.checkpoint_interval, d / 'checkpoints', buffer_every=cfg.buffer_save_interval,
                               buffer_saver=saver)
-    cbs = [PhaseCallback(unfreeze_at, on_event=run.event), guard, stats, evalcb, ckpt, wall]
-    return cbs, guard, wall
+    cbs = [PhaseCallback(unfreeze_at, on_event=run.event), guard, stats, evalcb, plateau, ckpt, wall]
+    return cbs, guard, wall, plateau
 
 
-def _learn_and_finish(run, model, cbs, guard, wall, total):
+def _learn_and_finish(run, model, cbs, guard, wall, plateau, total):
     from ..runs import record_phase
     from .callbacks import save_model_atomic, save_replay_buffer_atomic
     cfg, d = run.cfg, run.dir
@@ -152,12 +176,17 @@ def _learn_and_finish(run, model, cbs, guard, wall, total):
     else:
         record_phase(d, 'online_warmup', wall_s=now - run.t_learn, env_steps=model.num_timesteps - run.step0)
     save_model_atomic(model, d / 'checkpoints' / 'last.zip')
-    reason = 'collapsed' if guard.collapsed else 'wall_clock_limit' if wall.triggered else 'completed'
+    reason = ('collapsed' if guard.collapsed else 'plateau' if plateau.triggered
+              else 'wall_clock_limit' if wall.triggered else 'completed')
     if cfg.save_replay_buffer:
         save_replay_buffer_atomic(model, d / 'replay_buffer.pkl')
         run.status(replay_buffer_step=int(model.num_timesteps))
+    extra = {}
+    offset = run.status().get('lifetime_steps_offset')
+    if offset is not None:   # warm start: steps of the source model + this run's steps
+        extra['lifetime_timesteps'] = int(offset) + int(model.num_timesteps)
     run.status(phase='done', state=reason, stop_reason=reason, num_timesteps=int(model.num_timesteps),
-               n_updates=int(model._n_updates), wall_total_s=time.time() - run.t0)
+               n_updates=int(model._n_updates), wall_total_s=time.time() - run.t0, **extra)
     run.log(f'done: {reason} at {model.num_timesteps} steps')
     return EXIT_COLLAPSED if reason == 'collapsed' else EXIT_OK
 
@@ -224,9 +253,13 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
     from .train_config import config_json
     from .vec import build_vec_env, track_sha256
 
+    if (cfg.agent.init_mode == 'warm') != (cfg.init_from is not None):
+        raise ValueError("init_from is required for init_mode 'warm' and only allowed with it "
+                         f'(init_mode {cfg.agent.init_mode!r}, init_from {cfg.init_from!r})')
     rl_git = git_state(REPO_ROOT)
-    if cfg.preset == 'full' and rl_git['dirty'] and not allow_dirty:
-        print('refusing to run the full preset: rlsetup has uncommitted changes (commit, or pass --allow-dirty)')
+    if cfg.strict_provenance and rl_git['dirty'] and not allow_dirty:
+        print(f'refusing to run preset {cfg.preset} (strict_provenance): rlsetup has uncommitted changes '
+              '(commit, or pass --allow-dirty)')
         return EXIT_DIRTY
     run_dir = make_run_dir(cfg.runs_root, run_name, cfg.seed)
     logf = open(run_dir / 'stdout.log', 'a')
@@ -253,12 +286,13 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
         vec = build_vec_env(cfg.env, cfg.n_envs, track, qss, start_method=cfg.vec_start_method)
         model = build_model(cfg, vec)
         a = cfg.agent
-        init_output_bias(model.actor, pedal_deadzone=cfg.env.pedal_deadzone, action=a.init_action,
-                         log_std=a.init_log_std, weight_scale=a.init_weight_scale)
+        if a.init_mode != 'warm':   # warm: the loaded actor, no output-bias init (R1 §2.5 step 6)
+            init_output_bias(model.actor, pedal_deadzone=cfg.env.pedal_deadzone, action=a.init_action,
+                             log_std=a.init_log_std, weight_scale=a.init_weight_scale)
         model.set_logger(configure(str(run_dir / 'sb3'), ['csv', 'tensorboard']))
         starts = make_probe_starts(envs['probe'], cfg.guard)
         write_json(run_dir / 'probe_starts.json', starts)
-        unfreeze_at, buffer_saved_step = 0, None
+        unfreeze_at, buffer_saved_step, critic_check_at = 0, None, None
         if a.init_mode == 'bc':
             # --- step 2: demos ---
             run.status(phase='demos')
@@ -327,12 +361,31 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
             pr = probe(model, envs['probe'], starts)
             baseline = pr.mean_progress_m
             run.status(bc_baseline_m=baseline, bc_probe=pr.progress_m, baseline_source='bias_only')
+        elif a.init_mode == 'warm':
+            from .agent import warm_start, InitMismatch
+            try:
+                init = warm_start(model, cfg.init_from, cfg)
+            except InitMismatch as e:
+                run.status(state='init_mismatch', stop_reason=str(e))
+                log(str(e))
+                return EXIT_INIT_MISMATCH
+            prov['init_from'] = {k: init[k] for k in ('path', 'sha256', 'src_num_timesteps', 'src_rlsetup_commit',
+                                                      'src_config_sha256', 'src_alpha')}
+            write_json(run_dir / 'provenance.json', prov)
+            log(f"warm start from {init['path']} (step {init['src_num_timesteps']}, alpha {init['src_alpha']:.4f}); "
+                f"actor {init['actor_sha256'][:12]}, log alpha {init['log_ent_coef_sha256'][:12]}")
+            pr = probe(model, envs['probe'], starts)
+            baseline = pr.mean_progress_m
+            run.status(bc_baseline_m=baseline, bc_probe=pr.progress_m, baseline_source='init_from', init_from=init,
+                       lifetime_steps_offset=init['src_num_timesteps'])
+            unfreeze_at = critic_check_at = cfg.warm.critic_warmup_steps
         else:
             raise ValueError(f'unknown init_mode {a.init_mode!r}')
         # --- steps 4b + 5 ---
-        cbs, guard, wall = _callbacks(run, model, envs, starts, baseline, unfreeze_at=unfreeze_at, t0=run.t0,
-                                      buffer_saved_step=buffer_saved_step)
-        return _learn_and_finish(run, model, cbs, guard, wall, cfg.total_timesteps)
+        cbs, guard, wall, plateau = _callbacks(run, model, envs, starts, baseline, unfreeze_at=unfreeze_at,
+                                               t0=run.t0, buffer_saved_step=buffer_saved_step,
+                                               critic_check_at=critic_check_at)
+        return _learn_and_finish(run, model, cbs, guard, wall, plateau, cfg.total_timesteps)
     except BaseException as e:
         run.status(state='error', stop_reason=f'{type(e).__name__}: {e}', traceback=traceback.format_exc())
         raise
@@ -351,12 +404,13 @@ def _warn(run, step, msg):
     run.log(f'WARNING: {msg}')
 
 
-def resume_pipeline(run_dir, overrides=(), *, argv=None, allow_dirty=False, allow_code_change=False):
+def resume_pipeline(run_dir, overrides=(), *, argv=None, allow_dirty=False, allow_code_change=False, init_from=None):
     """Continue a run from checkpoints/last.zip + replay_buffer.pkl. Only RESUME_OVERRIDABLE
     fields may be overridden (the report needs identical configs across seeds).
     Code check (QA D2 M2): the current rlsetup git state + ocd_lap code_version are compared with
     provenance.json; a mismatch refuses (EXIT_CODE_CHANGED) unless allow_code_change, uncommitted
-    rlsetup changes with the full preset refuse (EXIT_DIRTY) unless allow_dirty. A refusal adds a
+    rlsetup changes with strict_provenance (missing in the config: preset 'full') refuse
+    (EXIT_DIRTY) unless allow_dirty. A refusal adds a
     'resume_refused' event and changes nothing else; the 'resume' event records the code state,
     mismatches and both flags.
     Replay buffer: loaded and the last row marked as an episode end (cut_nstep_chains). A buffer
@@ -364,7 +418,10 @@ def resume_pipeline(run_dir, overrides=(), *, argv=None, allow_dirty=False, allo
     Without replay_buffer.pkl (hard kill before the first buffer save) the run continues with an
     empty buffer (no demo transitions), a warning ('warnings', event 'resume_without_replay_buffer')
     and no gradient updates until the buffer holds agent.batch_size x
-    resume_empty_buffer_min_batches transitions. Without last.zip: FileNotFoundError."""
+    resume_empty_buffer_min_batches transitions. Without last.zip: FileNotFoundError.
+    `init_from` (CLI --init-from) is never re-applied; a path different from the run's config
+    raises ValueError. A run in its frozen phase ('bc' / 'warm', no unfreeze event yet) unfreezes
+    at its configured step; PlateauStop and the critic check continue from evals.jsonl."""
     import torch as th
     from stable_baselines3.common.logger import configure
     from ocd_lap.track import Track
@@ -376,7 +433,12 @@ def resume_pipeline(run_dir, overrides=(), *, argv=None, allow_dirty=False, allo
     from .train_config import train_config_from_dict, apply_overrides, config_json
     from .vec import build_vec_env
     run_dir = Path(run_dir)
-    cfg = train_config_from_dict(read_json(run_dir / 'config.json'))
+    raw = read_json(run_dir / 'config.json')
+    cfg = train_config_from_dict(raw)
+    strict = bool(raw.get('strict_provenance', cfg.preset == 'full'))   # pre-R1 configs: preset rule
+    if init_from is not None and str(Path(init_from).resolve()) != cfg.init_from:
+        raise ValueError(f'--init-from {init_from} differs from the run\'s init_from {cfg.init_from} '
+                         '(resume never re-applies init_from)')
     bad = {o.split('=', 1)[0].strip() for o in overrides} - RESUME_OVERRIDABLE
     if bad:
         raise ValueError(f'cannot override {sorted(bad)} on resume (allowed: {sorted(RESUME_OVERRIDABLE)})')
@@ -400,13 +462,13 @@ def resume_pipeline(run_dir, overrides=(), *, argv=None, allow_dirty=False, allo
         # --- code check (before anything in the run folder changes) ---
         code = code_state(track)
         mismatches = code_mismatches(read_json(run_dir / 'provenance.json', {}) or {}, code)
-        dirty = cfg.preset == 'full' and bool(code['rlsetup']['dirty'])
+        dirty = strict and bool(code['rlsetup']['dirty'])
         refused = []
         if mismatches and not allow_code_change:
             refused.append((EXIT_CODE_CHANGED, 'code differs from provenance.json: ' + '; '.join(mismatches)
                             + ' (pass --allow-code-change to resume anyway)'))
         if dirty and not allow_dirty:
-            refused.append((EXIT_DIRTY, 'rlsetup has uncommitted changes and the preset is full '
+            refused.append((EXIT_DIRTY, 'rlsetup has uncommitted changes and the run has strict_provenance '
                                         '(commit, or pass --allow-dirty)'))
         if refused:
             add_event(run_dir, 'resume_refused', reasons=[r for _, r in refused], code=code, argv=argv)
@@ -440,7 +502,7 @@ def resume_pipeline(run_dir, overrides=(), *, argv=None, allow_dirty=False, allo
         if mismatches:
             _warn(run, n, 'resumed with different code (--allow-code-change): ' + '; '.join(mismatches))
         if dirty:
-            _warn(run, n, 'resumed the full preset with uncommitted rlsetup changes (--allow-dirty)')
+            _warn(run, n, 'resumed a strict_provenance run with uncommitted rlsetup changes (--allow-dirty)')
         k = 1 + sum(1 for p in (run_dir / 'sb3').glob('resume*'))
         model.set_logger(configure(str(run_dir / 'sb3' / f'resume{k}'), ['csv', 'tensorboard']))
         add_event(run_dir, 'resume', step=n, overrides=list(overrides), argv=argv,
@@ -454,19 +516,25 @@ def resume_pipeline(run_dir, overrides=(), *, argv=None, allow_dirty=False, allo
         evals = read_jsonl(run_dir / 'evals.jsonl')
         clean = [r['lap2_s'] for r in evals if r.get('det_clean') and r.get('lap2_s') is not None]
         last = evals[-1] if evals else {}
-        frozen_phase = cfg.agent.init_mode == 'bc' and status.get('unfrozen_at') is None
-        cbs, guard, wall = _callbacks(
+        from .callbacks import plateau_entry
+        warm = cfg.agent.init_mode == 'warm'
+        frozen_phase = cfg.agent.init_mode in ('bc', 'warm') and status.get('unfrozen_at') is None
+        unfreeze_step = cfg.warm.critic_warmup_steps if warm else cfg.warmup.online_warmup_steps
+        cbs, guard, wall, plateau = _callbacks(
             run, model, envs, starts, status['bc_baseline_m'],
-            unfreeze_at=cfg.warmup.online_warmup_steps if frozen_phase else 0,
+            unfreeze_at=unfreeze_step if frozen_phase else 0,
             guard_start=status.get('unfrozen_at'), rollbacks=status.get('rollbacks', 0),
             best_lap2=min(clean) if clean else float('inf'), last_det_clean=last.get('det_clean'),
             wall0=(last.get('wall_train_s') or 0., last.get('wall_eval_s') or 0.),
-            buffer_saved_step=buffer_step if buffer_step == n else None)
+            buffer_saved_step=buffer_step if buffer_step == n else None,
+            critic_check_at=cfg.warm.critic_warmup_steps if warm else None,
+            critic_check_done=any('critic_check' in r for r in evals),
+            plateau_history=[plateau_entry(r) for r in evals])
         remaining = cfg.total_timesteps - n
         if remaining <= 0:
             log('nothing to do: total_timesteps already reached')
             return EXIT_OK
-        return _learn_and_finish(run, model, cbs, guard, wall, remaining)
+        return _learn_and_finish(run, model, cbs, guard, wall, plateau, remaining)
     except BaseException as e:
         run.status(state='error', stop_reason=f'{type(e).__name__}: {e}', traceback=traceback.format_exc())
         raise
@@ -487,7 +555,11 @@ def parse_args(argv=None):
                    help="config override, e.g. --set agent.batch_size=256 (repeatable)")
     p.add_argument('--resume', action='store_true',
                    help='continue from checkpoints/last.zip + replay_buffer.pkl (empty buffer + warning if missing)')
-    p.add_argument('--allow-dirty', action='store_true', help='full preset with uncommitted rlsetup changes (recorded)')
+    p.add_argument('--init-from', default=None, metavar='PATH',
+                   help="model .zip to warm start from (required iff agent.init_mode == 'warm'; its run folder "
+                        "must hold config.json); stored as an absolute path")
+    p.add_argument('--allow-dirty', action='store_true',
+                   help='strict_provenance preset with uncommitted rlsetup changes (recorded)')
     p.add_argument('--allow-code-change', action='store_true',
                    help='resume although the code differs from provenance.json (recorded)')
     return p.parse_args(argv)
@@ -502,8 +574,13 @@ def main(argv=None):
         root = apply_overrides(PRESETS[args.preset](), [o for o in args.overrides if o.startswith('runs_root=')]).runs_root
         run_dir = resolve(root) / args.run_name / f'seed{args.seed}'
         return resume_pipeline(run_dir, [o for o in args.overrides if not o.startswith('runs_root=')], argv=full_argv,
-                               allow_dirty=args.allow_dirty, allow_code_change=args.allow_code_change)
+                               allow_dirty=args.allow_dirty, allow_code_change=args.allow_code_change,
+                               init_from=args.init_from)
     cfg = replace(apply_overrides(PRESETS[args.preset](), args.overrides), seed=args.seed)
+    if args.init_from is not None:
+        cfg = replace(cfg, init_from=str(Path(args.init_from).resolve()))
+    if (cfg.agent.init_mode == 'warm') != (cfg.init_from is not None):
+        sys.exit(f"error: --init-from is required iff agent.init_mode == 'warm' (init_mode {cfg.agent.init_mode!r})")
     return run_pipeline(cfg, args.run_name, allow_dirty=args.allow_dirty, argv=full_argv)
 
 

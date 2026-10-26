@@ -12,10 +12,15 @@ from dataclasses import dataclass, field, asdict
 import math
 
 
+REWARD_MODES = ('ref_tracking', 'time_pbrs')
+
+
 @dataclass(frozen=True)
 class RewardConfig:
-    """Reward (1), per 50 Hz base tick: r = a ds - b dt (1 + du^T W du) - c e^2.
+    """Two reward modes (`mode`; DECISIONS #13, #19).
 
+    'ref_tracking' = reward (1) (default; the full1 driver), per 50 Hz base tick:
+        r = a ds - b dt (1 + du^T W du) - c e^2.
     du = action rate [action units / s]. The c e^2 term is charged per base tick (not times dt),
     as in `ocd_lap.env.OCDRacingEnv`. With action repeat the per-decision reward is the sum of
     the base-tick rewards.
@@ -24,6 +29,14 @@ class RewardConfig:
     where dt_tick = 0.02 s is the base tick of ocd_first_lap (CONTROL_STEPS * DT, not a free
     constant) and e_exit the lateral offset to the reference at the failing physics step.
     Defaults give P = 50 + 30 c e^2. No speed scaling (R6.3).
+
+    'time_pbrs' = R1 (docs/specs/R1_time_optimal.md §1): per base tick r = a ds - b dt -
+    [terminal failure] penalty_const, plus per decision the potential-based shaping
+    F = gamma Phi(s') - Phi(s), Phi(s) = -shaping_k |e(s)| (Ng et al. 1999). `gamma` is also the
+    shaping discount (it must be the learner's per-decision discount, else F is not potential-
+    based). c and w are diagnostic only (smoothness / tracking still logged, not rewarded).
+    Terminal failures = off track, non-finite, wrong way (Phi(s') = 0); a stall is a truncation
+    (no penalty, real Phi(s')). `failure_penalty()` is the ref_tracking formula only.
     """
     a: float = 1.0                       # per metre of progress along Track.path. PLACEHOLDER
     b: float = 1.0                       # per second. PLACEHOLDER
@@ -32,7 +45,19 @@ class RewardConfig:
     penalty_base: float = 50.            # P0. PLACEHOLDER (R6.3: slow-speed living cost + slow recovery)
     penalty_kappa: float = 1.5           # kappa, safety factor on the recovery cost. PLACEHOLDER
     recovery_time_s: float = 1.2         # T_rec, linear recovery time from e_exit. PLACEHOLDER
-    gamma: float = .992                  # agent discount per 25 Hz decision (used in D2, R10). PLACEHOLDER
+    gamma: float = .992                  # agent discount per 25 Hz decision (used in D2, R10); in
+                                         # time_pbrs also the shaping discount. PLACEHOLDER
+    mode: str = 'ref_tracking'           # 'ref_tracking' = reward (1), full1 | 'time_pbrs' = R1
+    shaping_k: float = 1.0               # [1/m] Phi(s) = -shaping_k |e(s)|; time_pbrs only. PLACEHOLDER
+    penalty_const: float = 100.          # P for terminal failures in time_pbrs. PLACEHOLDER
+
+    def __post_init__(self):
+        if self.mode not in REWARD_MODES:
+            raise ValueError(f'reward mode {self.mode!r} not in {REWARD_MODES}')
+        if not all(math.isfinite(x) and x >= 0 for x in (self.shaping_k, self.penalty_const)):
+            raise ValueError('shaping_k and penalty_const must be finite and nonnegative')
+        if not 0. < self.gamma <= 1.:
+            raise ValueError(f'gamma must be in (0, 1], got {self.gamma}')
 
     def failure_penalty(self, e_exit_m, dt_tick_s):
         """P [reward units] for a failure with lateral offset e_exit_m [m] to the reference."""

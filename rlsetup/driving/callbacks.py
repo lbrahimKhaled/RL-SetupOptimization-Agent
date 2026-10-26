@@ -1,7 +1,7 @@
 """SB3 callbacks of D2 training (spec §4 step 5, §6, §7).
 
 Order in `learn(callback=[...])`: PhaseCallback, CollapseGuard, TrainStatsCallback,
-DrivingEvalCallback, CheckpointCallback, WallClockLimit. SB3 calls `on_step` after every vector
+DrivingEvalCallback, PlateauStop (R1 §2.6), CheckpointCallback, WallClockLimit. SB3 calls `on_step` after every vector
 step (num_timesteps already advanced by n_envs) and before the transition is stored; returning
 False ends `learn()` (SB3 still calls `on_training_end`).
 `on_event(kind, **data)` hooks let train.py record events in status.json.
@@ -83,7 +83,8 @@ def load_replay_buffer_for_resume(model, path):
 
 class PhaseCallback(BaseCallback):
     """Step 5: at num_timesteps >= unfreeze_at, unfreeze actor and alpha (actor Adam is fresh:
-    it never stepped while frozen; alpha continues from its initial value)."""
+    it never stepped while frozen; alpha continues from its initial value). The 'unfreeze' event
+    carries sha256 digests of the actor and log alpha as they leave the frozen phase (R1 A4)."""
 
     def __init__(self, unfreeze_at, on_event=_noop):
         super().__init__()
@@ -94,10 +95,13 @@ class PhaseCallback(BaseCallback):
     def _check(self):
         m = self.model
         if (m.freeze_actor or m.freeze_ent_coef) and m.num_timesteps >= self.unfreeze_at:
+            from .agent import param_digest
+            digests = {'actor_sha256': param_digest(m.actor),
+                       'log_ent_coef_sha256': None if m.log_ent_coef is None else param_digest(m.log_ent_coef)}
             m.set_frozen(False, False)
             self.unfrozen_at = m.num_timesteps
             self.logger.record('phase/unfrozen_at', m.num_timesteps)
-            self.on_event('unfreeze', step=m.num_timesteps)
+            self.on_event('unfreeze', step=m.num_timesteps, **digests)
 
     def _on_training_start(self):
         self._check()
@@ -203,8 +207,10 @@ class TrainStatsCallback(BaseCallback):
     """Per `window` steps one line in `path` (train_stats.jsonl): termination / truncation counts;
     mean speed and |e| at failure and the share of failures with v < slow_mps [m/s] or
     |e| > wide_m [m]; stalls among episodes that started (v0) below low_v0_mps [m/s]; episode
-    return and length (VecMonitor). Thresholds: EvalConfig.stats_* (train.py passes them).
-    `totals` keeps cumulative cause counts for the eval records."""
+    return and length (VecMonitor) and the mean episode shaping (info 'episode_shaping'; in
+    time_pbrs the VecMonitor return includes it, R1 §6 #5). Thresholds: EvalConfig.stats_*
+    (train.py passes them). `totals` keeps cumulative cause counts for the eval records (cause =
+    termination, else truncation: a time_pbrs stall counts as 'stall' in both modes)."""
 
     def __init__(self, path, window, *, slow_mps=15., wide_m=3., low_v0_mps=5.):
         super().__init__()
@@ -216,7 +222,7 @@ class TrainStatsCallback(BaseCallback):
 
     def _reset_window(self):
         self.w = {'episodes': 0, 'causes': {}, 'fail_speed': [], 'fail_e': [], 'low_v0': 0,
-                  'low_v0_stall': 0, 'returns': [], 'lengths': []}
+                  'low_v0_stall': 0, 'returns': [], 'lengths': [], 'shaping': []}
 
     def _v0(self, i):
         info = base_venv(self.training_env).reset_infos[i] or {}
@@ -245,6 +251,8 @@ class TrainStatsCallback(BaseCallback):
             if v0 is not None and v0 < self.low_v0_mps:
                 w['low_v0'] += 1
                 w['low_v0_stall'] += cause == 'stall'
+            if 'episode_shaping' in info:
+                w['shaping'].append(info['episode_shaping'])
             if 'episode' in info:
                 w['returns'].append(info['episode']['r'])
                 w['lengths'].append(info['episode']['l'])
@@ -266,7 +274,8 @@ class TrainStatsCallback(BaseCallback):
                'fail_share_slow_or_wide': float(np.mean((sp < self.slow_mps) | (e > self.wide_m))) if nf else None,
                'low_v0_episodes': w['low_v0'], 'low_v0_stalls': w['low_v0_stall'],
                'ep_return_mean': float(np.mean(w['returns'])) if w['returns'] else None,
-               'ep_length_mean': float(np.mean(w['lengths'])) if w['lengths'] else None}
+               'ep_length_mean': float(np.mean(w['lengths'])) if w['lengths'] else None,
+               'ep_shaping_mean': float(np.mean(w['shaping'])) if w['shaping'] else None}
         append_jsonl(self.path, rec)
         self._reset_window()
         return rec
@@ -283,11 +292,20 @@ class DrivingEvalCallback(BaseCallback):
     cumulative train / eval wall time, the training obs-clip fraction and termination counts,
     appends one JSON line to `evals_path`, saves the replay buffer (`buffer_saver`, if given;
     QA D2 m4: last.zip and the buffer stay paired after a hard kill), then last.zip, and best.zip
-    on a new best CLEAN deterministic lap 2. A clean -> failed deterministic regression is an event."""
+    on a new best CLEAN deterministic lap 2. A clean -> failed deterministic regression is an event.
+    Critic check (R1 §2.6): at the first evaluation with step >= `critic_check_at` (None: never)
+    the record gets critic_check = |Q_min - MC^n| / |MC^n| (q_vs_mc, n-step-consistent soft MC;
+    per-step MC if the n-step values are absent) and critic_check_tol; above the tol (or not
+    computable) -> event 'critic_not_converged' (training continues). `records` keeps every record
+    of this process (PlateauStop reads it)."""
 
     def __init__(self, eval_fn, interval, evals_path, ckpt_dir, *, stats=None, best_lap2=math.inf,
-                 last_det_clean=None, on_event=_noop, train_wall0=0., eval_wall0=0., buffer_saver=None):
+                 last_det_clean=None, on_event=_noop, train_wall0=0., eval_wall0=0., buffer_saver=None,
+                 critic_check_at=None, critic_check_tol=None, critic_check_done=False):
         super().__init__()
+        self.critic_check_at, self.critic_check_tol = critic_check_at, critic_check_tol
+        self.critic_check_done = bool(critic_check_done)
+        self.records = []
         self.buffer_saver = buffer_saver
         self.eval_fn, self.interval = eval_fn, int(interval)
         self.evals_path, self.ckpt_dir = Path(evals_path), Path(ckpt_dir)
@@ -339,6 +357,12 @@ class DrivingEvalCallback(BaseCallback):
             rec['train_obs_clip_fraction'] = None
         if self.stats is not None:
             rec['train_causes_total'] = dict(self.stats.totals)
+        if self.critic_check_at is not None and not self.critic_check_done and n >= self.critic_check_at:
+            self.critic_check_done = True
+            value = critic_check_value(rec.get('q_vs_mc'))
+            rec.update(critic_check=value, critic_check_tol=self.critic_check_tol)
+            if value is None or value > self.critic_check_tol:
+                self.on_event('critic_not_converged', step=n, critic_check=value, tol=self.critic_check_tol)
         clean, lap2 = rec.get('det_clean'), rec.get('lap2_s')
         if self.last_det_clean and clean is False:
             self.on_event('det_regression', step=n, termination=rec.get('det_termination'))
@@ -351,12 +375,80 @@ class DrivingEvalCallback(BaseCallback):
             save_model_atomic(m, self.ckpt_dir / 'best.zip')
             rec['new_best'] = True
         append_jsonl(self.evals_path, rec)
-        for k in ('lap2_s', 'sto_clean_rate', 'alpha', 'policy_entropy'):
+        self.records.append(rec)
+        for k in ('lap2_s', 'sto_clean_rate', 'alpha', 'policy_entropy', 'critic_check'):
             if isinstance(rec.get(k), (int, float)):
                 self.logger.record(f'eval/{k}', rec[k])
         self.last_step = n
         self.t_mark, self.mark_steps, self.mark_updates = time.perf_counter(), n, m._n_updates
         return rec
+
+
+def critic_check_value(q):
+    """|q_min_minus_mc_nstep| / |mc_nstep_mean| of a summarize_q_mc dict (per-step keys if the
+    n-step ones are absent); None if not computable (no pairs or MC mean 0)."""
+    q = q or {}
+    num, den = q.get('q_min_minus_mc_nstep'), q.get('mc_nstep_mean')
+    if num is None or den is None:
+        num, den = q.get('q_min_minus_mc'), q.get('mc_mean')
+    if num is None or not den:
+        return None
+    return abs(float(num)) / abs(float(den))
+
+
+def plateau_entry(rec):
+    """(step, clean deterministic lap 2 or None, stochastic mean lap or None) of an eval record."""
+    return (int(rec['step']), rec.get('lap2_s') if rec.get('det_clean') else None, rec.get('sto_lap_mean_s'))
+
+
+def plateau_reached(history, step, cfg):
+    """R1 §5 stop rule on `history` = [plateau_entry(...)]: True iff step >= cfg.min_steps and
+    neither best (clean det lap 2, stochastic mean lap) improved by >= cfg.min_improvement_s over
+    the last cfg.window steps, i.e. for both: best over evals with step' <= step - window minus
+    best over evals with step' <= step < min_improvement_s (1e-9 s slack for float sums). A best
+    with no value before the window but one inside it counts as improved; a best with no value
+    at all counts as not improved."""
+    if step < cfg.min_steps:
+        return False
+    cut = step - cfg.window
+
+    def best(i, upto):
+        vals = [h[i] for h in history if h[0] <= upto and h[i] is not None]
+        return min(vals) if vals else math.inf
+    for i in (1, 2):
+        before, now = best(i, cut), best(i, step)
+        if now < math.inf and before - now >= cfg.min_improvement_s - 1e-9:
+            return False
+    return True
+
+
+class PlateauStop(BaseCallback):
+    """Stops training (returns False, event 'plateau') after an evaluation at which
+    `plateau_reached` holds (StopConfig; R1 §2.6, §5); nothing if cfg.plateau is False. Reads new
+    records of the DrivingEvalCallback `evalcb` (placed before it in the callback list);
+    `history`: plateau entries of earlier processes (resume: from evals.jsonl)."""
+
+    def __init__(self, cfg, evalcb, *, history=(), on_event=_noop):
+        super().__init__()
+        self.cfg, self.evalcb, self.on_event = cfg, evalcb, on_event
+        self.history = list(history)
+        self._seen = 0
+        self.triggered = False
+
+    def _on_step(self):
+        new = self.evalcb.records[self._seen:]
+        self._seen = len(self.evalcb.records)
+        if not new:
+            return True
+        self.history += [plateau_entry(r) for r in new]
+        if not self.cfg.plateau:
+            return True
+        n = self.history[-1][0]
+        if plateau_reached(self.history, n, self.cfg):
+            self.triggered = True
+            self.on_event('plateau', step=n, window=self.cfg.window, min_improvement_s=self.cfg.min_improvement_s)
+            return False
+        return True
 
 
 class CheckpointCallback(BaseCallback):

@@ -1,12 +1,24 @@
 """DrivingEnv (D1): the xi_ref-following driving environment on `ocd_lap.env.OCDRacingEnv`.
 
-Spec docs/specs/D1_driving_env.md as amended by docs/specs/D1_review.md (R1-R9).
+Spec docs/specs/D1_driving_env.md as amended by docs/specs/D1_review.md (R1-R9); reward mode
+'time_pbrs' per docs/specs/R1_time_optimal.md.
 
 Reuses OCDRacingEnv.step for physics (10 x 2 ms OCD steps per 50 Hz base tick), off-track /
 non-finite / lap termination, truncation and reward (1)
     r = a ds - b dt (1 + du^T W du) - c e^2        per base tick, du in action units / s
 and overrides only `_line_errors` (offsets to xi_ref instead of Track.path, cached per physics
 step), `_observation`, `to_inputs` (pedal deadzone), `reset` and the observation space.
+RewardConfig.mode selects the reward:
+  'ref_tracking' (default)  reward (1) above and the failure rules below; bit-identical to the
+               code that trained full1 (tests/test_r1.py golden hash).
+  'time_pbrs'  R1: per base tick r = a ds - b dt - [terminal failure] P (P = penalty_const), and
+               per decision the shaping F = gamma Phi(s') - Phi(s), Phi(s) = -shaping_k |e(s)|, e at
+               the decision-boundary state (= obs[9] * e_scale_m), gamma = RewardConfig.gamma (the
+               learner's discount). Phi(s') = 0 after a terminal failure (off track, non-finite,
+               wrong way); real Phi(s') after a truncation (time limit, stall) or lap_complete.
+               A stall is a truncation (truncation 'stall', termination None, no penalty).
+               Smoothness and tracking are still computed and logged (step_cost, laps), not
+               rewarded; the episode return includes the shaping, so it is not a lap score.
 
 action       [steering, throttle, brake] in [-1, 1]^3, absolute; steering * 0.6 rad (+ = left);
              pedals per `EnvConfig.pedal_deadzone` (see demo_driver.action_to_inputs). Each action
@@ -17,7 +29,8 @@ progress     Track.path arc length (driver-independent; the same for every xi_re
 failure      off track (4.2 x 2.0 m footprint), non-finite state, stall (speed < 3 m/s for > 2 s)
              or wrong way (|heading error| > 90 deg): terminated, reward - P,
              P = P0 + kappa (c / 0.02 s) (T_rec / 3) e_exit^2 (RewardConfig.failure_penalty).
-             e_exit for a non-finite state is the last finite offset.
+             e_exit for a non-finite state is the last finite offset. (time_pbrs: see above;
+             FAILURES keeps the stats meaning incl. stall, TERMINAL_FAILURES are the terminal ones.)
 truncation   max_episode_s after hand-over (training) / eval_max_s (evaluation): truncated=True.
              Both must be whole multiples of the decision period (checked in __init__).
              The base env's lap-completion check is put out of reach (progress starts at -1e7 m):
@@ -34,10 +47,13 @@ reset        training: s0 ~ U[0, L) on Track.path, car placed on xi_ref abeam s0
              'start_speed', 'settle_trace' (sum of the four Fz per settle decision).
 info         s_track, s_ref, e_ref, heading_error, speed, progress_m (since hand-over), time_s,
              gear, termination ('off_track' | 'nonfinite' | 'stall' | 'wrong_way' |
-             'lap_complete' | None), truncation ('time_limit' | None), step_cost / episode_cost
-             (progress a ds, time b dt, smoothness b dt du^T W du, tracking c e^2, penalty P),
-             obs_clipped; evaluation: line_crossings_s, laps (per-lap time and cost components,
-             cost = time + smoothness + tracking, the undiscounted lap cost for the setup agent),
+             'lap_complete' | None), truncation ('time_limit' | 'stall' (time_pbrs) | None),
+             step_cost / episode_cost (progress a ds, time b dt, smoothness b dt du^T W du,
+             tracking c e^2, penalty P; the same components in both modes, only P differs),
+             shaping (F of this decision, 0 in ref_tracking), phi (Phi(s')), episode_shaping,
+             reward_mode, obs_clipped; evaluation: line_crossings_s, laps (per-lap time and cost
+             components, cost = time + smoothness + tracking in both modes (the legacy lap cost),
+             cost_r1 = time (the R1 lap cost); shaping and P never enter laps),
              track_position (-1 right ... +1 left edge) and track_width_m (finite states only);
              telemetry (backend.get_telemetry()) only with record_telemetry. On a non-finite
              state e_ref, heading_error and speed are NaN.
@@ -68,7 +84,8 @@ from . import qss_profile
 
 EGO_SIZE = 9
 NO_LAP_PROGRESS_M = -1e7       # training: base progress start, lap completion out of reach
-FAILURES = ('off_track', 'nonfinite', 'stall', 'wrong_way')
+FAILURES = ('off_track', 'nonfinite', 'stall', 'wrong_way')    # stats meaning: episode ended badly
+TERMINAL_FAILURES = ('off_track', 'nonfinite', 'wrong_way')    # time_pbrs: terminal, P, Phi(s') = 0
 COST_KEYS = ('progress', 'time', 'smoothness', 'tracking', 'penalty')
 
 
@@ -315,6 +332,10 @@ class DrivingEnv(OCDRacingEnv):
         self.steps, self.done, self.physics_steps = 0, False, 0
         self._stall_s = 0.
         self._last_e = self._line_errors()[0]
+        self._trunc_cause = None
+        rw = self.cfg.reward       # Phi at hand-over (time_pbrs; 0 in ref_tracking)
+        self._phi = -rw.shaping_k * abs(self._last_e) if rw.mode == 'time_pbrs' else 0.
+        self._episode_shaping = 0.
         L = self.track.length
         if self.evaluation:
             self.max_time_s = self.cfg.eval_max_s
@@ -334,7 +355,8 @@ class DrivingEnv(OCDRacingEnv):
                 'start': {'s0': s0, 'fraction': f, 'v0': v0, 'attempts': attempt,
                           'settle_s': self._settle_steps * DT},
                 's_track': self.s, 's_ref': self._s_ref, 'e_ref': e, 'heading_error': heading,
-                'speed': math.hypot(self.state['vx'], self.state['vy']), 'evaluation': self.evaluation}
+                'speed': math.hypot(self.state['vx'], self.state['vy']), 'evaluation': self.evaluation,
+                'phi': self._phi, 'reward_mode': rw.mode}
         if trace is not None:
             info['settle_sum_fz_N'] = trace
         return obs, info
@@ -360,7 +382,8 @@ class DrivingEnv(OCDRacingEnv):
             self._add_costs(self._lap_cost, costs, phi)
             if j >= 1:
                 lap = dict(self._lap_cost, lap_time_s=t_cross - self._crossings[j - 1])
-                lap['cost'] = lap['time'] + lap['smoothness'] + lap['tracking']
+                lap['cost'] = lap['time'] + lap['smoothness'] + lap['tracking']   # legacy, both modes
+                lap['cost_r1'] = lap['time']          # R1 lap cost; shaping and P never enter laps
                 self._laps.append(lap)
             self._lap_cost = _zero_costs()
             self._add_costs(self._lap_cost, costs, 1. - phi)
@@ -372,9 +395,11 @@ class DrivingEnv(OCDRacingEnv):
             raise RuntimeError('episode has ended; call reset()')
         action = self._validate_action(action)
         rw, cfg = self.cfg.reward, self.cfg
+        pbrs = rw.mode == 'time_pbrs'
         total, step_cost = 0., _zero_costs()
         terminated = truncated = False
         cause = None
+        self._trunc_cause = None
         decision_dt = 0.
         self._in_step = True
         try:
@@ -407,11 +432,17 @@ class DrivingEnv(OCDRacingEnv):
                         cause = 'stall'
                     elif abs(heading) > cfg.wrong_way_rad:
                         cause = 'wrong_way'
-                    if cause:
+                    if cause == 'stall' and pbrs:      # R1 §1.2: stall = truncation, no penalty
+                        truncated, self.done, self._trunc_cause = True, True, 'stall'
+                    elif cause:
                         terminated, truncated, self.done = True, False, True
                 if base['lap_complete']:   # unreachable: progress starts at NO_LAP_PROGRESS_M
                     raise RuntimeError('base lap-completion check fired')
-                if cause in FAILURES:
+                if pbrs:                   # R1 per tick: a ds - b dt - [terminal failure] P
+                    if cause in TERMINAL_FAILURES:
+                        costs['penalty'] = rw.penalty_const
+                    r = costs['progress'] - costs['time'] - costs['penalty']
+                elif cause in FAILURES:    # ref_tracking: base r, unchanged (bit-identical to full1)
                     costs['penalty'] = rw.failure_penalty(self._last_e, self.dt_tick)
                     r -= costs['penalty']
                 if self.evaluation and not nonfinite:
@@ -425,16 +456,27 @@ class DrivingEnv(OCDRacingEnv):
                     break
         finally:
             self._in_step = False
+        shaping = 0.
+        if pbrs:   # R1 §1.1: F = gamma Phi(s') - Phi(s) per decision; Phi = 0 after a terminal failure
+            phi_next = (0. if terminated and cause in TERMINAL_FAILURES
+                        else -rw.shaping_k * abs(self._line_errors()[0]))
+            shaping = rw.gamma * phi_next - self._phi
+            total += shaping
+            self._phi = phi_next
+            self._episode_shaping += shaping
+        if truncated and self._trunc_cause is None:
+            self._trunc_cause = 'time_limit'
         self._add_costs(self._episode_cost, step_cost)
         if cause == 'nonfinite':
             obs, self._last_clipped = np.zeros(self.observation_space.shape, np.float32), 0
         else:
             obs = self._decision_observation()
         info = {'progress_m': self._distance(), 'time_s': self.time_s, 'transition_dt_s': decision_dt,
-                'termination': cause, 'truncation': 'time_limit' if truncated else None,
+                'termination': cause if terminated else None, 'truncation': self._trunc_cause,
                 'step_cost': step_cost, 'episode_cost': dict(self._episode_cost),
                 'obs_clipped': self._last_clipped, 'gear': self.backend.gear,
-                's_track': self.s, 's_ref': self._s_ref}
+                's_track': self.s, 's_ref': self._s_ref, 'shaping': shaping, 'phi': self._phi,
+                'episode_shaping': self._episode_shaping, 'reward_mode': rw.mode}
         if cause != 'nonfinite':
             e, heading = self._line_errors()
             info.update(e_ref=e, heading_error=heading,

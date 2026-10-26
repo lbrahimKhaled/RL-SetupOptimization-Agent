@@ -12,6 +12,9 @@ Conventions
   - Edge margin [m] = (1 - |track_position|) w(s) / 2 - car half width (1.0 m), w(s) = track
     width of the grid cross-section; negative = the car's side is over the edge (approximate:
     uses the centre position, ignores yaw).
+  - Progress jump (R1 §2.3, projection exploits on Track.path): a decision whose Track.path
+    progress exceeds 2 x speed x dt + 1 m (speed = max of the speeds at its start and end) or is
+    below -1 m.
   - Front lock: min(kappa_FL, kappa_FR) < -0.12 (longitudinal slip ratio, telemetry).
     Spin upshift: the gear went up during a decision whose end state has max |rear slip| > 0.12.
   - Soft Monte-Carlo returns from decision k (alpha = current entropy coeff.), both logged
@@ -37,7 +40,7 @@ import numpy as np
 import torch as th
 
 TRACE_KEYS = ('s', 'x', 'y', 'speed', 'e', 'gear', 'slip_rl', 'slip_rr', 'track_position',
-              'track_width', 'reward', 'lap_index', 'time_s')
+              'track_width', 'reward', 'lap_index', 'time_s', 'shaping', 'progress_m')
 
 
 @contextmanager
@@ -143,6 +146,8 @@ def flying_lap(policy, env, *, deterministic, seed, setup=None, threads=1):
             rec['reward'].append(r)
             rec['lap_index'].append(len(info['line_crossings_s']))
             rec['time_s'].append(info['time_s'])
+            rec['shaping'].append(info.get('shaping', 0.))
+            rec['progress_m'].append(info['progress_m'])
             actions.append(a)
             kappa.append([tel[f'kappa_{w}'] for w in ('FL', 'FR', 'RL', 'RR')] if tel else [math.nan] * 4)
             fz.append([tel[f'Fz_{w}_N'] for w in ('FL', 'FR', 'RL', 'RR')] if tel else [math.nan] * 4)
@@ -181,14 +186,29 @@ def spin_upshifts(gear, max_rear_slip, threshold=.12):
     return int(np.sum(up & (np.asarray(max_rear_slip)[1:] > threshold)))
 
 
+def progress_jumps(progress_m, time_s, speed):
+    """Boolean per decision: Track.path progress of the decision > 2 v dt + 1 m or < -1 m, with
+    v = max(speed at its start, at its end); decision 0 starts at the hand-over (progress 0,
+    time 0, start speed = its end speed). NaN speeds (non-finite state) never count."""
+    p, t, v = (np.asarray(x, dtype=float) for x in (progress_m, time_s, speed))
+    if p.size == 0:
+        return np.zeros(0, bool)
+    dp, dt = np.diff(p, prepend=0.), np.diff(t, prepend=0.)
+    vmax = np.maximum(v, np.r_[v[0], v[:-1]])
+    return (dp > 2. * vmax * dt + 1.) | (dp < -1.)
+
+
 def lap_metrics(rep, cfg, lap=2):
-    """Metrics of lap `lap` of a LapReport (None where the lap was not reached)."""
+    """Metrics of lap `lap` of a LapReport (None where the lap was not reached). cost = legacy
+    lap cost (time + smoothness + tracking), cost_r1 = time; shaping_sum = sum of the shaping F
+    over the lap's decisions (0 in ref_tracking)."""
     tr = rep.trace
     m = tr['lap_index'] == lap
     out = {'lap': lap, 'decisions': int(m.sum())}
     if lap <= len(rep.laps):
         l = rep.laps[lap - 1]
         out.update({k: float(l[k]) for k in ('lap_time_s', 'time', 'smoothness', 'tracking', 'cost')})
+        out['cost_r1'] = float(l.get('cost_r1', l['time']))
         out['smoothness_share'] = float(l['smoothness'] / l['cost']) if l['cost'] else math.nan
     if not m.any():
         return out
@@ -201,7 +221,12 @@ def lap_metrics(rep, cfg, lap=2):
                min_edge_margin_m=float(np.nanmin(edge_margin(tr['track_position'][m], tr['track_width'][m],
                                                              cfg.car_half_width_m))),
                front_lock_fraction=front_lock_fraction(tr['kappa'][m, 0], tr['kappa'][m, 1], cfg.front_lock_kappa),
-               spin_upshifts=spin_upshifts(tr['gear'][lo:hi], slip[lo:hi], cfg.spin_slip))
+               spin_upshifts=spin_upshifts(tr['gear'][lo:hi], slip[lo:hi], cfg.spin_slip),
+               share_abs_e_gt_1m=float(np.mean(e > 1.)), share_abs_e_gt_3m=float(np.mean(e > 3.)))
+    if 'shaping' in tr:
+        out['shaping_sum'] = float(np.sum(tr['shaping'][m]))
+    if 'progress_m' in tr:
+        out['progress_jumps'] = int(np.sum(progress_jumps(tr['progress_m'], tr['time_s'], tr['speed'])[m]))
     return out
 
 
@@ -358,7 +383,9 @@ def evaluate_model(model, envs, cfg, *, laps_path=None):
                                  gamma=gamma, alpha=alpha, failed=rep.termination in FAILURES,
                                  stride=cfg.q_mc_stride, min_left=cfg.q_mc_min_left, n_steps=n_steps))
     clean_laps = [s['lap_s'] for s in sto if s['clean']]
-    out.update(sto_laps=sto, sto_clean=len(clean_laps), sto_n=len(sto),
+    env_cfg = getattr(getattr(envs['eval_det'], 'unwrapped', None), 'cfg', None)
+    out.update(reward_mode=env_cfg.reward.mode if env_cfg is not None else None,
+               sto_laps=sto, sto_clean=len(clean_laps), sto_n=len(sto),
                sto_clean_rate=len(clean_laps) / len(sto) if sto else math.nan,
                sto_lap_mean_s=float(np.mean(clean_laps)) if clean_laps else None,
                q_vs_mc=summarize_q_mc(pairs), alpha=alpha,

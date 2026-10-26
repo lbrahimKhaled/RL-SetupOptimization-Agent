@@ -1,6 +1,7 @@
 """All numbers of D2 (SAC driving-agent training). Nothing numeric lives in train.py.
 
-Spec: docs/specs/D2_agent.md (binding). Step counts are transitions summed over envs (SB3
+Spec: docs/specs/D2_agent.md (binding); warm start, stop rule and the r1_* presets:
+docs/specs/R1_time_optimal.md §2.4. Step counts are transitions summed over envs (SB3
 `num_timesteps`); one transition = one 25 Hz decision of one env. Times in s unless the name
 says otherwise. PLACEHOLDER marks numbers not yet justified by data or a decision.
 
@@ -32,6 +33,7 @@ class AgentConfig:
     n_critics: int = 2
     critic_layernorm: bool = True        # LayerNorm after every hidden Linear of the critics
     init_mode: str = 'bc'                # 'bc' (default) | 'bias_only' (ablation/fallback: steps 1 + 5)
+                                         # | 'warm' (R1 §2.5: actor, critics, alpha from TrainConfig.init_from)
     init_action: tuple = (0., -.275, -.8)   # deterministic action after init_output_bias:
                                          # straight, 15 % throttle, brake in the deadzone
     init_log_std: float = -1.            # log_std bias -> sigma ~ 0.37 (pre-tanh)
@@ -112,6 +114,27 @@ class EvalConfig:
 
 
 @dataclass(frozen=True)
+class WarmStartConfig:
+    """init_mode 'warm' (R1 spec §2.5, §3): load a trained model, critic-only phase, unfreeze."""
+    critic_warmup_steps: int = 100_000   # actor + alpha frozen, critics learn the new reward online
+    load_critics: bool = True            # critics + target critics from init_from
+    load_alpha: bool = True              # log_ent_coef from init_from (optimizer fresh)
+    min_buffer_batches: int = 10         # no grad step until buffer >= agent.batch_size * this
+    critic_check_tol: float = .08        # |Q_min - MC| / |MC| at the unfreeze eval; above -> warning
+
+
+@dataclass(frozen=True)
+class StopConfig:
+    """Plateau stop (R1 spec §5): from min_steps on, stop when over the last `window` steps
+    neither the best clean deterministic lap 2 nor the best stochastic mean lap improved by
+    >= min_improvement_s [s]."""
+    plateau: bool = False
+    min_steps: int = 1_000_000
+    window: int = 500_000
+    min_improvement_s: float = .1
+
+
+@dataclass(frozen=True)
 class TrainConfig:
     preset: str = 'full'
     seed: int = 0
@@ -122,6 +145,12 @@ class TrainConfig:
     warmup: WarmupConfig = field(default_factory=WarmupConfig)
     guard: GuardConfig = field(default_factory=GuardConfig)
     eval: EvalConfig = field(default_factory=EvalConfig)
+    warm: WarmStartConfig = field(default_factory=WarmStartConfig)
+    stop: StopConfig = field(default_factory=StopConfig)
+    init_from: str | None = None         # model .zip for init_mode 'warm' (absolute; CLI --init-from);
+                                         # its run folder (zip's parents[1]) must hold config.json
+    strict_provenance: bool = True       # refuse a run / resume with uncommitted tracked rlsetup changes
+                                         # (unless --allow-dirty); False for the smoke presets
     # sim-runner benchmark (D1_sim_runner §4): 4 workers = P-cores, 1 torch thread is fastest,
     # gradient_steps 2 per vector step = UTD 0.5 (~330 decisions/s measured end to end).
     n_envs: int = 4
@@ -165,7 +194,7 @@ def _smoke():
     """~20 min single-seed check (spec §11 step 1): demos as full; BC <= 10 epochs + gate;
     offline 5k; online warm-up 10k; RL until 20 min wall; probe every 5k; eval every 25k with
     3 stochastic laps."""
-    c = TrainConfig(preset='smoke')
+    c = TrainConfig(preset='smoke', strict_provenance=False)
     return replace(c, total_timesteps=10_000_000, max_wall_h=20 / 60, checkpoint_interval=25_000,
                    bc=replace(c.bc, max_epochs=10),
                    warmup=replace(c.warmup, offline_blocks=5, online_warmup_steps=10_000),
@@ -173,7 +202,32 @@ def _smoke():
                    eval=replace(c.eval, interval=25_000, stochastic_laps=3))
 
 
-PRESETS = {'full': lambda: TrainConfig(preset='full'), 'smoke': _smoke}
+def _r1_warm():
+    """R1 (time_pbrs reward) warm-started from a trained ref_tracking driver (--init-from):
+    critic-only phase 100k, then full SAC; guard 0.75 x the loaded actor's probe; 3M cap, 4 h,
+    plateau stop (R1 spec §2.4, §3, §5)."""
+    c = TrainConfig(preset='r1_warm')
+    return replace(c, total_timesteps=3_000_000, max_wall_h=4.,
+                   env=replace(c.env, reward=replace(c.env.reward, mode='time_pbrs')),
+                   agent=replace(c.agent, init_mode='warm'),
+                   guard=replace(c.guard, threshold=.75),
+                   stop=replace(c.stop, plateau=True))
+
+
+def _r1_warm_smoke():
+    """r1_warm for 15 min: critic-only 10k, eval every 25k with 3 stochastic laps, probe every
+    5k, no plateau stop, dirty tree allowed (R1 spec §2.4, §8 A2-A6)."""
+    c = _r1_warm()
+    return replace(c, preset='r1_warm_smoke', max_wall_h=.25, checkpoint_interval=25_000,
+                   strict_provenance=False,
+                   warm=replace(c.warm, critic_warmup_steps=10_000),
+                   eval=replace(c.eval, interval=25_000, stochastic_laps=3),
+                   guard=replace(c.guard, interval=5_000),
+                   stop=replace(c.stop, plateau=False))
+
+
+PRESETS = {'full': lambda: TrainConfig(preset='full'), 'smoke': _smoke, 'r1_warm': _r1_warm,
+           'r1_warm_smoke': _r1_warm_smoke}
 
 
 # --- dict / override helpers (JSON round trip of nested frozen dataclasses) -------------------------

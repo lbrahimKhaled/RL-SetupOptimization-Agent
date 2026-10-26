@@ -109,7 +109,10 @@ def test_phase_callback_unfreezes_at_step():
     assert all(not p.requires_grad for p in model.actor.parameters())
     assert step(cb, model, 20_000) and not model.freeze_actor and not model.freeze_ent_coef
     assert all(p.requires_grad for p in model.actor.parameters())
-    assert events == [('unfreeze', {'step': 20_000})] and cb.unfrozen_at == 20_000
+    from rlsetup.driving.agent import param_digest
+    assert events == [('unfreeze', {'step': 20_000, 'actor_sha256': param_digest(model.actor),     # R1 A4
+                                    'log_ent_coef_sha256': param_digest(model.log_ent_coef)})]
+    assert cb.unfrozen_at == 20_000
 
 
 def test_wall_clock_limit():
@@ -230,18 +233,18 @@ def test_checkpoint_callback_saves_replay_buffer(tmp_path):
 CODE = {'rlsetup': {'commit': 'a' * 40, 'dirty': False, 'diff_sha256': 'e' * 64}, 'ocd_lap_code_version': 'c' * 12}
 
 
-def resume_fixture(tmp_path, monkeypatch, *, code=CODE, status=None, fill=100):
+def resume_fixture(tmp_path, monkeypatch, *, code=CODE, status=None, fill=100, cfg=None):
     """A run folder (tiny config, preset 'full') with last.zip at step 5,000 and provenance.json
     recording CODE; heavy pieces (track, QSS, vec / eval envs, learn) and code_state stubbed.
     Returns (run dir, model, seen): seen collects the model handed to _learn_and_finish and the
-    _callbacks kwargs."""
+    _callbacks kwargs. `cfg`: TrainConfig to store (default tiny_cfg())."""
     import ocd_lap.track
     from stable_baselines3.common.vec_env import DummyVecEnv
     from rlsetup import provenance
     from rlsetup.driving import train as T, qss_profile, vec
     from rlsetup.driving.train_config import config_json
     from sb3_helpers import TinyEnv, tiny_cfg
-    cfg = tiny_cfg()
+    cfg = cfg or tiny_cfg()
     model = make_model(cfg, fill=fill)
     model.num_timesteps = 5_000
     d = runs.make_run_dir(tmp_path, 'r', 0)
@@ -260,10 +263,10 @@ def resume_fixture(tmp_path, monkeypatch, *, code=CODE, status=None, fill=100):
 
     def fake_callbacks(*a, **k):
         seen['callbacks'] = k
-        return [], None, None
+        return [], None, None, None
     monkeypatch.setattr(T, '_callbacks', fake_callbacks)
 
-    def fake_finish(run, m, cbs, guard, wall, total):
+    def fake_finish(run, m, cbs, guard, wall, plateau, total):
         seen.update(model=m, size=m.replay_buffer.size(), step=m.num_timesteps, total=total)
         return T.EXIT_OK
     monkeypatch.setattr(T, '_learn_and_finish', fake_finish)

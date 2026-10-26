@@ -1,4 +1,5 @@
-"""Mirror a seed's evals.jsonl (lap times, clean rates, Q vs MC, alpha, throughput) into TensorBoard.
+"""Mirror a seed's evals.jsonl (lap times, clean rates, Q vs MC, alpha, throughput, lap-2 line / cost
+metrics, critic check) into TensorBoard.
 
     .venv/bin/python scripts/evals_to_tb.py runs/D2/full1/seed0
 
@@ -44,9 +45,24 @@ def main(seed_dir):
             'speed/env_steps_per_s': e.get('env_steps_per_s'),
             'speed/grad_steps_per_s': e.get('grad_steps_per_s'),
         }
+        lap2 = e.get('lap2') or {}          # metrics of the deterministic lap 2 (None if not reached)
+        scalars.update({
+            'line/mean_abs_e_m': lap2.get('mean_abs_e'),
+            'line/max_abs_e_m': lap2.get('max_abs_e'),
+            'line/share_abs_e_gt_3m': lap2.get('share_abs_e_gt_3m'),
+            'lap/min_edge_margin_m': lap2.get('min_edge_margin_m'),
+            'cost/lap2_legacy': lap2.get('cost'),                     # time + smoothness + tracking
+            'cost/lap2_tracking': lap2.get('tracking'),
+            'cost/lap2_smoothness': lap2.get('smoothness'),
+            'cost/lap2_r1': lap2.get('cost_r1', lap2.get('time')),   # = lap time (pre-R1 records: 'time')
+            'diag/progress_jumps': lap2.get('progress_jumps'),
+            'critic/critic_check': e.get('critic_check'),
+        })
         q = e.get('q_vs_mc') or {}
         if q.get('mc_mean'):
             scalars['critic/q_min_over_mc'] = q['q_min_mean'] / q['mc_mean']
+        if q.get('mc_nstep_mean'):
+            scalars['critic/q_min_over_mc_nstep'] = q['q_min_mean'] / q['mc_nstep_mean']
         for k, v in (e.get('train_causes_total') or {}).items():
             scalars[f'failures_cumulative/{k}'] = v
         for tag, value in scalars.items():
