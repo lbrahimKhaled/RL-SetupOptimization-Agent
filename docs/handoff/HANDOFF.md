@@ -143,5 +143,8 @@ Launcher `run_d2_full.sh` killed (seeds 1, 2 will NOT run). Seed 0 training (PID
 ## 26 Oct 12:22 — Ibrahim: train seed 0 until a clean lap ≤ 95 s
 `runs/D2/stop_at_lap.sh` (detached; log `runs/D2/stop_at_lap.log`) replaces the 13:30 stopper. It stops seed 0 once evals.jsonl has a clean deterministic lap 2 ≤ 95 s. If the run first ends on its built-in caps (2M steps / 3 h, ~13:55), it resumes ONCE from the pinned worktree with total_timesteps 6M and max_wall_h 8, then stops when that ends. Lead's assessment, told to Ibrahim: 95 s is not reachable for this OCD car (QSS 133.9 s; tyre/aero limited; needs SF70H tyre + aero data), so in practice the run ends on the caps or when Ibrahim stops it: `pkill -f stop_at_lap.sh; pkill -f rlsetup.driving.train`.
 
-## 26 Oct 12:55 — Ibrahim: seed 0 trains until 14:15
+## 26 Oct 12:55 — Ibrahim: seed 0 trains until 14:15 (CHANGED to 16:00, see below)
 `runs/D2/stop_at_lap.sh` rewritten: stop right after the first evaluation at/after 14:15, or earlier on a clean lap 2 ≤ 95 s. The run's own 3 h wall cap ends it ~13:55 (started 10:54:55); the watcher then resumes it from the pinned worktree (`--resume --set total_timesteps=6000000 --set max_wall_h=8`) and keeps watching until 14:15. Log: `runs/D2/stop_at_lap.log`. Dashboard: TensorBoard on 127.0.0.1:6006 (`runs/D2/refresh_seed0.sh` mirrors evals.jsonl every 5 min, append-only).
+
+## 26 Oct — Ibrahim: deadline moved to 16:00
+Same watcher (`runs/D2/stop_at_lap.sh`), DEADLINE=1600: stop right after the first evaluation at/after 16:00 (or a clean lap 2 <= 95 s); resumes after the ~13:55 wall cap.
