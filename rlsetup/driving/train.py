@@ -19,7 +19,10 @@ Pipeline (AgentConfig.init_mode = 'bc'):
 bias-initialized actor).
 Run folder runs/D2/<run_name>/seed<k>/ (spec §7); checkpoints/last.zip and best.zip live in
 checkpoints/. A resumed run logs SB3 output to sb3/resume<k>/ (SB3's CSV logger would truncate
-progress.csv). Resume is not bit-identical to an uninterrupted run (SB3 re-seeds the envs and the
+progress.csv). last.zip / best.zip / replay_buffer.pkl are written atomically (temp file + rename);
+replay_buffer.pkl is saved every TrainConfig.buffer_save_interval steps and at the end, so a
+hard-killed seed resumes from its last checkpoint. A seed folder with last.zip but no buffer resumes
+with an empty buffer and a 'warnings' entry in status.json. Resume is not bit-identical to an uninterrupted run (SB3 re-seeds the envs and the
 global RNGs with the same seed on load, and the env episodes restart).
 """
 from dataclasses import replace
@@ -32,7 +35,8 @@ import traceback
 import numpy as np
 
 EXIT_OK, EXIT_GATE, EXIT_COLLAPSED, EXIT_DIRTY = 0, 2, 3, 4
-RESUME_OVERRIDABLE = {'total_timesteps', 'max_wall_h', 'save_replay_buffer', 'checkpoint_interval'}
+RESUME_OVERRIDABLE = {'total_timesteps', 'max_wall_h', 'save_replay_buffer', 'checkpoint_interval',
+                      'replay_buffer_save_every'}
 
 
 class _Tee:
@@ -107,13 +111,16 @@ def _callbacks(run, model, envs, starts, baseline, *, unfreeze_at, guard_start=N
         cfg.eval.interval, d / 'evals.jsonl', d / 'checkpoints', stats=stats, best_lap2=best_lap2,
         last_det_clean=last_det_clean, on_event=run.event, train_wall0=wall0[0], eval_wall0=wall0[1])
     wall = WallClockLimit(cfg.max_wall_h, t0=t0, on_event=run.event)
-    cbs = [PhaseCallback(unfreeze_at, on_event=run.event), guard, stats, evalcb,
-           CheckpointCallback(cfg.checkpoint_interval, d / 'checkpoints'), wall]
+    ckpt = CheckpointCallback(cfg.checkpoint_interval, d / 'checkpoints', buffer_path=d / 'replay_buffer.pkl',
+                              buffer_every=cfg.buffer_save_interval,
+                              on_buffer_saved=lambda n: run.status(replay_buffer_step=int(n)))
+    cbs = [PhaseCallback(unfreeze_at, on_event=run.event), guard, stats, evalcb, ckpt, wall]
     return cbs, guard, wall
 
 
 def _learn_and_finish(run, model, cbs, guard, wall, total):
     from ..runs import record_phase
+    from .callbacks import save_model_atomic, save_replay_buffer_atomic
     cfg, d = run.cfg, run.dir
     run.t_learn, run.step0 = time.time(), model.num_timesteps
     run.t_unfreeze = run.step_unfreeze = None
@@ -130,10 +137,11 @@ def _learn_and_finish(run, model, cbs, guard, wall, total):
                      n_updates_total=int(model._n_updates))
     else:
         record_phase(d, 'online_warmup', wall_s=now - run.t_learn, env_steps=model.num_timesteps - run.step0)
-    model.save(d / 'checkpoints' / 'last.zip')
+    save_model_atomic(model, d / 'checkpoints' / 'last.zip')
     reason = 'collapsed' if guard.collapsed else 'wall_clock_limit' if wall.triggered else 'completed'
     if cfg.save_replay_buffer:
-        model.save_replay_buffer(d / 'replay_buffer.pkl')
+        save_replay_buffer_atomic(model, d / 'replay_buffer.pkl')
+        run.status(replay_buffer_step=int(model.num_timesteps))
     run.status(phase='done', state=reason, stop_reason=reason, num_timesteps=int(model.num_timesteps),
                n_updates=int(model._n_updates), wall_total_s=time.time() - run.t0)
     run.log(f'done: {reason} at {model.num_timesteps} steps')
@@ -314,11 +322,14 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
 
 def resume_pipeline(run_dir, overrides=(), *, argv=None):
     """Continue a run from checkpoints/last.zip + replay_buffer.pkl. Only RESUME_OVERRIDABLE
-    fields may be overridden (the report needs identical configs across seeds)."""
+    fields may be overridden (the report needs identical configs across seeds). Without
+    replay_buffer.pkl (hard kill before the first buffer save) the run continues with an empty
+    buffer (no demo transitions) and records a warning in status.json ('warnings', event
+    'resume_without_replay_buffer'). Without last.zip: FileNotFoundError."""
     import torch as th
     from stable_baselines3.common.logger import configure
     from ocd_lap.track import Track
-    from ..runs import read_json, read_jsonl, add_event
+    from ..runs import read_json, read_jsonl, add_event, utc_now
     from . import qss_profile
     from .agent import StagedSAC, check_sb3_version
     from .train_config import train_config_from_dict, apply_overrides, config_json
@@ -332,9 +343,10 @@ def resume_pipeline(run_dir, overrides=(), *, argv=None):
     if overrides:
         (run_dir / 'config.json').write_text(config_json(cfg))
     status = read_json(run_dir / 'status.json')
+    last_zip = run_dir / 'checkpoints' / 'last.zip'
+    if not last_zip.exists():
+        raise FileNotFoundError(f'{last_zip} missing: nothing to resume from')
     buf = run_dir / 'replay_buffer.pkl'
-    if not buf.exists():
-        raise FileNotFoundError(f'{buf} missing: resume needs the replay buffer (spec §7)')
     logf = open(run_dir / 'stdout.log', 'a')
     old_out, old_err = sys.stdout, sys.stderr
     sys.stdout, sys.stderr = _Tee(old_out, logf), _Tee(old_err, logf)
@@ -348,11 +360,23 @@ def resume_pipeline(run_dir, overrides=(), *, argv=None):
         qss = qss_profile.load_or_build(track)
         envs = eval_envs(cfg, track, qss)
         vec = build_vec_env(cfg.env, cfg.n_envs, track, qss, start_method=cfg.vec_start_method)
-        model = StagedSAC.load(run_dir / 'checkpoints' / 'last.zip', env=vec, device='cpu')
-        model.load_replay_buffer(buf)
+        model = StagedSAC.load(last_zip, env=vec, device='cpu')
+        buffer_step = status.get('replay_buffer_step')
+        if buf.exists():
+            model.load_replay_buffer(buf)
+        else:
+            msg = (f'resume at step {model.num_timesteps} without replay_buffer.pkl: continuing with an '
+                   f'empty replay buffer (demo prefill and earlier transitions lost)')
+            add_event(run_dir, 'resume_without_replay_buffer', step=int(model.num_timesteps))
+            run.status(warnings=(read_json(run_dir / 'status.json').get('warnings') or []) +
+                       [{'utc': utc_now(), 'step': int(model.num_timesteps), 'message': msg}])
+            log(f'WARNING: {msg}')
+            buffer_step = None
         k = 1 + sum(1 for p in (run_dir / 'sb3').glob('resume*'))
         model.set_logger(configure(str(run_dir / 'sb3' / f'resume{k}'), ['csv', 'tensorboard']))
-        add_event(run_dir, 'resume', step=int(model.num_timesteps), overrides=list(overrides), argv=argv or sys.argv)
+        add_event(run_dir, 'resume', step=int(model.num_timesteps), overrides=list(overrides), argv=argv or sys.argv,
+                  replay_buffer=buf.exists(), replay_buffer_step=buffer_step,
+                  replay_buffer_size=int(model.replay_buffer.size()))
         log(f'resume {run_dir} at {model.num_timesteps} steps -> {cfg.total_timesteps}')
         starts = read_json(run_dir / 'probe_starts.json')
         evals = read_jsonl(run_dir / 'evals.jsonl')
@@ -388,7 +412,8 @@ def parse_args(argv=None):
     p.add_argument('--run-name', required=True)
     p.add_argument('--set', dest='overrides', action='append', default=[], metavar='KEY=VALUE',
                    help="config override, e.g. --set agent.batch_size=256 (repeatable)")
-    p.add_argument('--resume', action='store_true', help='continue from checkpoints/last.zip + replay_buffer.pkl')
+    p.add_argument('--resume', action='store_true',
+                   help='continue from checkpoints/last.zip + replay_buffer.pkl (empty buffer + warning if missing)')
     p.add_argument('--allow-dirty', action='store_true', help='full preset with uncommitted rlsetup changes (recorded)')
     return p.parse_args(argv)
 

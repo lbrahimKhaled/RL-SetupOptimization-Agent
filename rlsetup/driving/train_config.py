@@ -128,13 +128,24 @@ class TrainConfig:
     max_wall_h: float | None = None      # PLACEHOLDER: per seed; set from Ibrahim's compute budget
                                          # (D2 question 2). None = no wall-clock limit
     checkpoint_interval: int = 100_000   # checkpoints/step_<n>.zip
-    save_replay_buffer: bool = True      # replay_buffer.pkl at the end / wall-limit stop (D3)
+    save_replay_buffer: bool = True      # replay_buffer.pkl at the end / wall-limit stop (D3); False
+                                         # disables every buffer save, incl. the periodic one below
+    replay_buffer_save_every: int | None = None   # steps between periodic replay_buffer.pkl saves
+                                         # (atomic, for crash-safe resume); None = checkpoint_interval,
+                                         # 0 = only at the end. ~1.3 GB per save at buffer_size 1M
     demo_dir: str = 'data/demos'         # relative to the repo root unless absolute
     runs_root: str = 'runs/D2'           # relative to the repo root unless absolute
     vec_start_method: str = 'forkserver'
 
     def to_dict(self):
         return asdict(self)
+
+    @property
+    def buffer_save_interval(self):
+        """Steps between periodic replay-buffer saves; 0 = none (only the final save)."""
+        if not self.save_replay_buffer:
+            return 0
+        return self.checkpoint_interval if self.replay_buffer_save_every is None else int(self.replay_buffer_save_every)
 
     @property
     def utd(self):

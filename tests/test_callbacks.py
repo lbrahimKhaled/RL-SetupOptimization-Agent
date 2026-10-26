@@ -1,5 +1,6 @@
 """D2 §10: CollapseGuard, PhaseCallback, WallClockLimit, TrainStats / Eval callbacks, metric
 helpers, run folders, training provenance."""
+import dataclasses
 import json
 import math
 import time
@@ -165,6 +166,89 @@ def test_checkpoint_callback(tmp_path):
     for n in (52, 104, 156, 208):
         step(cb, model, n)
     assert sorted(p.name for p in tmp_path.iterdir()) == ['last.zip', 'step_104.zip', 'step_208.zip']
+
+
+def test_checkpoint_callback_saves_replay_buffer(tmp_path):
+    from stable_baselines3.common.save_util import load_from_pkl
+    from rlsetup.driving.train_config import TrainConfig
+    model = make_model(fill=300)
+    saved = []
+    buf = tmp_path / 'replay_buffer.pkl'
+    cb = CheckpointCallback(100, tmp_path / 'ck', buffer_path=buf, buffer_every=50, on_buffer_saved=saved.append)
+    (tmp_path / 'ck').mkdir()
+    start(cb, model)
+    for n in (20, 52, 76, 104, 130):
+        step(cb, model, n)
+    assert saved == [52, 104]
+    assert sorted(p.name for p in tmp_path.iterdir()) == ['ck', 'replay_buffer.pkl']      # no .tmp left over
+    assert sorted(p.name for p in (tmp_path / 'ck').iterdir()) == ['last.zip', 'step_104.zip']
+    rb = load_from_pkl(buf)
+    assert rb.pos == model.replay_buffer.pos == 300
+    np.testing.assert_array_equal(rb.observations[:300], model.replay_buffer.observations[:300])
+    # resumed at 104: the next buffer save is at 150, not immediately
+    cb2 = CheckpointCallback(100, tmp_path / 'ck', buffer_path=buf, buffer_every=50, on_buffer_saved=saved.append)
+    model.num_timesteps = 104
+    start(cb2, model)
+    step(cb2, model, 120)
+    step(cb2, model, 150)
+    assert saved == [52, 104, 150]
+    # no buffer path / interval 0: never
+    cb3 = CheckpointCallback(100, tmp_path / 'ck', buffer_path=buf, buffer_every=0, on_buffer_saved=saved.append)
+    start(cb3, model)
+    step(cb3, model, 1000)
+    assert saved == [52, 104, 150]
+    # TrainConfig: None = checkpoint_interval, explicit value, disabled with save_replay_buffer=False
+    c = TrainConfig()
+    assert c.replay_buffer_save_every is None and c.buffer_save_interval == c.checkpoint_interval == 100_000
+    assert dataclasses.replace(c, replay_buffer_save_every=30_000).buffer_save_interval == 30_000
+    assert dataclasses.replace(c, replay_buffer_save_every=0).buffer_save_interval == 0
+    assert dataclasses.replace(c, save_replay_buffer=False).buffer_save_interval == 0
+
+
+def test_resume_without_replay_buffer_warns(tmp_path, monkeypatch):
+    """Hard kill before the first buffer save: resume continues with an empty buffer and a warning
+    in status.json. Heavy pieces (track, QSS, vec / eval envs, learn) are stubbed."""
+    import ocd_lap.track
+    from stable_baselines3.common.vec_env import DummyVecEnv
+    from rlsetup.driving import train as T, qss_profile, vec
+    from rlsetup.driving.train_config import config_json
+    from sb3_helpers import TinyEnv, tiny_cfg
+    cfg = tiny_cfg()
+    model = make_model(cfg, fill=100)
+    model.num_timesteps = 5_000
+    d = runs.make_run_dir(tmp_path, 'r', 0)
+    model.save(d / 'checkpoints' / 'last.zip')
+    (d / 'config.json').write_text(config_json(cfg))
+    runs.update_status(d, phase='rl', state='running', bc_baseline_m=50., unfrozen_at=1_000, rollbacks=0)
+    runs.write_json(d / 'probe_starts.json', [])
+    monkeypatch.setattr(ocd_lap.track, 'Track', lambda name: None)
+    monkeypatch.setattr(qss_profile, 'load_or_build', lambda track: None)
+    monkeypatch.setattr(T, 'eval_envs', lambda *a: {})
+    monkeypatch.setattr(vec, 'build_vec_env', lambda *a, **k: DummyVecEnv([TinyEnv]))
+    monkeypatch.setattr(T, '_callbacks', lambda *a, **k: ([], None, None))
+    seen = {}
+
+    def fake_finish(run, m, cbs, guard, wall, total):
+        seen.update(size=m.replay_buffer.size(), step=m.num_timesteps, total=total)
+        return T.EXIT_OK
+    monkeypatch.setattr(T, '_learn_and_finish', fake_finish)
+    assert T.resume_pipeline(d, ['total_timesteps=6000'], argv=['x']) == T.EXIT_OK
+    assert seen == {'size': 0, 'step': 5_000, 'total': 1_000}
+    s = json.loads((d / 'status.json').read_text())
+    assert len(s['warnings']) == 1 and s['warnings'][0]['step'] == 5_000
+    assert 'empty replay buffer' in s['warnings'][0]['message']
+    kinds = [e['kind'] for e in s['events']]
+    assert kinds == ['resume_without_replay_buffer', 'resume'] and s['events'][1]['replay_buffer'] is False
+    # with the buffer present: loaded, no new warning
+    model.save_replay_buffer(d / 'replay_buffer.pkl')
+    assert T.resume_pipeline(d, [], argv=['x']) == T.EXIT_OK
+    assert seen['size'] == 100
+    s = json.loads((d / 'status.json').read_text())
+    assert len(s['warnings']) == 1 and s['events'][-1]['replay_buffer'] is True
+    # no last.zip: FileNotFoundError
+    (d / 'checkpoints' / 'last.zip').unlink()
+    with pytest.raises(FileNotFoundError):
+        T.resume_pipeline(d, [], argv=['x'])
 
 
 # --- metric helpers -----------------------------------------------------------------------------------

@@ -73,6 +73,19 @@ def test_mini_pipeline_resume_and_report(tmp_path):
     rb = load_from_pkl(d / 'replay_buffer.pkl')
     prefill_rows = status['phases']['offline_warmup']['prefill']['rows']
     assert rb.pos == prefill_rows + 4000 // 2 and not rb.full          # demo rows + online rows (2 envs)
+    assert status['replay_buffer_step'] == 4000
+
+    # hard kill before the first buffer save: no replay_buffer.pkl -> empty buffer + warning
+    (d / 'replay_buffer.pkl').unlink()
+    cli('--preset', 'smoke', '--resume', '--seed', '0', '--run-name', 'mini', '--set', f'runs_root={root}',
+        '--set', 'total_timesteps=4400')
+    status = json.loads((d / 'status.json').read_text())
+    assert status['state'] == 'completed' and status['num_timesteps'] == 4400
+    assert len(status['warnings']) == 1 and status['warnings'][0]['step'] == 4000
+    assert [e['kind'] for e in status['events']][-2:] == ['resume_without_replay_buffer', 'resume']
+    rb = load_from_pkl(d / 'replay_buffer.pkl')
+    assert rb.pos == 400 // 2                                            # only the new online rows
+    assert not list(d.rglob('*.tmp'))
 
     # report (re-evaluates last.zip): criteria FAIL, no crash, deterministic re-eval reproduces
     r = subprocess.run([sys.executable, str(REPO_ROOT / 'scripts' / 'd2_report.py'), str(root / 'mini')],

@@ -8,6 +8,7 @@ False ends `learn()` (SB3 still calls `on_training_end`).
 """
 import copy
 import math
+import os
 import time
 from pathlib import Path
 import numpy as np
@@ -20,6 +21,23 @@ from .vec import base_venv
 
 def _noop(*_, **__):
     pass
+
+
+def save_model_atomic(model, path):
+    """model.save to `<path>.tmp`, then rename over `path`: a hard kill mid-write leaves the
+    previous file intact (SB3 keeps the '.tmp' suffix, it only appends '.zip' to suffix-less paths)."""
+    path = Path(path)
+    tmp = path.with_name(path.name + '.tmp')
+    model.save(tmp)
+    os.replace(tmp, path)
+
+
+def save_replay_buffer_atomic(model, path):
+    """model.save_replay_buffer via `<path>.tmp` + rename (see save_model_atomic)."""
+    path = Path(path)
+    tmp = path.with_name(path.name + '.tmp')
+    model.save_replay_buffer(tmp)
+    os.replace(tmp, path)
 
 
 class PhaseCallback(BaseCallback):
@@ -273,10 +291,10 @@ class DrivingEvalCallback(BaseCallback):
         if self.last_det_clean and clean is False:
             self.on_event('det_regression', step=n, termination=rec.get('det_termination'))
         self.last_det_clean = clean
-        m.save(self.ckpt_dir / 'last.zip')
+        save_model_atomic(m, self.ckpt_dir / 'last.zip')
         if clean and lap2 is not None and lap2 < self.best_lap2:
             self.best_lap2 = lap2
-            m.save(self.ckpt_dir / 'best.zip')
+            save_model_atomic(m, self.ckpt_dir / 'best.zip')
             rec['new_best'] = True
         append_jsonl(self.evals_path, rec)
         for k in ('lap2_s', 'sto_clean_rate', 'alpha', 'policy_entropy'):
@@ -288,22 +306,38 @@ class DrivingEvalCallback(BaseCallback):
 
 
 class CheckpointCallback(BaseCallback):
-    """checkpoints/step_<n>.zip every `interval` steps (and last.zip alongside)."""
+    """checkpoints/step_<n>.zip every `interval` steps (and last.zip alongside, atomically), and
+    the replay buffer to `buffer_path` every `buffer_every` steps (None / 0: never here),
+    atomically, so a hard-killed run can resume (TrainConfig.replay_buffer_save_every).
+    The buffer saved at step n lacks that vector step's n_envs transitions (SB3 stores them after
+    the callbacks). `on_buffer_saved(step)` lets train.py record the step in status.json."""
 
-    def __init__(self, interval, ckpt_dir):
+    def __init__(self, interval, ckpt_dir, *, buffer_path=None, buffer_every=None, on_buffer_saved=_noop):
         super().__init__()
         self.interval, self.ckpt_dir = int(interval), Path(ckpt_dir)
+        self.buffer_path = None if buffer_path is None else Path(buffer_path)
+        self.buffer_every = int(buffer_every or 0) if self.buffer_path is not None else 0
+        self.on_buffer_saved = on_buffer_saved
+
+    @staticmethod
+    def _next(n, every):
+        return (n // every + 1) * every
 
     def _on_training_start(self):
-        self.next = (self.model.num_timesteps // self.interval + 1) * self.interval
+        n = self.model.num_timesteps
+        self.next = self._next(n, self.interval)
+        self.next_buffer = self._next(n, self.buffer_every) if self.buffer_every > 0 else math.inf
 
     def _on_step(self):
         n = self.model.num_timesteps
         if n >= self.next:
             self.model.save(self.ckpt_dir / f'step_{n}.zip')
-            self.model.save(self.ckpt_dir / 'last.zip')
-            while self.next <= n:
-                self.next += self.interval
+            save_model_atomic(self.model, self.ckpt_dir / 'last.zip')
+            self.next = self._next(n, self.interval)
+        if n >= self.next_buffer:
+            save_replay_buffer_atomic(self.model, self.buffer_path)
+            self.on_buffer_saved(n)
+            self.next_buffer = self._next(n, self.buffer_every)
         return True
 
 
