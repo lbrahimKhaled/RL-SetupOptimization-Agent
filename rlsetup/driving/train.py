@@ -299,6 +299,12 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
             _offline_warmup(run, model, demos, report['val_episodes'])
             record_phase(run_dir, 'offline_warmup', wall_s=time.time() - t, env_steps=0,
                          grad_steps=int(model._n_updates), prefill=fill)
+            if cfg.buffer_save_interval:
+                # the step-0 evaluation writes last.zip; without this a kill before the first
+                # periodic buffer save would resume without the demo prefill
+                from .callbacks import save_replay_buffer_atomic
+                save_replay_buffer_atomic(model, run_dir / 'replay_buffer.pkl')
+                run.status(replay_buffer_step=0)
             unfreeze_at = cfg.warmup.online_warmup_steps
             del demos
         elif a.init_mode == 'bias_only':
