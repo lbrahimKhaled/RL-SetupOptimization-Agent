@@ -69,6 +69,17 @@ def test_collapse_guard_rollback_then_stop():
     assert calls == [10_000, 20_000, 30_000, 40_000]
 
 
+def test_collapse_guard_probe_at_threshold_is_ok():
+    """QA mutant C1: mean probe progress exactly threshold x baseline is not a collapse."""
+    model = make_model(fill=10)
+    events = []
+    guard = CollapseGuard(lambda m: 50., baseline=100., cfg=GuardConfig(threshold=.5),
+                          on_event=lambda kind, **d: events.append(kind))
+    start(guard, model)
+    assert step(guard, model, 10_000) and step(guard, model, 20_000)
+    assert events == [] and guard.rollbacks == 0 and all(h['ok'] for h in guard.history)
+
+
 def test_collapse_guard_waits_for_unfreeze_and_stops_after_window():
     model = make_model(fill=10)
     model.set_frozen(True, True)
@@ -293,6 +304,24 @@ def test_resume_without_replay_buffer_warns(tmp_path, monkeypatch):
     (d / 'checkpoints' / 'last.zip').unlink()
     with pytest.raises(FileNotFoundError):
         T.resume_pipeline(d, [], argv=['x'])
+
+
+def test_resume_during_frozen_warmup_stays_frozen(tmp_path, monkeypatch):
+    """QA mutant T3: a seed killed during the online warm-up (actor + alpha frozen, no unfreeze
+    yet) resumes frozen and unfreezes at warmup.online_warmup_steps; after the unfreeze the
+    resumed guard starts at the recorded unfreeze step."""
+    from rlsetup.driving import train as T
+    d, model, seen = resume_fixture(tmp_path, monkeypatch, status=dict(phase='online_warmup', state='running',
+                                                                       bc_baseline_m=50., rollbacks=0))
+    model.set_frozen(actor=True, ent_coef=True)
+    model.save(d / 'checkpoints' / 'last.zip')
+    assert T.resume_pipeline(d, [], argv=['x']) == T.EXIT_OK
+    assert seen['callbacks']['unfreeze_at'] == 20_000 and seen['callbacks']['guard_start'] is None
+    assert seen['model'].freeze_actor and seen['model'].freeze_ent_coef
+    assert not any(p.requires_grad for p in seen['model'].actor.parameters())
+    runs.update_status(d, unfrozen_at=1_000)
+    assert T.resume_pipeline(d, [], argv=['x']) == T.EXIT_OK
+    assert seen['callbacks']['unfreeze_at'] == 0 and seen['callbacks']['guard_start'] == 1_000
 
 
 def test_resume_warns_when_buffer_older_than_last_zip(tmp_path, monkeypatch):
@@ -558,6 +587,40 @@ def test_q_vs_mc_with_fake_critic():
                       failed=False, n_steps=3)['mc_nstep'].size == 0
 
 
+def test_evaluate_model_q_pairs_failures_entropy_alpha(monkeypatch):
+    """QA mutants E1 (Q paired with the NEXT obs), E2 (failed episodes lose their tail), E7
+    (entropy sign), E8 (alpha not from the model): evaluate_model with stubbed laps and critic."""
+    import types
+
+    class Critic:
+        def __call__(self, obs, act):                       # Q1 = 2 obs[0], Q2 = 2 obs[0] + 1
+            return obs[:, :1] * 2., obs[:, :1] * 2. + 1.
+    rng = np.random.default_rng(4)
+
+    def sto_rep(T, termination):
+        obs = np.zeros((T + 1, 3), np.float32)
+        obs[:, 0] = np.arange(T + 1)
+        trace = {'actions': np.zeros((T, 3), np.float32), 'reward': rng.normal(1., .3, T),
+                 'lap_index': np.zeros(T, int)}
+        return ev.LapReport(termination == 'lap_complete', [100.] if termination == 'lap_complete' else [], [],
+                            termination, None, T, 0., trace, obs, rng.normal(-2., .5, T))
+    det = ev.LapReport(False, [], [], 'off_track', None, 5, 0., {'lap_index': np.zeros(5, int)})
+    sto = [sto_rep(700, 'lap_complete'), sto_rep(250, 'off_track')]
+    reps = iter([det] + sto)
+    monkeypatch.setattr(ev, 'flying_lap', lambda *a, **k: next(reps))
+    model = types.SimpleNamespace(critic=Critic(), alpha=.37, gamma=.9, n_steps=3, _n_updates=7)
+    cfg = EvalConfig(stochastic_laps=2)
+    out = ev.evaluate_model(model, {'eval_det': None, 'eval_sto': None}, cfg)
+    pairs = [ev.q_vs_mc(Critic(), r.obs[:-1], r.trace['actions'], r.trace['reward'], r.logp, gamma=.9, alpha=.37,
+                        failed=f, n_steps=3) for r, f in zip(sto, (False, True))]
+    assert [list(p['k']) for p in pairs] == [[0, 100], [0, 100, 200]]
+    assert out['q_vs_mc'] == ev.summarize_q_mc(pairs) and out['q_vs_mc']['n'] == 5
+    np.testing.assert_allclose(pairs[1]['q_min'], [0., 200., 400.])        # Q(s_k, a_k), not s_{k+1}
+    assert out['alpha'] == .37 and out['n_updates'] == 7
+    assert out['policy_entropy'] > 0 and out['policy_entropy'] == pytest.approx(-np.mean(np.r_[sto[0].logp, sto[1].logp]))
+    assert out['sto_clean'] == 1 and out['sto_n'] == 2 and not out['det_clean']
+
+
 def test_lap_tagging_and_lap_metrics():
     # 2 decisions run-in, lap 1 = 3 decisions, lap 2 = 4 decisions, final decision completes lap 2
     lap_index = np.array([0, 0, 1, 1, 1, 2, 2, 2, 2, 3])
@@ -583,6 +646,13 @@ def test_lap_tagging_and_lap_metrics():
     assert m['spin_upshifts'] == 1
     assert m['smoothness_share'] == pytest.approx(3 / 103)
     assert ev.edge_margin(0., 10.) == 4. and ev.edge_margin(1., 10.) == -1.
+    # QA mutant E4: an upshift at the FIRST decision of lap 2 (gear compared with the last decision
+    # of lap 1) counts; one at the first decision after lap 2 does not
+    li = np.array([0, 1, 1, 2, 2, 3])
+    tr2 = {'lap_index': li, 'gear': np.array([1, 1, 2, 3, 3, 4]), 'slip_rl': np.array([0, 0, 0, .2, 0, .2]),
+           'slip_rr': np.zeros(6), 'kappa': np.zeros((6, 4)), 'e': np.zeros(6), 'track_position': np.zeros(6),
+           'track_width': np.full(6, 12.)}
+    assert ev.lap_metrics(ev.LapReport(True, [], [], 'lap_complete', None, 6, 0., tr2), EvalConfig())['spin_upshifts'] == 1
     assert ev.spin_upshifts([1, 2, 3], [0, .13, .12]) == 1
     assert ev.front_lock_fraction([-.2, 0.], [-.13, -.05]) == .5
 

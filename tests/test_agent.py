@@ -77,6 +77,20 @@ def test_unfrozen_train_changes_everything():
     assert not th.equal(alpha0, model.log_ent_coef.detach())
 
 
+def test_freeze_flags_act_independently():
+    """QA mutant A3: freezing only alpha keeps alpha and trains the actor; freezing only the
+    actor keeps the actor and trains alpha."""
+    model = make_model()
+    model.set_frozen(actor=False, ent_coef=True)
+    actor0, alpha0 = snapshot(model.actor), model.log_ent_coef.detach().clone()
+    model.train(3, 64)
+    assert th.equal(alpha0, model.log_ent_coef.detach()) and all_differ(actor0, snapshot(model.actor))
+    model.set_frozen(actor=True, ent_coef=False)
+    actor0, alpha0 = snapshot(model.actor), model.log_ent_coef.detach().clone()
+    model.train(3, 64)
+    assert same(actor0, snapshot(model.actor)) and not th.equal(alpha0, model.log_ent_coef.detach())
+
+
 def test_actor_lr_override():
     model = make_model()
     model.actor_lr = 1e-4

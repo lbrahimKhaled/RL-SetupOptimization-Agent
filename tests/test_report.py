@@ -174,3 +174,25 @@ def test_seed_without_last_zip_fails_with_reason(tmp_path, monkeypatch, capsys):
     # without re-evaluation only the gate state matters (synthetic runs have no last.zip)
     rep3 = R.build_report(root, reeval=False)
     assert [s['fail_reason'] is None for s in rep3['seeds']] == [True, False, True]
+
+
+def test_criteria_boundaries(tmp_path, monkeypatch):
+    """QA mutants R1, R2, R3, R5: the thresholds are inclusive where the done criterion says
+    '<=' / '>=' (lap 2 = 140.6 s, std = limit, 9/10 stochastic) and exclusive for the plateau
+    (improvement must be < limit). Exact binary values where float rounding would hide it."""
+    _, c = criteria(tmp_path / 'r1', finals=(140.6, 140.6, 140.6))
+    assert all(c.values()), c                                          # R1: lap 2 == 140.6 s passes
+    def m(k, f):
+        f['evals'][-1]['sto_clean'] = 9
+    _, c = criteria(tmp_path / 'r5', mutate=m)
+    assert all(c.values()), c                                          # R5: 9/10 passes
+    finals = (139.0, 139.5, 140.0)
+    monkeypatch.setattr(R, 'SEED_STD_S', R._std(list(finals)))
+    rep, c = criteria(tmp_path / 'r3', finals=finals)
+    assert rep['seed_lap2_std_s'] == R.SEED_STD_S and all(c.values()), c   # R3: std == limit passes
+    monkeypatch.setattr(R, 'PLATEAU_S', .25)
+    def m2(k, f):
+        if k == 1:
+            next(r for r in f['evals'] if r['step'] == 800_000)['lap2_s'] = 139.25
+    rep, c = criteria(tmp_path / 'r2', finals=(139.0, 139.0, 139.0), mutate=m2)
+    assert rep['seeds'][1]['plateau_improvement_s'] == .25 and only_fails(c, 'iii_plateau')   # R2

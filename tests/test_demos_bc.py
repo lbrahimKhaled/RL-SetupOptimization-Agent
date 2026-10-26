@@ -219,3 +219,54 @@ def test_bc_fits_synthetic_tanh_policy():
     assert rep['history'][rep['best_epoch']]['val_nll'] == rep['best_val_nll'] < rep['history'][0]['val_nll']
     assert set(rep['val_episodes']).isdisjoint(rep['train_episodes'])
     assert len(rep['val_episodes']) == 4
+
+
+def synthetic_bc_data(E, T, dim, rng):
+    x = rng.uniform(-1, 1, (E * (T + 1), dim)).astype(np.float32)
+    starts = np.arange(E) * T
+    return D.with_index({'obs': x, 'ep_start_tr': starts, 'ep_start_obs': starts + np.arange(E),
+                         'terminated': np.zeros(E * T, bool), 'truncated': np.zeros(E * T, bool),
+                         'actions': np.zeros((E * T, 3), np.float32), 'episode': np.repeat(np.arange(E), T)})
+
+
+def small_policy(dim):
+    th.manual_seed(0)
+    return SACPolicy(gym.spaces.Box(-10, 10, (dim,), np.float32), gym.spaces.Box(-1, 1, (3,), np.float32),
+                     lambda _: 3e-4, net_arch=[64, 64])
+
+
+def test_bc_keeps_best_epoch_and_stops_after_patience():
+    """QA mutants B1 (best weights not restored) and B3 (no early stop): validation actions are
+    the opposite of the training actions, so every epoch makes the validation NLL worse; the best
+    epoch is 0, training stops after `patience` epochs and the actor is the initial one."""
+    from rlsetup.driving.bc import _split
+    rng = np.random.default_rng(0)
+    E, T, dim = 20, 200, 8
+    cfg = BCConfig(learning_rate=1e-3, batch_size=256, max_epochs=30, patience=3)
+    d = synthetic_bc_data(E, T, dim, rng)
+    _, val_eps = _split(E, cfg)
+    d['actions'][:] = np.where(np.isin(d['episode'], val_eps), -.5, .5)[:, None]
+    policy = small_policy(dim)
+    init = {k: v.clone() for k, v in policy.actor.state_dict().items()}
+    rep = train_bc(policy.actor, d, cfg, seed=0, log=lambda *_: None)
+    vals = [h['val_nll'] for h in rep['history']]
+    assert rep['best_epoch'] == 0 and rep['epochs_run'] == cfg.patience and min(vals[1:]) > vals[0]
+    assert all(th.equal(init[k], v) for k, v in policy.actor.state_dict().items())
+
+
+def test_bc_loss_finite_at_action_limits():
+    """QA mutant B2: actions at exactly +-1 are clipped to +-action_clip before the log-likelihood
+    (same loss as at +-0.995; finite training history)."""
+    from rlsetup.driving.bc import _nll
+    rng = np.random.default_rng(1)
+    E, T, dim = 10, 100, 8
+    d = synthetic_bc_data(E, T, dim, rng)
+    d['actions'][:] = np.where(rng.uniform(size=(E * T, 3)) < .5, -1., 1.)
+    policy = small_policy(dim)
+    obs = th.as_tensor(d['obs'][d['obs_index']])
+    act = th.as_tensor(d['actions'])
+    with th.no_grad():
+        at_limit, clipped = _nll(policy.actor, obs, act, .995), _nll(policy.actor, obs, act * .995, .995)
+    assert th.isfinite(at_limit) and float(at_limit) == float(clipped)
+    rep = train_bc(policy.actor, d, BCConfig(max_epochs=2, batch_size=256), seed=0, log=lambda *_: None)
+    assert all(np.isfinite(h['val_nll']) for h in rep['history'])

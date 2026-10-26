@@ -470,3 +470,35 @@ def test_stall_timer_resets_between_episodes(make_env):
                 break
         assert trunc and info['time_s'] == pytest.approx(1.9)
         assert info['speed'] < env.cfg.stall_speed_mps and env._stall_s > 1.5   # stalled at the end
+
+
+def _independent_width_and_position(track, x, y):
+    """Track width and position (-1 right ... +1 left) at (x, y) from Track.center / left / right
+    (the CSV cross-sections), interpolated along the nearest centre-line segment."""
+    c = track.center[:len(track.left), 1:3]
+    i = int(np.argmin(np.hypot(*(c - [x, y]).T)))
+    j = (i + 1) % len(c)
+    seg = c[j] - c[i]
+    u = float(np.clip(np.dot([x, y] - c[i], seg) / np.dot(seg, seg), 0., 1.))
+    left = track.left[i] * (1 - u) + track.left[j] * u
+    right = track.right[i] * (1 - u) + track.right[j] * u
+    d = left - right
+    return float(np.linalg.norm(d)), float(2. * np.dot([x, y] - right, d) / np.dot(d, d) - 1.)
+
+
+def test_track_width_and_position_at_start(make_env, track):
+    """QA mutant V1: track width / position at the start agree with the track's own edge data,
+    both from the env methods and in the evaluation-mode info of the first decision."""
+    env = make_env(EnvConfig(**NO_SETTLE))
+    for s0, d in ((500., 1.5), (2_000., -2.), (4_000., 0.)):
+        env.reset(options={'start_pose': offset_pose(env, s0, d)})
+        w, pos = _independent_width_and_position(track, env.state['x'], env.state['y'])
+        assert 10. <= w <= 18.
+        assert env.track_width() == pytest.approx(w, abs=.3)
+        assert env.track_position() == pytest.approx(pos, abs=.05)
+    ev_env = make_env(EnvConfig(evaluation=True))
+    ev_env.reset(seed=0)
+    _, _, _, _, info = ev_env.step(np.array([0., -.275, -.8], np.float32))
+    w, pos = _independent_width_and_position(track, ev_env.state['x'], ev_env.state['y'])
+    assert info['track_width_m'] == pytest.approx(w, abs=.3) and info['track_width_m'] == ev_env.track_width()
+    assert info['track_position'] == pytest.approx(pos, abs=.05)
