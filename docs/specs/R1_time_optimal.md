@@ -180,3 +180,46 @@ Launch: commit → smoke → `python -m rlsetup.driving.train --preset r1_warm -
 
 ## Needs web-researcher
 Wiewiora 2003 (PBRS ≡ Q-init), Grześ 2017 (Φ(terminal) = 0 in episodic tasks), Ng 1999 Thm 1 wording.
+
+---
+## Amendment 1 (26 Oct, rl-architect) — §3 "fresh buffer" superseded: preload full1's buffer relabelled to R1
+Trigger: smokes collapsed with a fresh buffer under both rewards; only Adam states + full1's 1M buffer stayed stable (docs/handoff/R1_coder.md). Call: (a)+(b) with source Adam states, guard 0.65. [C] SB3 2.9.0 `ReplayBuffer.timeouts` exists; `NStepReplayBuffer` builds n-step returns at sample time from 1-step rewards/dones/timeouts, so relabelling the 1-step fields keeps chains consistent.
+
+### A. `rlsetup/driving/relabel.py` (numpy, in-process at startup, no new file on disk)
+`relabel_to_time_pbrs(rb, env_cfg_src, env_cfg_dst) -> stats`; rows all if `rb.full` else `[:pos]`. Indices from config: i_e = EGO_SIZE (9), i_head = EGO_SIZE+1, i_la = EGO_SIZE+3+6·n_preview (132:135), speed 0. e = obs[i_e]·e_scale, e′ = next_obs[i_e]·e_scale, v, v′ = obs[0]·80, next_obs[0]·80, Δa = action − obs[i_la], dt = 0.02; c, w, b from the source config.
+
+R_new = R_old + S + T + 1[fail_old]·P_old − 1[term_new]·P_new + F
+| Term | Formula | Exact? |
+|---|---|---|
+| S | b·Σ w·Δa²/dt (only tick 1 has u̇ ≠ 0) | exact to float32 except shortened failure ticks |
+| T | c·(ê₁² + e′²), ê₁ = (e + e′)/2 | tick 2 exact, tick 1 O(Δe²) ≈ 1e-5; approx on failure rows |
+| fail_old | dones ∧ ¬timeouts | exact |
+| P_old | 50 + 3·e′² (off_track/wrong_way/stall alike); nonfinite (next_obs all zero): use e, tick tracking 0 | exact except nonfinite |
+| stall | fail_old ∧ next_obs not all-zero ∧ v < 3 ∧ v′ < 3 → timeouts = 1 (dones stay 1), no P_new, real Φ′ | heuristic, cross-checked (S1) |
+| term_new | fail_old ∧ ¬stall → P_new = 100, Φ′ = 0 | as above |
+| F | γΦ′ − Φ, Φ = −k\|e\|; Φ′ = 0 if term_new, real on timeouts | exact |
+Old time-limit rows keep timeouts = 1. Stats (rows, failures, stalls, nonfinite, mean added terms, mean R_old vs R_new) → status.json `init_buffer`; provenance gets source pkl sha256.
+
+### B. Warm-start pipeline (replaces §3 / §2.5 steps 5–6)
+1. Fresh model; load policy (actor, critic, target) + log_α.
+2. `WarmStartConfig.load_optimizers = True`: copy source actor/critic/ent_coef optimizer state_dicts.
+3. `model.load_replay_buffer(init_buffer)`; assert buffer_size, n_envs, n_steps, gamma, obs shape equal; `relabel_to_time_pbrs`; `cut_nstep_chains`; `min_train_transitions = 0`. The 1M FIFO does the mixing.
+4. Offline critic phase: actor + α frozen, `offline_critic_grad_steps = 25_000` in 1k blocks, log critic loss + mean Q on a fixed batch (pattern of `_offline_warmup`, no demo Q-vs-MC).
+5. Online critic phase `critic_warmup_steps = 20_000` (was 100k), frozen; then unfreeze, actor lr 3e-4.
+6. `guard.threshold = 0.65` (stable diag's lowest probe 0.76; collapses at 0.53–0.54).
+Config/CLI: `WarmStartConfig += init_buffer: str | None = None` (default `<init_from>/../../replay_buffer.pkl`, refuse if missing), `relabel: bool = True`, `load_optimizers: bool = True`, `offline_critic_grad_steps: int = 25_000`; CLI `--init-buffer PATH`. `r1_warm` preset: guard 0.65, critic_warmup 20k.
+
+### C. Tests (add to §7)
+1. Relabel vs env ground truth: same seeds/actions in legacy and R1 `DrivingEnv` via DummyVecEnv into `NStepReplayBuffer`, incl. time limit, forced off-track, stall, wrong-way. dones/timeouts equal exactly; non-failure rows |ΔR| ≤ 1e-3; failure rows ≤ 0.05; report max error.
+2. Sampled n-step returns of relabelled vs R1 buffer match for the same indices (same tolerances).
+3. Mismatch refusal (buffer_size, n_envs, gamma, obs shape).
+4. Optimizer state_dicts equal source after `warm_start`.
+
+### D. Smoke acceptance (`r1_warm_smoke`: offline 25k grad steps, online critic 20k, RL to 150k env steps; eval every 25k, 3 stochastic laps; guard every 5k; ~15 min)
+- S1 classified stalls (and total failures) = full1 train_stats totals over the buffer window (≈ 2.05M–3.05M) within ±10 % or ±3; mean R_new − R_old per non-failure row ≈ +0.06 + mean F.
+- S2 step-0 det lap 2 = 122.84531256503526 s ± 1e-6.
+- S3 critic_check ≤ 0.08 at the unfreeze eval.
+- S4 over ≥ 130k post-unfreeze steps: 0 rollbacks, no collapse, probes ≥ 0.65 × baseline, det clean ≥ 4/5 evals, each sto eval ≥ 2/3 clean, best clean lap 2 ≤ 123.85 s.
+- Pass → commit → full `r1_warm`. Fail on S4 only → rerun once with `--set warm.load_optimizers=False` and actor_lr 1e-4 at unfreeze; fail again → escalate to architect.
+
+Risks: relabel bias (critic_check, Q-vs-MC shift 0→50k; test C1 bounds it); buffer 2.05M–3.05M newer than best.zip (critic_check spike at step 0); guard 0.65 misses slow drift (det_clean, lap-2 trend over 200k).
