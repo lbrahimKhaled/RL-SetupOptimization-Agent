@@ -67,3 +67,12 @@ Recorded: rlsetup commit `2b32e3e` (dirty False, diff sha = empty-diff hash), oc
 ### Compliance (code read, D2 modules)
 - D2 modules reach the simulator only through `DrivingEnv` (D1, previously verified) and `ocd_lap.track.Track` (train.py, collect_demos.py, d2_report.py). `evaluate.py` / `demos.py` read `env.unwrapped` attributes of rlsetup's own DrivingEnv (state, track length, demo driver), not OCDBackend internals. No `setattr`/monkeypatching of ocd_lap found. Settings flow via `EnvConfig`/`TrainConfig` and `--set` overrides.
 - ocd_first_lap untouched by this work (`git status --short` unchanged, diff sha unchanged). It remains dirty from the known Stage 6 + speed-patch work.
+
+### Interim (smoke1_bc30, as of 08:30)
+- Gate in pipeline: deterministic clean, lap 2 = 340.578 s (= offline diagnostic); stochastic 0/3.
+- Prefill: 46,732 rows × 4 columns = 186,928 transitions (13,078 dropped by column trimming), 3 flagged tails.
+- Offline warm-up (5 × 1,000 grad steps, ~6 s per block ≈ 167 grad steps/s): critic loss 1.59 → 1.15 → 1.61 → 1.84 → 2.12; mean Q 12.2 → 38.6. Q vs soft MC on demos: Q_min 39.7 vs MC 63.7 (ratio 0.62).
+- Unfreeze event at step 10,000 (08:27:17). Probes (baseline 463.3 m): 15k 445.2 m, 20k 440.0 m, 25k 615.9 m — all ok (≥ 0.5 × baseline).
+- Eval step 0: lap 2 340.578 s clean, mean |e| 0.085 m, max |e| 0.63 m, min edge margin 0.96 m, front lock 0, spin upshifts 0, α 0.100, eval wall 19.7 s.
+- Eval step 25k: **deterministic off_track after 1,037 decisions (det_regression event)**; stochastic 0/3 (all off_track); Q_min 106.1 vs MC 76.4 (ratio 1.39, overestimating); α 0.0535; entropy −2.94; obs clip 0.0; training causes so far: off_track 53, stall 9, wrong_way 6.
+- **Throughput at 25k: 154 env steps/s, 77 grad steps/s** (wall_train 161.9 s, wall_eval 26.2 s cumulative). **CPU contention:** during this window other agents ran `pytest -q` (PID 75602), `pytest -q -x -m …` (PID 82663) and a qa-reviewer D2 training run (PID 81697, `--run-name a --set runs_root=/tmp/qa_d2/det/runs …`, 2 envs); load avg 5–7 on 4 P-cores. Throughput is therefore not a clean measurement.
