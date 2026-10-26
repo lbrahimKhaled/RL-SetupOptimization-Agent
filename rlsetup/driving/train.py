@@ -20,10 +20,18 @@ bias-initialized actor).
 Run folder runs/D2/<run_name>/seed<k>/ (spec §7); checkpoints/last.zip and best.zip live in
 checkpoints/. A resumed run logs SB3 output to sb3/resume<k>/ (SB3's CSV logger would truncate
 progress.csv). last.zip / best.zip / replay_buffer.pkl are written atomically (temp file + rename);
-replay_buffer.pkl is saved every TrainConfig.buffer_save_interval steps and at the end, so a
-hard-killed seed resumes from its last checkpoint. A seed folder with last.zip but no buffer resumes
-with an empty buffer and a 'warnings' entry in status.json. Resume is not bit-identical to an uninterrupted run (SB3 re-seeds the envs and the
-global RNGs with the same seed on load, and the env episodes restart).
+replay_buffer.pkl is saved every TrainConfig.buffer_save_interval steps, at every evaluation
+(with last.zip) and at the end, so a hard-killed seed resumes from its last checkpoint. A seed
+folder with last.zip but no buffer resumes with an empty buffer, a 'warnings' entry in
+status.json and no gradient updates until the buffer holds agent.batch_size x
+resume_empty_buffer_min_batches transitions. Resume is not bit-identical to an uninterrupted run
+(SB3 re-seeds the envs and the global RNGs with the same seed on load, and the env episodes
+restart; the last loaded row is marked as an episode end so n-step targets do not chain across
+the cut).
+Resume checks the code against provenance.json (rlsetup commit + diff sha, ocd_lap code_version)
+and refuses on a mismatch (exit 5) unless --allow-code-change, and refuses a full-preset run with
+uncommitted rlsetup changes (exit 4) unless --allow-dirty; both flags are recorded in the
+'resume' event together with the code state.
 """
 from dataclasses import replace
 from pathlib import Path
@@ -34,7 +42,7 @@ import time
 import traceback
 import numpy as np
 
-EXIT_OK, EXIT_GATE, EXIT_COLLAPSED, EXIT_DIRTY = 0, 2, 3, 4
+EXIT_OK, EXIT_GATE, EXIT_COLLAPSED, EXIT_DIRTY, EXIT_CODE_CHANGED = 0, 2, 3, 4, 5
 RESUME_OVERRIDABLE = {'total_timesteps', 'max_wall_h', 'save_replay_buffer', 'checkpoint_interval',
                       'replay_buffer_save_every'}
 
@@ -97,23 +105,27 @@ class Run:
 
 
 def _callbacks(run, model, envs, starts, baseline, *, unfreeze_at, guard_start=None, rollbacks=0,
-               best_lap2=float('inf'), last_det_clean=None, wall0=(0., 0.), t0=None):
+               best_lap2=float('inf'), last_det_clean=None, wall0=(0., 0.), t0=None, buffer_saved_step=None):
+    """`buffer_saved_step`: step of a replay-buffer save made before learn() (the prefill save at
+    step 0), so the step-0 evaluation does not save the same buffer again."""
     from .callbacks import (PhaseCallback, CollapseGuard, TrainStatsCallback, DrivingEvalCallback,
-                            CheckpointCallback, WallClockLimit)
+                            CheckpointCallback, WallClockLimit, ReplayBufferSaver)
     from .evaluate import probe, evaluate_model
     cfg, d = run.cfg, run.dir
+    saver = ReplayBufferSaver(d / 'replay_buffer.pkl', lambda n: run.status(replay_buffer_step=int(n)),
+                              last_step=buffer_saved_step) if cfg.buffer_save_interval else None
     stats = TrainStatsCallback(d / 'train_stats.jsonl', cfg.eval.stats_window)
     guard = CollapseGuard(lambda m: probe(m, envs['probe'], starts).mean_progress_m, baseline, cfg.guard,
                           start_step=guard_start, rollbacks=rollbacks, on_event=run.event,
-                          log_path=d / 'probes.jsonl')
+                          log_path=d / 'probes.jsonl', last_path=d / 'checkpoints' / 'last.zip')
     evalcb = DrivingEvalCallback(
         lambda m, n: evaluate_model(m, envs, cfg.eval, laps_path=d / 'laps' / f'step_{n}_det.npz'),
         cfg.eval.interval, d / 'evals.jsonl', d / 'checkpoints', stats=stats, best_lap2=best_lap2,
-        last_det_clean=last_det_clean, on_event=run.event, train_wall0=wall0[0], eval_wall0=wall0[1])
+        last_det_clean=last_det_clean, on_event=run.event, train_wall0=wall0[0], eval_wall0=wall0[1],
+        buffer_saver=saver)
     wall = WallClockLimit(cfg.max_wall_h, t0=t0, on_event=run.event)
-    ckpt = CheckpointCallback(cfg.checkpoint_interval, d / 'checkpoints', buffer_path=d / 'replay_buffer.pkl',
-                              buffer_every=cfg.buffer_save_interval,
-                              on_buffer_saved=lambda n: run.status(replay_buffer_step=int(n)))
+    ckpt = CheckpointCallback(cfg.checkpoint_interval, d / 'checkpoints', buffer_every=cfg.buffer_save_interval,
+                              buffer_saver=saver)
     cbs = [PhaseCallback(unfreeze_at, on_event=run.event), guard, stats, evalcb, ckpt, wall]
     return cbs, guard, wall
 
@@ -244,7 +256,7 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
         model.set_logger(configure(str(run_dir / 'sb3'), ['csv', 'tensorboard']))
         starts = make_probe_starts(envs['probe'], cfg.guard)
         write_json(run_dir / 'probe_starts.json', starts)
-        unfreeze_at = 0
+        unfreeze_at, buffer_saved_step = 0, None
         if a.init_mode == 'bc':
             # --- step 2: demos ---
             run.status(phase='demos')
@@ -307,6 +319,7 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
                 save_replay_buffer_atomic(model, run_dir / 'replay_buffer.pkl')
                 run.status(replay_buffer_step=0)
             unfreeze_at = cfg.warmup.online_warmup_steps
+            buffer_saved_step = 0 if cfg.buffer_save_interval else None
             del demos
         elif a.init_mode == 'bias_only':
             pr = probe(model, envs['probe'], starts)
@@ -315,7 +328,8 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
         else:
             raise ValueError(f'unknown init_mode {a.init_mode!r}')
         # --- steps 4b + 5 ---
-        cbs, guard, wall = _callbacks(run, model, envs, starts, baseline, unfreeze_at=unfreeze_at, t0=run.t0)
+        cbs, guard, wall = _callbacks(run, model, envs, starts, baseline, unfreeze_at=unfreeze_at, t0=run.t0,
+                                      buffer_saved_step=buffer_saved_step)
         return _learn_and_finish(run, model, cbs, guard, wall, cfg.total_timesteps)
     except BaseException as e:
         run.status(state='error', stop_reason=f'{type(e).__name__}: {e}', traceback=traceback.format_exc())
@@ -327,18 +341,36 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
         logf.close()
 
 
-def resume_pipeline(run_dir, overrides=(), *, argv=None):
+def _warn(run, step, msg):
+    """Append a {'utc', 'step', 'message'} entry to status.json 'warnings' and log it."""
+    from ..runs import read_json, utc_now
+    run.status(warnings=(read_json(run.dir / 'status.json').get('warnings') or []) +
+               [{'utc': utc_now(), 'step': int(step), 'message': msg}])
+    run.log(f'WARNING: {msg}')
+
+
+def resume_pipeline(run_dir, overrides=(), *, argv=None, allow_dirty=False, allow_code_change=False):
     """Continue a run from checkpoints/last.zip + replay_buffer.pkl. Only RESUME_OVERRIDABLE
-    fields may be overridden (the report needs identical configs across seeds). Without
-    replay_buffer.pkl (hard kill before the first buffer save) the run continues with an empty
-    buffer (no demo transitions) and records a warning in status.json ('warnings', event
-    'resume_without_replay_buffer'). Without last.zip: FileNotFoundError."""
+    fields may be overridden (the report needs identical configs across seeds).
+    Code check (QA D2 M2): the current rlsetup git state + ocd_lap code_version are compared with
+    provenance.json; a mismatch refuses (EXIT_CODE_CHANGED) unless allow_code_change, uncommitted
+    rlsetup changes with the full preset refuse (EXIT_DIRTY) unless allow_dirty. A refusal adds a
+    'resume_refused' event and changes nothing else; the 'resume' event records the code state,
+    mismatches and both flags.
+    Replay buffer: loaded and the last row marked as an episode end (cut_nstep_chains). A buffer
+    older than last.zip (replay_buffer_step < num_timesteps - n_envs, or unknown) adds a warning.
+    Without replay_buffer.pkl (hard kill before the first buffer save) the run continues with an
+    empty buffer (no demo transitions), a warning ('warnings', event 'resume_without_replay_buffer')
+    and no gradient updates until the buffer holds agent.batch_size x
+    resume_empty_buffer_min_batches transitions. Without last.zip: FileNotFoundError."""
     import torch as th
     from stable_baselines3.common.logger import configure
     from ocd_lap.track import Track
-    from ..runs import read_json, read_jsonl, add_event, utc_now
+    from ..provenance import code_state, code_mismatches
+    from ..runs import read_json, read_jsonl, add_event
     from . import qss_profile
     from .agent import StagedSAC, check_sb3_version
+    from .callbacks import load_replay_buffer_for_resume
     from .train_config import train_config_from_dict, apply_overrides, config_json
     from .vec import build_vec_env
     run_dir = Path(run_dir)
@@ -347,8 +379,6 @@ def resume_pipeline(run_dir, overrides=(), *, argv=None):
     if bad:
         raise ValueError(f'cannot override {sorted(bad)} on resume (allowed: {sorted(RESUME_OVERRIDABLE)})')
     cfg = apply_overrides(cfg, overrides)
-    if overrides:
-        (run_dir / 'config.json').write_text(config_json(cfg))
     status = read_json(run_dir / 'status.json')
     last_zip = run_dir / 'checkpoints' / 'last.zip'
     if not last_zip.exists():
@@ -360,31 +390,64 @@ def resume_pipeline(run_dir, overrides=(), *, argv=None):
     log = lambda *a: print(time.strftime('%H:%M:%S'), *a, flush=True)
     run = Run(cfg, run_dir, log)
     vec = None
+    argv = list(argv or sys.argv)
     try:
         check_sb3_version()
         th.set_num_threads(cfg.torch_threads)
         track = Track(cfg.env.track)
+        # --- code check (before anything in the run folder changes) ---
+        code = code_state(track)
+        mismatches = code_mismatches(read_json(run_dir / 'provenance.json', {}) or {}, code)
+        dirty = cfg.preset == 'full' and bool(code['rlsetup']['dirty'])
+        refused = []
+        if mismatches and not allow_code_change:
+            refused.append((EXIT_CODE_CHANGED, 'code differs from provenance.json: ' + '; '.join(mismatches)
+                            + ' (pass --allow-code-change to resume anyway)'))
+        if dirty and not allow_dirty:
+            refused.append((EXIT_DIRTY, 'rlsetup has uncommitted changes and the preset is full '
+                                        '(commit, or pass --allow-dirty)'))
+        if refused:
+            add_event(run_dir, 'resume_refused', reasons=[r for _, r in refused], code=code, argv=argv)
+            for _, r in refused:
+                log(f'refusing to resume: {r}')
+            return refused[0][0]
+        if overrides:
+            (run_dir / 'config.json').write_text(config_json(cfg))
         qss = qss_profile.load_or_build(track)
         envs = eval_envs(cfg, track, qss)
         vec = build_vec_env(cfg.env, cfg.n_envs, track, qss, start_method=cfg.vec_start_method)
         model = StagedSAC.load(last_zip, env=vec, device='cpu')
+        n = int(model.num_timesteps)
         buffer_step = status.get('replay_buffer_step')
+        cut_row = None
         if buf.exists():
-            model.load_replay_buffer(buf)
+            cut_row = load_replay_buffer_for_resume(model, buf)
+            model.min_train_transitions = 0
+            buffer_lag = buffer_step is None or buffer_step < n - cfg.n_envs
+            if buffer_lag:
+                _warn(run, n, f'replay_buffer.pkl is from step {buffer_step} but last.zip from step {n}: '
+                              f'the transitions in between are lost (hard kill between the two saves)')
         else:
-            msg = (f'resume at step {model.num_timesteps} without replay_buffer.pkl: continuing with an '
-                   f'empty replay buffer (demo prefill and earlier transitions lost)')
-            add_event(run_dir, 'resume_without_replay_buffer', step=int(model.num_timesteps))
-            run.status(warnings=(read_json(run_dir / 'status.json').get('warnings') or []) +
-                       [{'utc': utc_now(), 'step': int(model.num_timesteps), 'message': msg}])
-            log(f'WARNING: {msg}')
+            buffer_lag = None
+            model.min_train_transitions = cfg.agent.batch_size * cfg.resume_empty_buffer_min_batches
+            add_event(run_dir, 'resume_without_replay_buffer', step=n)
+            _warn(run, n, f'resume at step {n} without replay_buffer.pkl: continuing with an empty replay '
+                          f'buffer (demo prefill and earlier transitions lost); no gradient updates until it '
+                          f'holds {model.min_train_transitions} transitions')
             buffer_step = None
+        if mismatches:
+            _warn(run, n, 'resumed with different code (--allow-code-change): ' + '; '.join(mismatches))
+        if dirty:
+            _warn(run, n, 'resumed the full preset with uncommitted rlsetup changes (--allow-dirty)')
         k = 1 + sum(1 for p in (run_dir / 'sb3').glob('resume*'))
         model.set_logger(configure(str(run_dir / 'sb3' / f'resume{k}'), ['csv', 'tensorboard']))
-        add_event(run_dir, 'resume', step=int(model.num_timesteps), overrides=list(overrides), argv=argv or sys.argv,
+        add_event(run_dir, 'resume', step=n, overrides=list(overrides), argv=argv,
                   replay_buffer=buf.exists(), replay_buffer_step=buffer_step,
-                  replay_buffer_size=int(model.replay_buffer.size()))
-        log(f'resume {run_dir} at {model.num_timesteps} steps -> {cfg.total_timesteps}')
+                  replay_buffer_size=int(model.replay_buffer.size()), replay_buffer_cut_row=cut_row,
+                  replay_buffer_lag=buffer_lag, min_train_transitions=int(model.min_train_transitions),
+                  code=code, code_mismatches=mismatches, allow_code_change=bool(allow_code_change),
+                  allow_dirty=bool(allow_dirty))
+        log(f'resume {run_dir} at {n} steps -> {cfg.total_timesteps}')
         starts = read_json(run_dir / 'probe_starts.json')
         evals = read_jsonl(run_dir / 'evals.jsonl')
         clean = [r['lap2_s'] for r in evals if r.get('det_clean') and r.get('lap2_s') is not None]
@@ -395,8 +458,9 @@ def resume_pipeline(run_dir, overrides=(), *, argv=None):
             unfreeze_at=cfg.warmup.online_warmup_steps if frozen_phase else 0,
             guard_start=status.get('unfrozen_at'), rollbacks=status.get('rollbacks', 0),
             best_lap2=min(clean) if clean else float('inf'), last_det_clean=last.get('det_clean'),
-            wall0=(last.get('wall_train_s') or 0., last.get('wall_eval_s') or 0.))
-        remaining = cfg.total_timesteps - model.num_timesteps
+            wall0=(last.get('wall_train_s') or 0., last.get('wall_eval_s') or 0.),
+            buffer_saved_step=buffer_step if buffer_step == n else None)
+        remaining = cfg.total_timesteps - n
         if remaining <= 0:
             log('nothing to do: total_timesteps already reached')
             return EXIT_OK
@@ -422,6 +486,8 @@ def parse_args(argv=None):
     p.add_argument('--resume', action='store_true',
                    help='continue from checkpoints/last.zip + replay_buffer.pkl (empty buffer + warning if missing)')
     p.add_argument('--allow-dirty', action='store_true', help='full preset with uncommitted rlsetup changes (recorded)')
+    p.add_argument('--allow-code-change', action='store_true',
+                   help='resume although the code differs from provenance.json (recorded)')
     return p.parse_args(argv)
 
 
@@ -433,7 +499,8 @@ def main(argv=None):
     if args.resume:
         root = apply_overrides(PRESETS[args.preset](), [o for o in args.overrides if o.startswith('runs_root=')]).runs_root
         run_dir = resolve(root) / args.run_name / f'seed{args.seed}'
-        return resume_pipeline(run_dir, [o for o in args.overrides if not o.startswith('runs_root=')], argv=full_argv)
+        return resume_pipeline(run_dir, [o for o in args.overrides if not o.startswith('runs_root=')], argv=full_argv,
+                               allow_dirty=args.allow_dirty, allow_code_change=args.allow_code_change)
     cfg = replace(apply_overrides(PRESETS[args.preset](), args.overrides), seed=args.seed)
     return run_pipeline(cfg, args.run_name, allow_dirty=args.allow_dirty, argv=full_argv)
 

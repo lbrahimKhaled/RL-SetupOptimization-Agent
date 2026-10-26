@@ -10,8 +10,11 @@ StagedSAC relies on SB3 2.9.0 `SAC.train()` internals (pinned in pyproject; test
     fixed-ent_coef branch with `ent_coef_tensor = exp(log_ent_coef)`; it is restored afterwards,
     so `save()` (outside train()) still stores log_ent_coef and its optimizer.
   - `actor_lr` overrides the actor's lr after SB3 resets every lr at the start of train().
-The freeze flags and actor_lr are pickled with the model; `_setup_model` re-applies
-requires_grad after `load()`.
+  - `min_train_transitions` > 0: train() does nothing (no gradient step, _n_updates unchanged)
+    while the replay buffer holds fewer transitions (rows x n_envs). Set by a resume with an
+    empty buffer (TrainConfig.resume_empty_buffer_min_batches); 0 = always train.
+The freeze flags, actor_lr and min_train_transitions are pickled with the model;
+`_setup_model` re-applies requires_grad after `load()`.
 """
 import numpy as np
 import stable_baselines3
@@ -29,6 +32,7 @@ class StagedSAC(SAC):
         self.freeze_actor = False
         self.freeze_ent_coef = False
         self.actor_lr = None
+        self.min_train_transitions = 0
         super().__init__(*args, **kwargs)
 
     def _setup_model(self):
@@ -46,7 +50,14 @@ class StagedSAC(SAC):
             update_learning_rate(self.actor.optimizer, self.actor_lr)
             self.logger.record('train/actor_lr', self.actor_lr)
 
+    def buffer_transitions(self):
+        """Transitions in the replay buffer (rows x n_envs)."""
+        rb = self.replay_buffer
+        return 0 if rb is None else int(rb.size()) * int(rb.n_envs)
+
     def train(self, gradient_steps: int, batch_size: int = 64) -> None:
+        if self.min_train_transitions and self.buffer_transitions() < self.min_train_transitions:
+            return                                          # refilling after an empty-buffer resume
         if not (self.freeze_ent_coef and self.ent_coef_optimizer is not None):
             return super().train(gradient_steps, batch_size)
         opt = self.ent_coef_optimizer

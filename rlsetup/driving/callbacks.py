@@ -40,6 +40,47 @@ def save_replay_buffer_atomic(model, path):
     os.replace(tmp, path)
 
 
+class ReplayBufferSaver:
+    """`saver(model)`: save_replay_buffer_atomic to `path` unless already saved at this
+    num_timesteps (the eval and checkpoint callbacks can both fire at one step), then
+    `on_saved(step)`. Returns True if it saved. `last_step`: step of an earlier save (e.g. the
+    prefill save at step 0)."""
+
+    def __init__(self, path, on_saved=_noop, last_step=None):
+        self.path, self.on_saved, self.last_step = Path(path), on_saved, last_step
+
+    def __call__(self, model):
+        n = int(model.num_timesteps)
+        if n == self.last_step:
+            return False
+        save_replay_buffer_atomic(model, self.path)
+        self.last_step = n
+        self.on_saved(n)
+        return True
+
+
+def cut_nstep_chains(rb):
+    """Resume cut (QA D2 m1): make the last stored row (pos - 1) % size of every env column an
+    episode end, so SB3's n-step sums never chain from the loaded transitions into the
+    episodes the resumed envs start. A row that is not done becomes done = timeout = 1 (time
+    limit: the target bootstraps from that row's own next_obs, as SB3 does temporarily for
+    pos - 1 at sampling); a true termination (done = 1, timeout = 0) stays terminal. No-op on an
+    empty buffer. Returns the row index or None."""
+    if rb.size() == 0:
+        return None
+    i = (rb.pos - 1) % rb.buffer_size
+    open_ = rb.dones[i] == 0
+    rb.timeouts[i] = np.logical_or(rb.timeouts[i] != 0, open_)
+    rb.dones[i] = 1.
+    return i
+
+
+def load_replay_buffer_for_resume(model, path):
+    """model.load_replay_buffer(path) + cut_nstep_chains. Returns the cut row (or None)."""
+    model.load_replay_buffer(path)
+    return cut_nstep_chains(model.replay_buffer)
+
+
 class PhaseCallback(BaseCallback):
     """Step 5: at num_timesteps >= unfreeze_at, unfreeze actor and alpha (actor Adam is fresh:
     it never stepped while frozen; alpha continues from its initial value)."""
@@ -93,11 +134,17 @@ class CollapseGuard(BaseCallback):
     Below: restore the snapshot and set model.actor_lr = rollback_actor_lr (rollback); after
     max_rollbacks rollbacks the next collapse stops training (event 'collapsed'). The snapshot
     taken at the unfreeze step (before any actor update) is the first "last good" state.
-    After the window: nothing (the eval callback logs clean -> failed regressions)."""
+    After the window: nothing (the eval callback logs clean -> failed regressions).
+    `last_path`: after a rollback the restored model (with the rollback actor_lr) is saved there
+    atomically BEFORE the 'rollback' event is recorded (QA D2 m3), so a crash right after a
+    rollback cannot resume the collapsed weights with the rollback already counted (the
+    remaining window: a crash between the save and the event allows one extra rollback)."""
 
-    def __init__(self, probe_fn, baseline, cfg, *, start_step=None, rollbacks=0, on_event=_noop, log_path=None):
+    def __init__(self, probe_fn, baseline, cfg, *, start_step=None, rollbacks=0, on_event=_noop, log_path=None,
+                 last_path=None):
         super().__init__()
         self.probe_fn, self.baseline, self.cfg = probe_fn, float(baseline), cfg
+        self.last_path = None if last_path is None else Path(last_path)
         self.start_step = start_step
         self.rollbacks = int(rollbacks)
         self.on_event = on_event
@@ -145,6 +192,8 @@ class CollapseGuard(BaseCallback):
         restore_state(self.model, self.snapshot)
         self.model.actor_lr = self.cfg.rollback_actor_lr
         self.rollbacks += 1
+        if self.last_path is not None:
+            save_model_atomic(self.model, self.last_path)
         self.on_event('rollback', step=n, progress_m=progress, baseline_m=self.baseline,
                       actor_lr=self.cfg.rollback_actor_lr, rollbacks=self.rollbacks)
         return True
@@ -231,12 +280,14 @@ class DrivingEvalCallback(BaseCallback):
     steps and at the end. `eval_fn(model, step) -> dict` (evaluate.evaluate_model); the callback
     adds throughput (env steps/s and grad steps/s over training wall time, excluding evaluation),
     cumulative train / eval wall time, the training obs-clip fraction and termination counts,
-    appends one JSON line to `evals_path`, saves last.zip, and best.zip on a new best CLEAN
-    deterministic lap 2. A clean -> failed deterministic regression is an event."""
+    appends one JSON line to `evals_path`, saves the replay buffer (`buffer_saver`, if given;
+    QA D2 m4: last.zip and the buffer stay paired after a hard kill), then last.zip, and best.zip
+    on a new best CLEAN deterministic lap 2. A clean -> failed deterministic regression is an event."""
 
     def __init__(self, eval_fn, interval, evals_path, ckpt_dir, *, stats=None, best_lap2=math.inf,
-                 last_det_clean=None, on_event=_noop, train_wall0=0., eval_wall0=0.):
+                 last_det_clean=None, on_event=_noop, train_wall0=0., eval_wall0=0., buffer_saver=None):
         super().__init__()
+        self.buffer_saver = buffer_saver
         self.eval_fn, self.interval = eval_fn, int(interval)
         self.evals_path, self.ckpt_dir = Path(evals_path), Path(ckpt_dir)
         self.stats = stats
@@ -291,6 +342,8 @@ class DrivingEvalCallback(BaseCallback):
         if self.last_det_clean and clean is False:
             self.on_event('det_regression', step=n, termination=rec.get('det_termination'))
         self.last_det_clean = clean
+        if self.buffer_saver is not None:
+            self.buffer_saver(m)
         save_model_atomic(m, self.ckpt_dir / 'last.zip')
         if clean and lap2 is not None and lap2 < self.best_lap2:
             self.best_lap2 = lap2
@@ -310,14 +363,18 @@ class CheckpointCallback(BaseCallback):
     the replay buffer to `buffer_path` every `buffer_every` steps (None / 0: never here),
     atomically, so a hard-killed run can resume (TrainConfig.replay_buffer_save_every).
     The buffer saved at step n lacks that vector step's n_envs transitions (SB3 stores them after
-    the callbacks). `on_buffer_saved(step)` lets train.py record the step in status.json."""
+    the callbacks). `on_buffer_saved(step)` lets train.py record the step in status.json.
+    `buffer_saver` (a ReplayBufferSaver shared with the eval callback) replaces buffer_path /
+    on_buffer_saved, so a step with both an eval and a checkpoint saves the buffer once."""
 
-    def __init__(self, interval, ckpt_dir, *, buffer_path=None, buffer_every=None, on_buffer_saved=_noop):
+    def __init__(self, interval, ckpt_dir, *, buffer_path=None, buffer_every=None, on_buffer_saved=_noop,
+                 buffer_saver=None):
         super().__init__()
         self.interval, self.ckpt_dir = int(interval), Path(ckpt_dir)
-        self.buffer_path = None if buffer_path is None else Path(buffer_path)
-        self.buffer_every = int(buffer_every or 0) if self.buffer_path is not None else 0
-        self.on_buffer_saved = on_buffer_saved
+        if buffer_saver is None and buffer_path is not None:
+            buffer_saver = ReplayBufferSaver(buffer_path, on_buffer_saved)
+        self.buffer_saver = buffer_saver
+        self.buffer_every = int(buffer_every or 0) if self.buffer_saver is not None else 0
 
     @staticmethod
     def _next(n, every):
@@ -335,8 +392,7 @@ class CheckpointCallback(BaseCallback):
             save_model_atomic(self.model, self.ckpt_dir / 'last.zip')
             self.next = self._next(n, self.interval)
         if n >= self.next_buffer:
-            save_replay_buffer_atomic(self.model, self.buffer_path)
-            self.on_buffer_saved(n)
+            self.buffer_saver(self.model)
             self.next_buffer = self._next(n, self.buffer_every)
         return True
 

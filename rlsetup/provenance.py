@@ -66,17 +66,41 @@ def ocd_lap_extra_sources_sha256():
             for f in OCD_LAP_EXTRA_SOURCES}
 
 
+def ocd_lap_code_version(track=None):
+    """ocd_lap's content digest (12 hex) of `capture_provenance(track)`: its sources, OCD sources,
+    the loaded ocd_native binary, packages and, for a track NAME, the track/raceline CSVs."""
+    from ocd_lap.provenance import capture_provenance, provenance_digest
+    return provenance_digest(capture_provenance(track))[:12]
+
+
 def run_provenance(track=None):
     """Git state of this repo and ocd_first_lap, sha256 of rlsetup sources, ocd_lap's content
     digest `code_version` (its sources, OCD sources, the loaded ocd_native binary, packages; see
     ocd_lap/provenance.py) and sha256 of the ocd_lap modules that digest omits."""
-    from ocd_lap.provenance import capture_provenance, provenance_digest
-    ocd = capture_provenance(track)
     return {'rlsetup': git_state(REPO_ROOT),
             'rlsetup_sources_sha256': rlsetup_sources_sha256(),
             'ocd_first_lap': git_state(ocd_first_lap_root()),
-            'ocd_lap_code_version': provenance_digest(ocd)[:12],
+            'ocd_lap_code_version': ocd_lap_code_version(track),
             'ocd_lap_extra_sources_sha256': ocd_lap_extra_sources_sha256()}
+
+
+def code_state(track=None):
+    """The code identity a resumed run is checked against (QA D2 M2): rlsetup git state and the
+    ocd_lap code_version, computed with the same `track` argument as `training_provenance`."""
+    return {'rlsetup': git_state(REPO_ROOT), 'ocd_lap_code_version': ocd_lap_code_version(track)}
+
+
+def code_mismatches(recorded, current):
+    """Differences between a run's provenance.json (`recorded`, {} if missing) and `code_state()`
+    (`current`): rlsetup commit and diff_sha256 (uncommitted tracked changes), ocd_lap
+    code_version. Returns a list of readable strings (empty = same code)."""
+    rec, cur = recorded.get('rlsetup') or {}, current.get('rlsetup') or {}
+    out = [f'rlsetup {k}: run {rec.get(k)} != now {cur.get(k)}'
+           for k in ('commit', 'diff_sha256') if rec.get(k) != cur.get(k)]
+    if recorded.get('ocd_lap_code_version') != current.get('ocd_lap_code_version'):
+        out.append(f"ocd_lap_code_version: run {recorded.get('ocd_lap_code_version')} != "
+                   f"now {current.get('ocd_lap_code_version')}")
+    return out
 
 
 def package_versions():

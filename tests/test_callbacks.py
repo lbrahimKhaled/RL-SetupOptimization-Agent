@@ -205,50 +205,250 @@ def test_checkpoint_callback_saves_replay_buffer(tmp_path):
     assert dataclasses.replace(c, save_replay_buffer=False).buffer_save_interval == 0
 
 
-def test_resume_without_replay_buffer_warns(tmp_path, monkeypatch):
-    """Hard kill before the first buffer save: resume continues with an empty buffer and a warning
-    in status.json. Heavy pieces (track, QSS, vec / eval envs, learn) are stubbed."""
+CODE = {'rlsetup': {'commit': 'a' * 40, 'dirty': False, 'diff_sha256': 'e' * 64}, 'ocd_lap_code_version': 'c' * 12}
+
+
+def resume_fixture(tmp_path, monkeypatch, *, code=CODE, status=None, fill=100):
+    """A run folder (tiny config, preset 'full') with last.zip at step 5,000 and provenance.json
+    recording CODE; heavy pieces (track, QSS, vec / eval envs, learn) and code_state stubbed.
+    Returns (run dir, model, seen): seen collects the model handed to _learn_and_finish and the
+    _callbacks kwargs."""
     import ocd_lap.track
     from stable_baselines3.common.vec_env import DummyVecEnv
+    from rlsetup import provenance
     from rlsetup.driving import train as T, qss_profile, vec
     from rlsetup.driving.train_config import config_json
     from sb3_helpers import TinyEnv, tiny_cfg
     cfg = tiny_cfg()
-    model = make_model(cfg, fill=100)
+    model = make_model(cfg, fill=fill)
     model.num_timesteps = 5_000
     d = runs.make_run_dir(tmp_path, 'r', 0)
     model.save(d / 'checkpoints' / 'last.zip')
     (d / 'config.json').write_text(config_json(cfg))
-    runs.update_status(d, phase='rl', state='running', bc_baseline_m=50., unfrozen_at=1_000, rollbacks=0)
+    runs.write_json(d / 'provenance.json', CODE)
+    runs.update_status(d, **(status or dict(phase='rl', state='running', bc_baseline_m=50., unfrozen_at=1_000,
+                                           rollbacks=0)))
     runs.write_json(d / 'probe_starts.json', [])
     monkeypatch.setattr(ocd_lap.track, 'Track', lambda name: None)
+    monkeypatch.setattr(provenance, 'code_state', lambda track=None: code)
     monkeypatch.setattr(qss_profile, 'load_or_build', lambda track: None)
     monkeypatch.setattr(T, 'eval_envs', lambda *a: {})
     monkeypatch.setattr(vec, 'build_vec_env', lambda *a, **k: DummyVecEnv([TinyEnv]))
-    monkeypatch.setattr(T, '_callbacks', lambda *a, **k: ([], None, None))
     seen = {}
 
+    def fake_callbacks(*a, **k):
+        seen['callbacks'] = k
+        return [], None, None
+    monkeypatch.setattr(T, '_callbacks', fake_callbacks)
+
     def fake_finish(run, m, cbs, guard, wall, total):
-        seen.update(size=m.replay_buffer.size(), step=m.num_timesteps, total=total)
+        seen.update(model=m, size=m.replay_buffer.size(), step=m.num_timesteps, total=total)
         return T.EXIT_OK
     monkeypatch.setattr(T, '_learn_and_finish', fake_finish)
+    return d, model, seen
+
+
+def status_of(d):
+    return json.loads((d / 'status.json').read_text())
+
+
+def test_resume_without_replay_buffer_warns(tmp_path, monkeypatch):
+    """Hard kill before the first buffer save: resume continues with an empty buffer, a warning
+    in status.json and no gradient updates until batch_size x 10 transitions are stored."""
+    from rlsetup.driving import train as T
+    d, model, seen = resume_fixture(tmp_path, monkeypatch)
     assert T.resume_pipeline(d, ['total_timesteps=6000'], argv=['x']) == T.EXIT_OK
-    assert seen == {'size': 0, 'step': 5_000, 'total': 1_000}
-    s = json.loads((d / 'status.json').read_text())
+    assert {k: seen[k] for k in ('size', 'step', 'total')} == {'size': 0, 'step': 5_000, 'total': 1_000}
+    assert seen['model'].min_train_transitions == 512 * 10
+    s = status_of(d)
     assert len(s['warnings']) == 1 and s['warnings'][0]['step'] == 5_000
     assert 'empty replay buffer' in s['warnings'][0]['message']
     kinds = [e['kind'] for e in s['events']]
     assert kinds == ['resume_without_replay_buffer', 'resume'] and s['events'][1]['replay_buffer'] is False
-    # with the buffer present: loaded, no new warning
+    assert s['events'][1]['min_train_transitions'] == 5_120 and s['events'][1]['code'] == CODE
+    assert s['events'][1]['code_mismatches'] == [] and s['events'][1]['allow_code_change'] is False
+    # with the buffer present (saved at the last.zip step): loaded, cut, no new warning
     model.save_replay_buffer(d / 'replay_buffer.pkl')
+    runs.update_status(d, replay_buffer_step=5_000)
     assert T.resume_pipeline(d, [], argv=['x']) == T.EXIT_OK
-    assert seen['size'] == 100
-    s = json.loads((d / 'status.json').read_text())
-    assert len(s['warnings']) == 1 and s['events'][-1]['replay_buffer'] is True
+    assert seen['size'] == 100 and seen['model'].min_train_transitions == 0
+    rb = seen['model'].replay_buffer
+    assert rb.dones[99, 0] == 1 and rb.timeouts[99, 0] == 1                 # m1: resume cut
+    s = status_of(d)
+    ev = s['events'][-1]
+    assert len(s['warnings']) == 1 and ev['replay_buffer'] is True and ev['replay_buffer_cut_row'] == 99
+    assert ev['replay_buffer_lag'] is False and seen['callbacks']['buffer_saved_step'] == 5_000
     # no last.zip: FileNotFoundError
     (d / 'checkpoints' / 'last.zip').unlink()
     with pytest.raises(FileNotFoundError):
         T.resume_pipeline(d, [], argv=['x'])
+
+
+def test_resume_warns_when_buffer_older_than_last_zip(tmp_path, monkeypatch):
+    """QA m4: last.zip (every eval) newer than replay_buffer.pkl by more than one vector step."""
+    from rlsetup.driving import train as T
+    d, model, seen = resume_fixture(tmp_path, monkeypatch)
+    model.save_replay_buffer(d / 'replay_buffer.pkl')
+    runs.update_status(d, replay_buffer_step=4_999)                 # n - n_envs (n_envs = 1): fine
+    assert T.resume_pipeline(d, [], argv=['x']) == T.EXIT_OK
+    assert 'warnings' not in status_of(d) and status_of(d)['events'][-1]['replay_buffer_lag'] is False
+    runs.update_status(d, replay_buffer_step=4_998)
+    assert T.resume_pipeline(d, [], argv=['x']) == T.EXIT_OK
+    s = status_of(d)
+    assert s['events'][-1]['replay_buffer_lag'] is True and len(s['warnings']) == 1
+    assert 'from step 4998 but last.zip from step 5000' in s['warnings'][0]['message']
+    assert seen['callbacks']['buffer_saved_step'] is None
+
+
+def test_resume_refuses_changed_or_dirty_code(tmp_path, monkeypatch):
+    """QA M2: resume compares the code with provenance.json and refuses a dirty full preset;
+    the override flags are recorded."""
+    from rlsetup.driving import train as T
+    changed = {'rlsetup': dict(CODE['rlsetup'], commit='b' * 40), 'ocd_lap_code_version': 'd' * 12}
+    d, model, seen = resume_fixture(tmp_path, monkeypatch, code=changed)
+    cfg0 = (d / 'config.json').read_text()
+    assert T.resume_pipeline(d, ['total_timesteps=9000'], argv=['x']) == T.EXIT_CODE_CHANGED == 5
+    s = status_of(d)
+    assert s['events'][-1]['kind'] == 'resume_refused' and 'model' not in seen
+    assert 'rlsetup commit' in s['events'][-1]['reasons'][0] and 'ocd_lap_code_version' in s['events'][-1]['reasons'][0]
+    assert s['state'] == 'running' and (d / 'config.json').read_text() == cfg0   # nothing else changed
+    assert T.resume_pipeline(d, [], argv=['x'], allow_code_change=True) == T.EXIT_OK
+    ev = status_of(d)['events'][-1]
+    assert ev['kind'] == 'resume' and ev['allow_code_change'] is True and len(ev['code_mismatches']) == 2
+    assert ev['code'] == changed and any('different code' in w['message'] for w in status_of(d)['warnings'])
+    # dirty tree with the full preset
+    dirty = {'rlsetup': dict(CODE['rlsetup'], dirty=True), 'ocd_lap_code_version': CODE['ocd_lap_code_version']}
+    monkeypatch.setattr('rlsetup.provenance.code_state', lambda track=None: dirty)
+    assert T.resume_pipeline(d, [], argv=['x']) == T.EXIT_DIRTY
+    assert T.resume_pipeline(d, [], argv=['x'], allow_dirty=True) == T.EXIT_OK
+    assert status_of(d)['events'][-1]['allow_dirty'] is True
+    # missing provenance.json counts as a code change
+    (d / 'provenance.json').unlink()
+    monkeypatch.setattr('rlsetup.provenance.code_state', lambda track=None: CODE)
+    assert T.resume_pipeline(d, [], argv=['x']) == T.EXIT_CODE_CHANGED
+    # CLI flags reach resume_pipeline
+    args = T.parse_args(['--resume', '--run-name', 'r', '--allow-code-change', '--allow-dirty'])
+    assert args.allow_code_change and args.allow_dirty
+
+
+def test_code_mismatches():
+    from rlsetup.provenance import code_mismatches
+    assert code_mismatches(CODE, CODE) == []
+    other = {'rlsetup': dict(CODE['rlsetup'], diff_sha256='f' * 64), 'ocd_lap_code_version': CODE['ocd_lap_code_version']}
+    assert code_mismatches(CODE, other) == [f"rlsetup diff_sha256: run {'e' * 64} != now {'f' * 64}"]
+    assert len(code_mismatches({}, CODE)) == 3
+
+
+def test_resume_cut_stops_nstep_chains(tmp_path):
+    """QA m1: after load + cut, n-step samples never reach from the saved transitions into the
+    episodes the resumed env starts (QA measured 69/12,800 crossing samples without the cut)."""
+    import itertools
+    import gymnasium as gym
+    from stable_baselines3.common.logger import configure
+    from stable_baselines3.common.vec_env import DummyVecEnv
+    from rlsetup.driving.agent import StagedSAC, build_model
+    from rlsetup.driving.callbacks import load_replay_buffer_for_resume, cut_nstep_chains
+    from sb3_helpers import tiny_cfg
+    ids = itertools.count(1)
+
+    class EpEnv(gym.Env):
+        """obs[0] = episode id (new on every reset), obs[1] = step; episodes never end."""
+        observation_space = gym.spaces.Box(-1e6, 1e6, (159,), np.float32)
+        action_space = gym.spaces.Box(-1., 1., (3,), np.float32)
+
+        def reset(self, *, seed=None, options=None):
+            super().reset(seed=seed)
+            self.id, self.t = next(ids), 0
+            return self._o(), {}
+
+        def _o(self):
+            o = np.zeros(159, np.float32)
+            o[:2] = self.id, self.t
+            return o
+
+        def step(self, a):
+            self.t += 1
+            return self._o(), 1., False, False, {}
+    cfg = dataclasses.replace(tiny_cfg(), gradient_steps=0)
+    m = build_model(cfg, DummyVecEnv([EpEnv]))
+    m.set_logger(configure(None, []))
+    m.learn(200)
+    m.save(tmp_path / 'm.zip')
+    m.save_replay_buffer(tmp_path / 'rb.pkl')
+    l = StagedSAC.load(tmp_path / 'm.zip', env=DummyVecEnv([EpEnv]), device='cpu')
+    assert load_replay_buffer_for_resume(l, tmp_path / 'rb.pkl') == 199
+    l.set_logger(configure(None, []))
+    l.learn(200, reset_num_timesteps=False)                      # as resume_pipeline
+    rb = l.replay_buffer
+    assert rb.pos == 400 and rb.observations[199, 0, 0] != rb.observations[200, 0, 0]
+    smp = rb._get_samples(np.arange(400))
+    o, n = smp.observations.numpy(), smp.next_observations.numpy()
+    np.testing.assert_array_equal(o[:, 0], n[:, 0])              # never across the cut
+    assert smp.dones.numpy()[199, 0] == 0 and smp.discounts.numpy()[199, 0] == pytest.approx(.992)  # bootstrapped
+    # a true termination at the cut stays terminal; an empty buffer is untouched; wrap-around
+    rb2 = make_model(fill=10).replay_buffer
+    rb2.dones[9], rb2.timeouts[9] = 1., 0.
+    assert cut_nstep_chains(rb2) == 9 and rb2.dones[9, 0] == 1 and rb2.timeouts[9, 0] == 0
+    assert cut_nstep_chains(make_model(fill=0).replay_buffer) is None
+    rb3 = make_model(fill=10).replay_buffer
+    rb3.pos, rb3.full = 0, True
+    assert cut_nstep_chains(rb3) == rb3.buffer_size - 1 and rb3.timeouts[-1, 0] == 1
+
+
+def test_train_skipped_until_buffer_refilled():
+    """Empty-buffer resume: no gradient step while the buffer holds < min_train_transitions."""
+    model = make_model(fill=100)
+    model.min_train_transitions = 128
+    critic0 = {k: v.clone() for k, v in model.critic.state_dict().items()}
+    model.train(2, 64)
+    assert model._n_updates == 0 and state_equal(critic0, model.critic.state_dict())
+    assert model.buffer_transitions() == 100
+    rng = np.random.default_rng(1)
+    for _ in range(28):
+        model.replay_buffer.add(rng.uniform(-1, 1, (1, 159)).astype(np.float32),
+                                rng.uniform(-1, 1, (1, 159)).astype(np.float32),
+                                np.zeros((1, 3), np.float32), np.zeros(1, np.float32), np.array([False]), [{}])
+    model.train(2, 64)
+    assert model._n_updates == 2
+
+
+def test_rollback_saves_last_zip_atomically(tmp_path):
+    """QA m3: the rolled-back model (and its rollback actor_lr) is on disk before the event."""
+    from rlsetup.driving.agent import StagedSAC
+    model = make_model()
+    values = iter([100., 10.])
+    order = []
+    last = tmp_path / 'last.zip'
+    guard = CollapseGuard(lambda m: next(values), baseline=100., cfg=GuardConfig(), last_path=last,
+                          on_event=lambda kind, **d: order.append((kind, last.exists())))
+    start(guard, model)
+    step(guard, model, 10_000)                            # ok: new snapshot, nothing saved
+    assert not last.exists()
+    good = snapshot_state(model)
+    model.train(3, 64)
+    step(guard, model, 20_000)                            # rollback
+    assert order == [('rollback', True)] and not list(tmp_path.glob('*.tmp'))
+    loaded = StagedSAC.load(last, device='cpu')
+    assert loaded.actor_lr == 1e-4 and state_equal(good['policy'], loaded.policy.state_dict())
+
+
+def test_eval_saves_buffer_once_per_step(tmp_path):
+    """QA m4: the replay buffer is saved with last.zip at every evaluation; a checkpoint at the
+    same step does not save it twice; the step of an earlier save (prefill) is skipped."""
+    from rlsetup.driving.callbacks import ReplayBufferSaver
+    model = make_model(fill=50)
+    saved = []
+    saver = ReplayBufferSaver(tmp_path / 'replay_buffer.pkl', saved.append, last_step=0)
+    ev_cb = DrivingEvalCallback(lambda m, n: {'det_clean': False, 'lap2_s': None}, 100, tmp_path / 'evals.jsonl',
+                                tmp_path, buffer_saver=saver)
+    ck = CheckpointCallback(200, tmp_path, buffer_every=200, buffer_saver=saver)
+    start(ev_cb, model)                                   # step-0 eval: buffer already saved at 0
+    start(ck, model)
+    assert saved == [] and (tmp_path / 'last.zip').exists()
+    for n in (100, 200, 300):
+        step(ev_cb, model, n)
+        step(ck, model, n)
+    assert saved == [100, 200, 300] and (tmp_path / 'replay_buffer.pkl').exists()
 
 
 # --- metric helpers -----------------------------------------------------------------------------------

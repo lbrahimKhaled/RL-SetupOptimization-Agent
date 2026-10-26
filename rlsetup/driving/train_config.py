@@ -132,7 +132,12 @@ class TrainConfig:
                                          # disables every buffer save, incl. the periodic one below
     replay_buffer_save_every: int | None = None   # steps between periodic replay_buffer.pkl saves
                                          # (atomic, for crash-safe resume); None = checkpoint_interval,
-                                         # 0 = only at the end. ~1.3 GB per save at buffer_size 1M
+                                         # 0 = only at the end. ~1.3 GB per save at buffer_size 1M.
+                                         # When > 0 the buffer is also saved at every evaluation,
+                                         # together with last.zip (QA D2 m4)
+    resume_empty_buffer_min_batches: int = 10   # resume WITHOUT replay_buffer.pkl: no gradient updates
+                                         # until the buffer holds agent.batch_size x this many
+                                         # transitions (lead decision, QA D2 follow-up)
     demo_dir: str = 'data/demos'         # relative to the repo root unless absolute
     runs_root: str = 'runs/D2'           # relative to the repo root unless absolute
     vec_start_method: str = 'forkserver'
