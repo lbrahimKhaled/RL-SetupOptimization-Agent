@@ -84,10 +84,17 @@ def run_provenance(track=None):
             'ocd_lap_extra_sources_sha256': ocd_lap_extra_sources_sha256()}
 
 
+def track_name(track):
+    """Track name for ocd_lap's capture_provenance, which builds '<name>.csv' paths: a Track
+    object gives its .name (passing the object silently drops the track/raceline CSV hashes,
+    D2_smoke.md provenance finding), a str or None passes through."""
+    return getattr(track, 'name', track)
+
+
 def code_state(track=None):
     """The code identity a resumed run is checked against (QA D2 M2): rlsetup git state and the
-    ocd_lap code_version, computed with the same `track` argument as `training_provenance`."""
-    return {'rlsetup': git_state(REPO_ROOT), 'ocd_lap_code_version': ocd_lap_code_version(track)}
+    ocd_lap code_version, computed for the same track as `training_provenance`."""
+    return {'rlsetup': git_state(REPO_ROOT), 'ocd_lap_code_version': ocd_lap_code_version(track_name(track))}
 
 
 def code_mismatches(recorded, current):
@@ -117,7 +124,7 @@ def package_versions():
 
 def training_provenance(track, *, n_envs, qss, reference_digest, track_sha256, config_json,
                         argv=None, demo_sha256=None, bc_actor_sha256=None, allow_dirty=False):
-    """provenance.json of a D2 training run (spec §9): `run_provenance(track)` plus package
+    """provenance.json of a D2 training run (spec §9): `run_provenance(track.name)` plus package
     versions, machine, torch threads, n_envs, argv, UTC start, QSS cache-key sha + lap time,
     reference-line digest, track sha, demo dataset / BC actor sha (filled in as they exist) and
     the sha256 of the config JSON text."""
@@ -127,7 +134,7 @@ def training_provenance(track, *, n_envs, qss, reference_digest, track_sha256, c
     import socket
     import sys
     import torch
-    return {**run_provenance(track),
+    return {**run_provenance(track_name(track)),
             'python': sys.version.split()[0], 'packages': package_versions(),
             'platform': platform.platform(), 'machine': platform.machine(), 'hostname': socket.gethostname(),
             'torch_num_threads': torch.get_num_threads(), 'n_envs': int(n_envs),

@@ -106,6 +106,9 @@ class EvalConfig:
     spin_slip: float = .12               # spin upshift: gear up while max |rear slip| above this
     car_half_width_m: float = 1.         # edge margin = (1 - |track_position|) w / 2 - this
     stats_window: int = 10_000           # TrainStatsCallback window (steps)
+    stats_slow_mps: float = 15.          # TrainStats: failure counted "slow" below this speed ...
+    stats_wide_m: float = 3.             # ... or "wide" above this |e| (fail_share_slow_or_wide)
+    stats_low_v0_mps: float = 5.         # TrainStats: stalls counted among episodes starting below this
 
 
 @dataclass(frozen=True)

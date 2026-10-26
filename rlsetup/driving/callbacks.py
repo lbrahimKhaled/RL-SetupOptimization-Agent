@@ -201,14 +201,15 @@ class CollapseGuard(BaseCallback):
 
 class TrainStatsCallback(BaseCallback):
     """Per `window` steps one line in `path` (train_stats.jsonl): termination / truncation counts;
-    mean speed and |e| at failure and the share of failures with v < 15 m/s or |e| > 3 m; stalls
-    among episodes that started (v0) below 5 m/s; episode return and length (VecMonitor).
+    mean speed and |e| at failure and the share of failures with v < slow_mps [m/s] or
+    |e| > wide_m [m]; stalls among episodes that started (v0) below low_v0_mps [m/s]; episode
+    return and length (VecMonitor). Thresholds: EvalConfig.stats_* (train.py passes them).
     `totals` keeps cumulative cause counts for the eval records."""
-    SLOW_MPS, WIDE_M, LOW_V0_MPS = 15., 3., 5.
 
-    def __init__(self, path, window):
+    def __init__(self, path, window, *, slow_mps=15., wide_m=3., low_v0_mps=5.):
         super().__init__()
         self.path, self.window = path, int(window)
+        self.slow_mps, self.wide_m, self.low_v0_mps = float(slow_mps), float(wide_m), float(low_v0_mps)
         self.totals = {}
         self.v0 = None
         self._reset_window()
@@ -241,7 +242,7 @@ class TrainStatsCallback(BaseCallback):
                 w['fail_speed'].append(info.get('speed', math.nan))
                 w['fail_e'].append(abs(info.get('e_ref', math.nan)))
             v0 = self.v0[i]
-            if v0 is not None and v0 < self.LOW_V0_MPS:
+            if v0 is not None and v0 < self.low_v0_mps:
                 w['low_v0'] += 1
                 w['low_v0_stall'] += cause == 'stall'
             if 'episode' in info:
@@ -262,7 +263,7 @@ class TrainStatsCallback(BaseCallback):
                'failures': nf,
                'fail_speed_mean': float(np.nanmean(sp)) if nf else None,
                'fail_abs_e_mean': float(np.nanmean(e)) if nf else None,
-               'fail_share_slow_or_wide': float(np.mean((sp < self.SLOW_MPS) | (e > self.WIDE_M))) if nf else None,
+               'fail_share_slow_or_wide': float(np.mean((sp < self.slow_mps) | (e > self.wide_m))) if nf else None,
                'low_v0_episodes': w['low_v0'], 'low_v0_stalls': w['low_v0_stall'],
                'ep_return_mean': float(np.mean(w['returns'])) if w['returns'] else None,
                'ep_length_mean': float(np.mean(w['lengths'])) if w['lengths'] else None}

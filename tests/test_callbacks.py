@@ -134,6 +134,17 @@ def test_train_stats_window(tmp_path):
     assert r['low_v0_episodes'] == 1 and r['low_v0_stalls'] == 1        # second episode started at 20 m/s
     assert r['ep_return_mean'] == -15. and r['ep_length_mean'] == 75.
     assert cb.totals == {'stall': 1, 'off_track': 1}
+    # QA m6: thresholds from EvalConfig
+    e = EvalConfig()
+    assert (e.stats_slow_mps, e.stats_wide_m, e.stats_low_v0_mps) == (15., 3., 5.)
+    cb2 = TrainStatsCallback(tmp_path / 'ts2.jsonl', window=8, slow_mps=1., wide_m=5., low_v0_mps=3.)
+    venv.reset_infos = [{'start': {'v0': 4.}}]
+    model.num_timesteps = 0
+    start(cb2, model)
+    step(cb2, model, 4, infos=[info], dones=np.array([True]))
+    step(cb2, model, 8, infos=[info2], dones=np.array([True]))
+    r2 = runs.read_jsonl(tmp_path / 'ts2.jsonl')[0]
+    assert r2['fail_share_slow_or_wide'] == 0. and r2['low_v0_episodes'] == 0
 
 
 def test_eval_callback_best_and_regression(tmp_path):
@@ -602,6 +613,10 @@ def test_training_provenance(track, qss):
     assert p['torch_num_threads'] >= 1 and 'hostname' in p and p['demo_dataset_sha256'] is None
     assert {'rlsetup', 'ocd_first_lap', 'ocd_lap_code_version'} <= set(p)
     json.dumps(p)
+    # D2_smoke.md finding: the code version includes the track CSVs (Track.name, not the object)
+    from rlsetup.provenance import ocd_lap_code_version, code_state
+    assert p['ocd_lap_code_version'] == ocd_lap_code_version('Shanghai') != ocd_lap_code_version(None)
+    assert code_state(track)['ocd_lap_code_version'] == p['ocd_lap_code_version']
 
 
 # --- flying_lap / probe on the real env (short limits) ------------------------------------------------

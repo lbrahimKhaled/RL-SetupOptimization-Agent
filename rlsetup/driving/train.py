@@ -114,7 +114,9 @@ def _callbacks(run, model, envs, starts, baseline, *, unfreeze_at, guard_start=N
     cfg, d = run.cfg, run.dir
     saver = ReplayBufferSaver(d / 'replay_buffer.pkl', lambda n: run.status(replay_buffer_step=int(n)),
                               last_step=buffer_saved_step) if cfg.buffer_save_interval else None
-    stats = TrainStatsCallback(d / 'train_stats.jsonl', cfg.eval.stats_window)
+    e = cfg.eval
+    stats = TrainStatsCallback(d / 'train_stats.jsonl', e.stats_window, slow_mps=e.stats_slow_mps,
+                               wide_m=e.stats_wide_m, low_v0_mps=e.stats_low_v0_mps)
     guard = CollapseGuard(lambda m: probe(m, envs['probe'], starts).mean_progress_m, baseline, cfg.guard,
                           start_step=guard_start, rollbacks=rollbacks, on_event=run.event,
                           log_path=d / 'probes.jsonl', last_path=d / 'checkpoints' / 'last.zip')
