@@ -9,8 +9,10 @@ whole episodes are taken in order until >= n_transitions, so the dataset does no
 number of workers either.
 
 Storage `<demo_dir>/demos_<key12>.npz` + `.json` (metadata, summary, provenance). The key is
-sha256 of (EnvConfig dict, DemoDataConfig without `workers`, rlsetup commit, ocd_lap
-code_version, sha256 of the QSS cache key). Arrays:
+sha256 of (EnvConfig dict, DemoDataConfig without `workers`, sha256 of the rlsetup source files
+that shape the demos (DEMO_SOURCES; lead decision 26 Oct, replaces the rlsetup commit of spec §4,
+so commits that do not touch them keep the cache), ocd_lap code_version, sha256 of the QSS cache
+key). Arrays:
   obs            (sum(T_i + 1), obs_dim) float32: each episode's T_i + 1 observations, the last
                  being the true terminal / truncation observation
   actions        (N, 3) float32 executed (noisy, clipped) actions, action space [-1, 1]
@@ -43,16 +45,26 @@ ARRAYS = ('obs', 'actions', 'actions_clean', 'rewards', 'terminated', 'truncated
           'ep_start_tr', 'f_demo', 's0', 'ep_cause')
 
 
+# rlsetup files whose content can change the demo data (relative to the repo root).
+DEMO_SOURCES = tuple(f'rlsetup/driving/{f}' for f in
+                     ('env.py', 'config.py', 'demo_driver.py', 'reference.py', 'qss_profile.py', 'demos.py'))
+
+
 class DemoGateFailed(RuntimeError):
     pass
 
 
+def demo_sources_sha256():
+    """{path relative to the repo root: sha256} of DEMO_SOURCES."""
+    return {f: sha256_file(REPO_ROOT / f) for f in DEMO_SOURCES}
+
+
 def dataset_key(env_cfg, demo_cfg, qss, provenance=None):
-    """(sha256 hex, the dict it hashes)."""
+    """(sha256 hex, the dict it hashes). `provenance` supplies ocd_lap_code_version."""
     prov = provenance or run_provenance()
     d = {'env': env_cfg.to_dict(),
          'demos': {k: v for k, v in asdict(demo_cfg).items() if k != 'workers'},
-         'rlsetup_commit': prov['rlsetup']['commit'],
+         'rlsetup_demo_sources_sha256': demo_sources_sha256(),
          'ocd_lap_code_version': prov['ocd_lap_code_version'],
          'qss_cache_key_sha256': hashlib.sha256(json.dumps(qss.meta['key'], sort_keys=True).encode()).hexdigest()}
     return hashlib.sha256(json.dumps(d, sort_keys=True).encode()).hexdigest(), d

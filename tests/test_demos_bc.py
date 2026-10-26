@@ -131,6 +131,21 @@ def test_dataset_key_ignores_workers_only(qss):
     assert D.dataset_key(EnvConfig(), TINY, qss, prov)[0] != k
 
 
+def test_dataset_key_uses_demo_source_hashes_not_commit(qss, monkeypatch):
+    """Lead decision 26 Oct: the key hashes the demo-relevant rlsetup sources, not the commit."""
+    prov = {'rlsetup': {'commit': 'a'}, 'ocd_lap_code_version': 'b'}
+    k, d = D.dataset_key(SHORT, TINY, qss, prov)
+    assert 'rlsetup_commit' not in d
+    assert set(d['rlsetup_demo_sources_sha256']) == {f'rlsetup/driving/{f}' for f in (
+        'env.py', 'config.py', 'demo_driver.py', 'reference.py', 'qss_profile.py', 'demos.py')}
+    assert all((REPO_ROOT / f).is_file() for f in D.DEMO_SOURCES)
+    assert D.dataset_key(SHORT, TINY, qss, {'rlsetup': {'commit': 'z'}, 'ocd_lap_code_version': 'b'})[0] == k
+    assert D.dataset_key(SHORT, TINY, qss, {'rlsetup': {'commit': 'a'}, 'ocd_lap_code_version': 'c'})[0] != k
+    real = D.demo_sources_sha256()
+    monkeypatch.setattr(D, 'demo_sources_sha256', lambda: dict(real, **{'rlsetup/driving/env.py': '0' * 64}))
+    assert D.dataset_key(SHORT, TINY, qss, prov)[0] != k
+
+
 # --- prefill ----------------------------------------------------------------------------------
 def synthetic_demos(lengths, terminal):
     """obs[:, 0] = episode id, obs[:, 1] = step index within the episode."""
