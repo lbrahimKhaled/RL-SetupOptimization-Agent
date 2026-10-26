@@ -15,6 +15,9 @@
 5. Writes d2_report.json + d2_report.md in the run folder; prints PASS / FAIL per criterion.
 --no-reeval uses the last logged evaluation instead of re-evaluating (criteria (i), (ii), (v)
 then come from evals.jsonl). Exit code 0 unless --strict and a criterion fails.
+A seed that cannot be re-evaluated (no checkpoints/last.zip, e.g. stopped at the demo / BC gate)
+or that stopped at a gate is reported as FAIL with its status.json state and stop_reason
+('fail_reason'); the other seeds are still re-evaluated and reported.
 """
 import argparse
 import json
@@ -29,6 +32,7 @@ SEED_STD_S = .2
 MIN_SEEDS = 3
 STO_LAPS, STO_MIN_CLEAN = 10, 9
 CRITERIA = ('consistency', 'i_clean', 'ii_lap2', 'iii_plateau', 'iv_seed_std', 'v_stochastic', 'vi_logged')
+GATE_STATES = ('demo_gate_failed', 'bc_gate_failed')   # train.py: stopped before RL
 
 
 def _read_json(p):
@@ -80,14 +84,30 @@ def plateau(evals):
     return ref['lap2_s'] - min(late_laps), rng, f'reference step {ref["step"]}, T = {T}'
 
 
+def fail_reason(seed_dir, status, reeval):
+    """Why a seed has no final policy to judge (None if it has one): stopped at a gate, or (with
+    re-evaluation) no checkpoints/last.zip. Includes status.json state and stop_reason."""
+    state, why = status.get('state'), status.get('stop_reason')
+    if state in GATE_STATES:
+        return f'state {state}: {why}'
+    if reeval and not (seed_dir / 'checkpoints' / 'last.zip').exists():
+        return f'no checkpoints/last.zip (state {state}: {why})'
+    return None
+
+
 def seed_report(seed_dir, reeval):
     evals = sorted(_read_jsonl(seed_dir / 'evals.jsonl'), key=lambda r: r['step'])
-    status = _read_json(seed_dir / 'status.json')
+    sp = seed_dir / 'status.json'
+    status = _read_json(sp) if sp.exists() else {}
     last = evals[-1] if evals else {}
     out = {'seed_dir': str(seed_dir), 'n_evals': len(evals), 'final_step': last.get('step'),
            'logged_lap2_s': last.get('lap2_s'), 'logged_det_clean': last.get('det_clean'),
-           'state': status.get('state')}
-    if reeval:
+           'state': status.get('state'), 'stop_reason': status.get('stop_reason'),
+           'fail_reason': fail_reason(seed_dir, status, reeval)}
+    if out['fail_reason'] is not None:
+        out['reeval'] = None
+        det_clean, lap2, sto_clean, sto_n = False, None, 0, 0
+    elif reeval:
         r = reevaluate(seed_dir)
         out['reeval'] = r
         out['reeval_delta_s'] = (r['lap2_s'] - last['lap2_s']) if r['lap2_s'] is not None and \
@@ -122,6 +142,9 @@ def consistency(seed_dirs):
         c = _read_json(d / 'config.json')
         c.pop('seed', None)
         cfgs.append(c)
+        if not (d / 'provenance.json').exists():
+            problems.append(f'{d.name}: no provenance.json')
+            continue
         p = _read_json(d / 'provenance.json')
         commits.add(p['rlsetup']['commit'])
         codes.add(p['ocd_lap_code_version'])
@@ -177,6 +200,10 @@ def markdown(rep):
                      f'{pf(c["ii_lap2"])} | {_fmt(s["plateau_improvement_s"])} {pf(c["iii_plateau"])} | '
                      f'{_fmt(s["last20_lap2_range_s"])} | {s["sto_clean"]}/{s["sto_n"]} {pf(c["v_stochastic"])} | '
                      f'{pf(c["vi_logged"])} | {_fmt(s.get("reeval_delta_s"))} |')
+    failed = [(Path(s['seed_dir']).name, s['fail_reason']) for s in rep['seeds'] if s.get('fail_reason')]
+    if failed:
+        lines += ['', 'Seeds without a final policy (all their criteria FAIL):']
+        lines += [f'- {name}: {why}' for name, why in failed]
     lines += ['', '| criterion | result |', '|---|---|']
     lines += [f'| {k} | {pf(rep["criteria"][k])} |' for k in CRITERIA]
     if rep['consistency_problems']:
@@ -194,6 +221,9 @@ def main(argv=None):
     run_dir = Path(args.run_dir)
     (run_dir / 'd2_report.json').write_text(json.dumps(rep, indent=1, default=str))
     (run_dir / 'd2_report.md').write_text(markdown(rep))
+    for s in rep['seeds']:
+        if s.get('fail_reason'):
+            print(f'{Path(s["seed_dir"]).name}: FAIL ({s["fail_reason"]})')
     for k in CRITERIA:
         print(f'{k:14s} {"PASS" if rep["criteria"][k] else "FAIL"}')
     print(f'overall        {"PASS" if rep["pass"] else "FAIL"}   ({run_dir / "d2_report.md"})')

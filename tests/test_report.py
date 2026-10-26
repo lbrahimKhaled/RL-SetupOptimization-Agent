@@ -128,3 +128,49 @@ def test_logged_fails(tmp_path):
             del f['status']['phases']['rl']
     _, c = criteria(tmp_path, mutate=m)
     assert only_fails(c, 'vi_logged')
+
+
+def test_seed_without_last_zip_fails_with_reason(tmp_path, monkeypatch, capsys):
+    """QA m2: a seed stopped at the BC gate (no last.zip) is FAIL with its status reason; the
+    other seeds are still re-evaluated and reported (no FileNotFoundError)."""
+    def m(k, f):
+        if k == 1:
+            f['status'] = {'state': 'bc_gate_failed', 'stop_reason': 'BC deterministic lap: off_track',
+                           'phases': {k_: v for k_, v in PHASES.items() if k_ in ('demos', 'bc')}}
+            f['evals'] = []
+    root = write_run(tmp_path / 'run', mutate=m)
+    for k in (0, 2):
+        (root / f'seed{k}' / 'checkpoints').mkdir()
+        (root / f'seed{k}' / 'checkpoints' / 'last.zip').write_bytes(b'')
+    reevaluated = []
+
+    def fake_reeval(seed_dir, n_sto=R.STO_LAPS):
+        reevaluated.append(seed_dir.name)
+        lap2 = 139.0 if seed_dir.name == 'seed0' else 139.05
+        return {'det_clean': True, 'lap2_s': lap2, 'det_termination': 'lap_complete', 'det_return': 1.,
+                'sto_clean': 10, 'sto_n': 10, 'sto_lap_s': [lap2] * 10}
+    monkeypatch.setattr(R, 'reevaluate', fake_reeval)
+    rep = R.build_report(root, reeval=True)
+    assert reevaluated == ['seed0', 'seed2']
+    s0, s1, s2 = rep['seeds']
+    assert s1['fail_reason'] == 'state bc_gate_failed: BC deterministic lap: off_track'
+    assert s1['reeval'] is None and s1['final_lap2_s'] is None and not any(s1['criteria'].values())
+    assert s0['fail_reason'] is None and all(s0['criteria'].values()) and s0['final_lap2_s'] == 139.0
+    assert all(s2['criteria'].values())
+    assert not rep['pass'] and not rep['criteria']['i_clean'] and rep['criteria']['consistency']
+    # a crashed seed without last.zip (state 'error'): FAIL with the reason, report still written
+    def m2(k, f):
+        if k == 2:
+            f['status'] = {'state': 'error', 'stop_reason': 'RuntimeError: boom', 'phases': {}}
+    root2 = write_run(tmp_path / 'run2', mutate=m2)
+    for k in (0, 1):
+        (root2 / f'seed{k}' / 'checkpoints').mkdir()
+        (root2 / f'seed{k}' / 'checkpoints' / 'last.zip').write_bytes(b'')
+    assert R.main([str(root2)]) == 0
+    rep2 = json.loads((root2 / 'd2_report.json').read_text())
+    assert rep2['seeds'][2]['fail_reason'] == 'no checkpoints/last.zip (state error: RuntimeError: boom)'
+    assert 'seed2: no checkpoints/last.zip' in (root2 / 'd2_report.md').read_text()
+    assert 'seed2: FAIL (no checkpoints/last.zip' in capsys.readouterr().out
+    # without re-evaluation only the gate state matters (synthetic runs have no last.zip)
+    rep3 = R.build_report(root, reeval=False)
+    assert [s['fail_reason'] is None for s in rep3['seeds']] == [True, False, True]
