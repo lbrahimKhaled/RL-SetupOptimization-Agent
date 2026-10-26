@@ -6,3 +6,4 @@ runs/
 *.zip
 *.pt
 .pytest_cache/
+data/demos/

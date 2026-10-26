@@ -28,8 +28,9 @@ from ..provenance import REPO_ROOT, run_provenance
 
 DATA_DIR = REPO_ROOT / 'data'
 # ocd_lap modules whose code determines the profile (the ocd_lap code_version omits some).
+# rig.py and vertical_model.py: imported by handling.py (D2 group 0, lead decision).
 _SOURCES = ('qss_lap.py', 'handling.py', 'manoeuvres.py', 'powertrain.py', 'backend.py',
-            'translator.py', 'car_setup.py', 'aero_map.py')
+            'translator.py', 'car_setup.py', 'aero_map.py', 'rig.py', 'vertical_model.py')
 
 
 def _sha(path):

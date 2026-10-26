@@ -3,6 +3,11 @@ name = "rlsetup"
 version = "0.1.0"
 description = "RL driving and setup agents on Open Car Dynamics (through ocd_first_lap)"
 requires-python = ">=3.12"
+# StagedSAC (rlsetup/driving/agent.py) relies on SB3 2.9.0 SAC.train() internals (D2 spec §0).
+dependencies = [
+    "stable-baselines3==2.9.0",
+    "sb3-contrib==2.9.0",
+]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

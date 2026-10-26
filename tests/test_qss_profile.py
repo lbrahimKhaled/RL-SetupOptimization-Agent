@@ -46,3 +46,9 @@ def test_stale_cache_is_recomputed_not_rewritten(tmp_path, track, qss):
     assert any('cache key' in str(w.message) for w in caught)
     assert fresh.lap_time_s == pytest.approx(qss.lap_time_s)
     assert path.read_bytes() == before
+
+
+def test_cache_key_hashes_modules_handling_imports(track):
+    """handling.py imports rig.py and vertical_model.py, so both are part of the key (D2 group 0)."""
+    key = qss_profile.cache_key(track, Setup())
+    assert {'handling.py', 'rig.py', 'vertical_model.py', 'qss_lap.py'} <= set(key['ocd_lap_sources_sha256'])
