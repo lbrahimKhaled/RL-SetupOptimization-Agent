@@ -77,3 +77,41 @@ def run_provenance(track=None):
             'ocd_first_lap': git_state(ocd_first_lap_root()),
             'ocd_lap_code_version': provenance_digest(ocd)[:12],
             'ocd_lap_extra_sources_sha256': ocd_lap_extra_sources_sha256()}
+
+
+def package_versions():
+    """Versions of the packages a training run depends on (imports torch / SB3)."""
+    import importlib.metadata as md
+    out = {}
+    for name in ('torch', 'stable-baselines3', 'sb3-contrib', 'gymnasium', 'numpy'):
+        try:
+            out[name] = md.version(name)
+        except md.PackageNotFoundError:
+            out[name] = None
+    return out
+
+
+def training_provenance(track, *, n_envs, qss, reference_digest, track_sha256, config_json,
+                        argv=None, demo_sha256=None, bc_actor_sha256=None, allow_dirty=False):
+    """provenance.json of a D2 training run (spec §9): `run_provenance(track)` plus package
+    versions, machine, torch threads, n_envs, argv, UTC start, QSS cache-key sha + lap time,
+    reference-line digest, track sha, demo dataset / BC actor sha (filled in as they exist) and
+    the sha256 of the config JSON text."""
+    import datetime
+    import json
+    import platform
+    import socket
+    import sys
+    import torch
+    return {**run_provenance(track),
+            'python': sys.version.split()[0], 'packages': package_versions(),
+            'platform': platform.platform(), 'machine': platform.machine(), 'hostname': socket.gethostname(),
+            'torch_num_threads': torch.get_num_threads(), 'n_envs': int(n_envs),
+            'argv': list(sys.argv if argv is None else argv),
+            'utc_start': datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
+            'qss': {'cache_key_sha256': hashlib.sha256(json.dumps(qss.meta['key'], sort_keys=True).encode()).hexdigest(),
+                    'lap_time_s': float(qss.lap_time_s)},
+            'reference_digest': reference_digest, 'track_path_sha256': track_sha256,
+            'demo_dataset_sha256': demo_sha256, 'bc_actor_sha256': bc_actor_sha256,
+            'config_sha256': hashlib.sha256(config_json.encode()).hexdigest(),
+            'allow_dirty': bool(allow_dirty)}

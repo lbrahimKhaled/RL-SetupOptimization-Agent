@@ -37,7 +37,8 @@ info         s_track, s_ref, e_ref, heading_error, speed, progress_m (since hand
              'lap_complete' | None), truncation ('time_limit' | None), step_cost / episode_cost
              (progress a ds, time b dt, smoothness b dt du^T W du, tracking c e^2, penalty P),
              obs_clipped; evaluation: line_crossings_s, laps (per-lap time and cost components,
-             cost = time + smoothness + tracking, the undiscounted lap cost for the setup agent);
+             cost = time + smoothness + tracking, the undiscounted lap cost for the setup agent),
+             track_position (-1 right ... +1 left edge) and track_width_m (finite states only);
              telemetry (backend.get_telemetry()) only with record_telemetry. On a non-finite
              state e_ref, heading_error and speed are NaN.
 Observation (fixed scales, clipped to +-ObsConfig.clip; ObsConfig documents the scales):
@@ -178,6 +179,11 @@ class DrivingEnv(OCDRacingEnv):
         d = left - right
         p = np.array([self.state['x'], self.state['y']]) - right
         return float(2. * (p @ d) / (d @ d) - 1.)
+
+    def track_width(self):
+        """Track width w(s) = |left edge - right edge| [m] of the grid cross-section at the car."""
+        _, left, right = self.grid.at(self.s)
+        return float(np.linalg.norm(left - right))
 
     # --- observation ------------------------------------------------------------------------------
     def _ego(self):
@@ -435,6 +441,8 @@ class DrivingEnv(OCDRacingEnv):
                         speed=math.hypot(self.state['vx'], self.state['vy']))
             if cfg.record_telemetry:
                 info['telemetry'] = self.backend.get_telemetry()
+            if self.evaluation:   # D2 §6: edge margin = (1 - |track_position|) w / 2 - half car width
+                info.update(track_position=self.track_position(), track_width_m=self.track_width())
         else:  # QA MINOR 5: same keys, so loggers need no special case
             info.update(e_ref=math.nan, heading_error=math.nan, speed=math.nan)
         if self.evaluation:
