@@ -166,6 +166,7 @@ class TrainConfig:
     n_envs: int = 4
     gradient_steps: int = 2
     torch_threads: int = 1
+    device: str = 'cpu'                  # torch device of the SAC networks ('cuda' on the Windows RTX box)
     total_timesteps: int = 2_000_000     # PLACEHOLDER until the smoke-run extrapolation (§11)
     max_wall_h: float | None = None      # PLACEHOLDER: per seed; set from Ibrahim's compute budget
                                          # (D2 question 2). None = no wall-clock limit

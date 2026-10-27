@@ -227,9 +227,9 @@ def _offline_warmup(run, model, demos, val_episodes):
         sl = slice(t0, t0 + T)
         o, a = obs_tr[sl], demos['actions'][sl]
         with th.no_grad():
-            mean, log_std, _ = actor.get_action_dist_params(th.as_tensor(o))
+            mean, log_std, _ = actor.get_action_dist_params(th.as_tensor(o, device=actor.device))
             logp = actor.action_dist.proba_distribution(mean, log_std).log_prob(
-                th.as_tensor(a).clamp(-cfg.bc.action_clip, cfg.bc.action_clip)).numpy()
+                th.as_tensor(a, device=actor.device).clamp(-cfg.bc.action_clip, cfg.bc.action_clip)).cpu().numpy()
         pairs.append(q_vs_mc(model.critic, o, a, demos['rewards'][sl], logp, gamma=model.gamma,
                              alpha=model.alpha, failed=str(demos['ep_cause'][e]) in FAILURES,
                              stride=cfg.eval.q_mc_stride, min_left=cfg.eval.q_mc_min_left,
@@ -356,8 +356,10 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
             # --- step 3: BC + gate ---
             run.status(phase='bc')
             t = time.time()
+            model.actor.cpu()   # BC and its report are CPU code; the actor goes back to the GPU below
             report = train_bc(model.actor, demos, cfg.bc, seed=cfg.seed, slip_gain=cfg.env.obs.slip_gain,
                               pedal_deadzone=cfg.env.pedal_deadzone, log=log)
+            model.actor.to(model.device)
             th.save(model.actor.state_dict(), run_dir / 'bc' / 'actor_bc.pt')
             det = flying_lap(model, envs['eval_det'], deterministic=True, seed=cfg.eval.seed)
             sto = [flying_lap(model, envs['eval_sto'], deterministic=False, seed=cfg.eval.seed + k)
@@ -531,7 +533,7 @@ def resume_pipeline(run_dir, overrides=(), *, argv=None, allow_dirty=False, allo
         qss = qss_profile.load_or_build(track)
         envs = eval_envs(cfg, track, qss)
         vec = build_vec_env(cfg.env, cfg.n_envs, track, qss, start_method=cfg.vec_start_method)
-        model = StagedSAC.load(last_zip, env=vec, device='cpu')
+        model = StagedSAC.load(last_zip, env=vec, device=cfg.device)
         n = int(model.num_timesteps)
         buffer_step = status.get('replay_buffer_step')
         cut_row = None
