@@ -35,10 +35,11 @@ Results: [docs/results/](docs/results/). Decisions (#1 to #20): [docs/DECISIONS.
 |---|---|
 | [rlsetup/](rlsetup/driving/README.md) | Package: driving env, SAC agent, training, evaluation; run folders and provenance |
 | [scripts/](scripts/README.md) | CLIs: build QSS profile, collect demos, run the full D2 job, reports, benchmarks |
+| [platforms/](platforms/README.md) | Per-machine launchers, environment notes and overrides: `mac/`, `windows/` |
 | [tests/](tests/README.md) | pytest suite (fast + slow) |
 | [data/](data/README.md) | Cached QSS speed profile and demo datasets |
 | [docs/](docs/README.md) | Context, decisions, specs, research, handoff notes, results |
-| `runs/` | Training output (git-ignored) |
+| `runs/` | Training output (git-ignored): `runs/mac/D2`, `runs/windows/D2`; `runs/D2` holds runs from before the split |
 
 ## Quick start
 
@@ -52,6 +53,19 @@ python -m rlsetup.driving.train --preset r1_warm --seed 0 --run-name r1_warm \
     --init-from runs/D2/full1/seed0/checkpoints/best.zip
 python scripts/seed_summary.py runs/D2/NAME             # progress table
 ```
+
+## Mac vs Windows
+
+Same code and presets on both machines. Each machine gets its own launcher, overrides and run root ([platforms/](platforms/README.md)):
+
+| | Mac (M4) | Windows (i9-14900 + RTX 4000 Ada) |
+|---|---|---|
+| Python | `.venv/bin/python` | conda `C:\Users\imk14\ocdenv` |
+| Overrides | cpu, forkserver, n_envs 4, gradient_steps 2, torch_threads 1 | cuda, spawn, n_envs 16, gradient_steps 8, torch_threads 2 (provisional, not tuned yet) |
+| Runs | `runs/mac/D2` | `runs/windows/D2` |
+| Launch | `platforms/mac/train.sh`, `platforms/mac/run_d2_full.sh` | `platforms\windows\train.ps1`, `run_d2_full.ps1`, detached via `start_detached.ps1` |
+
+Windows test status and the open car question: [docs/handoff/W1_windows_port.md](docs/handoff/W1_windows_port.md).
 
 ## Caveats for the reviewer
 

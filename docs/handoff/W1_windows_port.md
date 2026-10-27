@@ -1,0 +1,45 @@
+# W1: Mac / Windows split, Windows test failures, car question (27 Oct 2026)
+
+Done from a Linux cloud container (x86_64, GCC 13.3, Python 3.12, CPU torch). Here `ocd_native` was built from `ocd_first_lap` with Linux GCC. That gives a third platform, which separates platform effects from version effects. The Windows box, its live run and its GPU were **not reachable** from here. Nothing below was measured on Windows, and no Windows numbers are claimed.
+
+Base: `d1-driving-env` at 15772d1, `ocd_first_lap` `sf70h-tum-car` at 7d6f2aa, and for comparison ocd_first_lap 1c5ea98 ("Stage 6"). The Windows-only commits RL 5c90818 (TrainConfig.device) and ocd 3945634 (CMake) were not pushed, so they are **not** in this work. `device=` in `platforms/*/train.overrides` needs 5c90818.
+
+## 1. Mac vs Windows split
+`platforms/{mac,windows}/`: launcher, environment note, `train.overrides`, run root (`runs/mac/D2`, `runs/windows/D2`). See [platforms/README.md](../../platforms/README.md).
+- `scripts/run_d2_full.sh`: new `OVERRIDES_FILE`, passed as `--set` to demos and fresh starts only. `RUNS_ROOT` is now also used by the platform launcher. Without the two variables it behaves exactly as before, and the original 3 tests pass unchanged.
+- `platforms/windows/run_d2_full.ps1`: port with the same decisions, lock file, `_aborted/` move, report, summary and exit code. **Not executed here** (PowerShell could not be installed in the container). `tests/test_run_d2_full_ps1.py` mirrors the bash tests and runs only on Windows. Run it there first.
+- `platforms/windows/start_detached.ps1`: `Start-Process -WindowStyle Hidden` wrapper (stdout and stderr in files), to replace `nohup &`.
+- `scripts/bench/*.py`: repo root from `__file__` (it was a hard-coded `/Users/...` path), `--start-method` (spawn on Windows), `sac_e2e.py --device/--threads`, CUDA sync in `sac_train_speed.py`. Each was run once here as a smoke test only; these Linux numbers are not relevant to either machine.
+- The live run `runs/D2/full_win` is untouched. Resume command: `platforms/windows/README.md`.
+
+## 2. Windows tuning
+Not done; it needs the Windows box. `platforms/windows/bench.ps1` runs the learner (CPU threads vs CUDA), env-worker and end-to-end (UTD 0.5) benchmarks at BelowNormal priority, and records whether a training run was live. While one is live it skips the CUDA steps, because priority does not protect the GPU. `platforms/windows/train.overrides` stays at the `full_win` values (provisional) until those numbers exist.
+
+## 3. The seven Windows test failures
+Linux fast suite on the base commits: **6 failed / 166 passed** (sf70h-tum-car) and **5 failed / 167 passed** (Stage 6). The difference is the cars.py one (3b).
+
+| Test | Cause | Evidence | Action |
+|---|---|---|---|
+| test_run_d2_full ×3 | **Platform** (bash + `.venv/bin/python`) | Linux: fail only because `<repo>/.venv/bin/python` is missing; with a `.venv` symlink all 3 pass | Skipped on Windows; the PowerShell port has its own tests |
+| test_provenance::test_run_provenance_fields | **Platform** (paths) | `rlsetup_sources_sha256` keys were `str(relative_to)`, i.e. `rlsetup\provenance.py` on Windows, so the `'rlsetup/provenance.py'` check fails. Inferred from the code; the Windows output was not seen | **Fixed**: `.as_posix()` keys (identical on the Mac). Only provenance.json keys change; demo and QSS keys don't use them |
+| test_provenance::test_every_imported_ocd_lap_module_is_hashed | (a) **Platform**, (b) **ocd version + real gap** | (a) `m.__file__.split('/ocd_lap/')` never matches a backslash path. (b) Fails on Linux too with sf70h-tum-car: rlsetup now loads `ocd_lap/cars.py`, which neither ocd_lap's `code_version` (simulation.SOURCES) nor `OCD_LAP_EXTRA_SOURCES` hashes. Passes on Stage 6 | (a) **Fixed** (`Path(...).as_posix()`). (b) **Proposal** below; still fails |
+| test_qss_profile::test_cached_file_matches_fresh_computation | **Platform by design + ocd version** | Stored key vs the current one on Linux: on Stage 6 only `ocd_native_sha256` (the binary) and `track_path_sha256` differ. On sf70h-tum-car, `backend/handling/manoeuvres/powertrain/qss_lap/rig.py` also differ. Fresh profile vs cache on Linux: lap 133.91610367954553 vs 133.91610367943798 s (Δ 1.1e-10 s), max \|Δv\| 5.8e-9 m/s, track arc length max \|Δs\| 2.9e-11 m. The cache was built with ocd_first_lap 2147dcd plus uncommitted Stage 6 (same sources as 1c5ea98) | Golden kept. **Proposal** below |
+| test_r1::test_legacy_rollout_bit_identical | **Platform** (numerics), not a bug | Linux digest `5859c980…f250b` is identical for: pre-R1 code (7a2bee2, parent of "R1 implementation"; 47f1d8d is not in the pushed history) and current code, each with Stage 6 and with sf70h-tum-car. End sequence equals the golden. So R1's legacy bit-identity holds on Linux, and sf70h-tum-car does not change the av21 rollout. The M4 golden `0007e281…` is machine-specific (its docstring says so) | Golden kept. **Proposal** below |
+
+Expected on Windows after these fixes (to be confirmed there): test_run_d2_full ×3 skipped, test_run_provenance_fields passes, and three still fail: cars.py, the QSS cache, the R1 golden.
+
+### Proposals (not applied)
+- **3b cars.py (real provenance gap):** add `'ocd_lap/cars.py'` to `ocd_first_lap` `simulation.SOURCES`. One line on sf70h-tum-car; it belongs there because cars.py holds the car parameters used by every simulation. Effects: ocd_lap `code_version` changes, so the demo dataset key changes and the demos are re-collected once (~2–4 min). A resume needs `--allow-code-change`, which `full_win`'s command already passes. The QSS cache key (`qss_profile._SOURCES`) has the same gap. Add `cars.py` there as well and rebuild the cache, once the Mac is also on sf70h-tum-car (that list hashes files that must exist).
+- **QSS cache test:** the key contains the compiled binary's sha256, so it can only match on the machine that built the cache. Option A, recommended: keep the exact-match test, skip it with a reason when `ocd_native_sha256` differs, and add a test that runs everywhere and compares a fresh profile with the cache, with a tolerance of `|Δv| ≤ 1e-6 m/s` and `|Δlap| ≤ 1e-6 s`. Option B: one cache file per platform. Either way, the cache must be rebuilt for sf70h-tum-car on the Mac (6 source hashes changed). Until then, every process on the Mac and on Windows recomputes the profile in memory (UserWarning).
+- **R1 golden:** keep the M4 digest and add one golden per platform, keyed by `(sys.platform, platform.machine())`. Generate each from the pre-R1 tree **on that machine**, not from the current code, which would make the test circular. Linux x86_64 GCC 13.3: `5859c9809920c5552c3a112d4332454c2970721418e3c6aaa2e18e386d9f250b`. Windows: generate it with `git worktree add ../rl_preR1 7a2bee2`, then `tests/r1_golden.legacy_rollout` with that worktree first on sys.path.
+
+## 4. Open question for Ibrahim: which car?
+The agent trains the **default AV-21-based car** (`OCDBackend(powertrain='engine')` in `rlsetup/driving/env.py`, `OCDBackend()` / `measure_ggv(setup)` in `qss_profile.py`; no `car=` anywhere), with TUM's F1 engine. It does not use `sf70h_tum` from the sf70h-tum-car branch. The README's "Car: SF70H-like" describes the target, not what the code runs. Your original request was sf70h_tum on Shanghai.
+
+Minimal change, proposed and **not made**:
+1. `EnvConfig.car: str = 'av21'`. EnvConfig rather than TrainConfig, because the env builds the backend and EnvConfig already enters the demo dataset key and `env_metadata`, so demos and BC follow automatically. Pass it through as `OCDBackend(powertrain='engine', car=cfg.car, ...)`.
+2. `qss_profile`: `car` in `compute` / `cache_key` / the file name (`qss_profile_Shanghai_p0_sf70h_tum.npz`). Re-sync `compute` with the new `qss_lap.lap_time`: on this branch it adds per-car `qss_dyn_model_exp` / `tire_model_exp`, ERS and DRS, so the old "lines 95-109" copy no longer matches. Then rebuild the profile.
+3. Per-car constants still to check: footprint (off-track test), DemoDriver geometry (`rear_axle_m`, `wheelbase_m`), `max_brake_torque_Nm` (12 kN·m placeholder), `MAX_STEER_RAD`, and whether the safe reference line (4.5 m planning width) still fits.
+4. Then: new demos, BC and gates, trained from scratch. Lap times are not comparable with `full1` / `full_win`.
+
+Decision needed: switch to sf70h_tum (and whether ERS / DRS are on), or keep AV-21 for D2 and switch later.
