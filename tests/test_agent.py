@@ -149,3 +149,41 @@ def test_presets_and_overrides():
         apply_overrides(full, ['agent.nope=1'])
     back = train_config_from_dict(json.loads(config_json(c)))
     assert back == c
+
+
+def test_device_default_and_old_config_json():
+    """TrainConfig.device defaults to 'cpu'; a config.json from before the field (no 'device')
+    loads as 'cpu', so pre-existing runs resume on the CPU."""
+    c = PRESETS['full']()
+    assert c.device == 'cpu' and make_model(fill=0).device.type == 'cpu'
+    raw = json.loads(config_json(c))
+    del raw['device']
+    assert train_config_from_dict(raw) == c
+    assert apply_overrides(c, ['device=mps']).device == 'mps'
+
+
+ACCELERATORS = [d for d, ok in (('mps', th.backends.mps.is_available()), ('cuda', th.cuda.is_available())) if ok]
+
+
+@pytest.mark.skipif(not ACCELERATORS, reason='no mps / cuda device on this machine')
+@pytest.mark.parametrize('device', ACCELERATORS)
+def test_model_on_accelerator(device, tmp_path):
+    """device='mps' / 'cuda': gradient steps, evaluate.act / q_values (numpy out) and save / load
+    work on the device (BC runs on the CPU in the pipeline: train.run_pipeline moves the actor)."""
+    from rlsetup.driving.evaluate import act, q_values
+    from sb3_helpers import tiny_cfg
+    import dataclasses
+    model = make_model(dataclasses.replace(tiny_cfg(), device=device))
+    assert model.device.type == device and model.actor.device.type == device
+    model.train(3, 64)
+    obs = np.random.default_rng(1).uniform(-1, 1, (8, OBS)).astype(np.float32)
+    a, logp = act(model.actor, obs[0], deterministic=False)
+    assert a.shape == (3,) and a.dtype == np.float32 and np.isfinite(logp)
+    q_min, q_mean = q_values(model.critic, obs, np.zeros((8, 3), np.float32))
+    assert q_min.shape == (8,) and np.all(q_min <= q_mean)
+    model.train(1, 64)
+    model.save(tmp_path / 'm.zip')
+    loaded = StagedSAC.load(tmp_path / 'm.zip', env=DummyVecEnv([TinyEnv]), device=device)
+    assert loaded.device.type == device
+    np.testing.assert_allclose(loaded.predict(obs, deterministic=True)[0], model.predict(obs, deterministic=True)[0],
+                               atol=1e-6)
