@@ -1,0 +1,11 @@
+# Windows (i9-14900, RTX 4000 Ada) defaults: TrainConfig overrides, one KEY=VALUE per line,
+# applied to fresh runs by platforms\windows\{train.ps1,run_d2_full.ps1}.
+# PROVISIONAL: the values of the live run runs/D2/full_win (about 175 decisions/s, learner-bound).
+# Not yet tuned. Replace them with the bench.ps1 results (README.md, "Tuning"), keeping UTD 0.5
+# (gradient_steps = n_envs / 2).
+# device=cuda needs TrainConfig.device (commit "TrainConfig.device, default 'cpu'").
+device=cuda
+vec_start_method=spawn
+n_envs=16
+gradient_steps=8
+torch_threads=2
