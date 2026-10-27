@@ -18,7 +18,7 @@ Steering: steering_rad = a * 0.6 rad (MAX_STEER_RAD), positive = left (OCD yaw c
 import math
 import numpy as np
 from ocd_lap.backend import Inputs
-from ocd_lap.driver import REAR_AXLE_M, WHEELBASE_M
+from ocd_lap import cars
 from ocd_lap.env import MAX_STEER_RAD
 
 
@@ -47,8 +47,10 @@ def inputs_to_action(steering_rad, throttle, brake, pedal_deadzone, released_act
 class DemoDriver:
     """Pure pursuit on `ref` + speed PI. `control_dt_s` is the interval between `act` calls."""
 
-    def __init__(self, ref, cfg, *, pedal_deadzone, control_dt_s):
+    def __init__(self, ref, cfg, *, pedal_deadzone, control_dt_s, car='av21'):
         self.ref, self.cfg = ref, cfg
+        spec = cars.get(car)
+        self.rear_axle_m, self.wheelbase_m = spec.rear_axle_m, spec.wheelbase_m
         self.pedal_deadzone = pedal_deadzone
         self.dt = control_dt_s
         self.integral = 0.
@@ -59,11 +61,11 @@ class DemoDriver:
     def steering(self, state, s_ref):
         """Pure-pursuit steering angle [rad] (ScriptedDriver.act geometry, goal on xi_ref)."""
         yaw = state['yaw']
-        rear = np.array([state['x'], state['y']]) - REAR_AXLE_M * np.array([math.cos(yaw), math.sin(yaw)])
+        rear = np.array([state['x'], state['y']]) - self.rear_axle_m * np.array([math.cos(yaw), math.sin(yaw)])
         lookahead = self.cfg.lookahead_m + self.cfg.lookahead_s * max(state['vx'], 0.)
-        d = self.ref.point(s_ref - REAR_AXLE_M + lookahead) - rear
+        d = self.ref.point(s_ref - self.rear_axle_m + lookahead) - rear
         alpha = math.atan2(d[1], d[0]) - yaw
-        return float(np.clip(math.atan2(2. * WHEELBASE_M * math.sin(alpha), np.linalg.norm(d)),
+        return float(np.clip(math.atan2(2. * self.wheelbase_m * math.sin(alpha), np.linalg.norm(d)),
                              -MAX_STEER_RAD, MAX_STEER_RAD))
 
     def pedals(self, target_mps, vx, rear_slip=0.):
@@ -98,7 +100,7 @@ class DemoPolicy:
         self.fraction = float(fraction)
         e = self.env
         self.driver = DemoDriver(e.ref, e.cfg.demo, pedal_deadzone=e.cfg.pedal_deadzone,
-                                 control_dt_s=e.decision_dt)
+                                 control_dt_s=e.decision_dt, car=e.cfg.car)
 
     def reset(self):
         self.driver.reset(self.env.settle_driver.integral)

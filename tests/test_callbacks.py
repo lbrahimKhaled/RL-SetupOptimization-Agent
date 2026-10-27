@@ -256,7 +256,7 @@ def resume_fixture(tmp_path, monkeypatch, *, code=CODE, status=None, fill=100, c
     runs.write_json(d / 'probe_starts.json', [])
     monkeypatch.setattr(ocd_lap.track, 'Track', lambda name: None)
     monkeypatch.setattr(provenance, 'code_state', lambda track=None: code)
-    monkeypatch.setattr(qss_profile, 'load_or_build', lambda track: None)
+    monkeypatch.setattr(qss_profile, 'load_or_build', lambda track, **kw: None)
     monkeypatch.setattr(T, 'eval_envs', lambda *a: {})
     monkeypatch.setattr(vec, 'build_vec_env', lambda *a, **k: DummyVecEnv([TinyEnv]))
     seen = {}

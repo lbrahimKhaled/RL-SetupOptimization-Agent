@@ -115,6 +115,9 @@ class EnvConfig:
     track: str = 'Shanghai'
     track_vmax_mps: float = 12.          # Track(name, vmax): only its scripted speed profile; unused here
     max_brake_torque_Nm: float = 12000.  # total, DECISIONS #5. PLACEHOLDER until SF70H data
+    car: str = 'av21'                    # ocd_lap.cars name: 'av21' (OCD's shipped car) or 'sf70h_tum'
+    ers: bool = False                    # the car's ERS. Off: OCDBackend's 4 MJ is per lap, and DrivingEnv's
+                                         # multi-lap, random-start episodes neither refill nor observe it
     action_repeat: int = 2               # 2 x 50 Hz base ticks -> 25 Hz decisions (R2.3)
     pedal_deadzone: bool = True          # R3, pending Ibrahim: pedal = clip((a + .5) / 1.5, 0, 1)
     obs_gear: bool = False               # R4.3, pending Ibrahim: add gear / 8 to the observation

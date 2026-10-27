@@ -132,14 +132,15 @@ class DrivingEnv(OCDRacingEnv):
                          vmax=cfg.track_vmax_mps if track is None else track.vmax,
                          max_time_s=cfg.max_episode_s, weights=weights,
                          backend_factory=lambda: OCDBackend(powertrain='engine',
-                                                            max_brake_torque_Nm=cfg.max_brake_torque_Nm))
+                                                            max_brake_torque_Nm=cfg.max_brake_torque_Nm,
+                                                            car=cfg.car, ers=cfg.ers))
         if track is not None:
             self.track = track
         self.ref = reference if reference is not None else ReferenceLine.from_track_path(self.track)
         self.grid = track_grid(self.track, self.ref, cfg.obs.grid_m)
-        self.qss = qss if qss is not None else qss_profile.load_or_build(self.track)
+        self.qss = qss if qss is not None else qss_profile.load_or_build(self.track, car=cfg.car, ers=cfg.ers)
         self.settle_driver = DemoDriver(self.ref, cfg.demo, pedal_deadzone=cfg.pedal_deadzone,
-                                        control_dt_s=self.decision_dt)
+                                        control_dt_s=self.decision_dt, car=cfg.car)
         o = cfg.obs
         k = np.arange(1, o.n_preview + 1)
         self.preview_d = o.preview_horizon_m * (k / o.n_preview) ** o.preview_exponent
@@ -281,7 +282,7 @@ class DrivingEnv(OCDRacingEnv):
         else:
             s_ref0 = None
         self.state = st = backend.reset(setup, pose)
-        if not track.contains_car(st['x'], st['y'], st['yaw']):
+        if not track.contains_car(st['x'], st['y'], st['yaw'], self.footprint):
             return False
         self.s = float(track.match([st['x'], st['y']], s0)[0])
         self._s_ref = ref.match((st['x'], st['y']), s_ref0)
@@ -300,7 +301,7 @@ class DrivingEnv(OCDRacingEnv):
             for _ in range(steps):
                 st = backend.step(inputs)
                 self._settle_steps += 1
-                if not all(map(math.isfinite, st.values())) or not track.contains_car(st['x'], st['y'], st['yaw']):
+                if not all(map(math.isfinite, st.values())) or not track.contains_car(st['x'], st['y'], st['yaw'], self.footprint):
                     return False
             self.state = st
             self.last_action = action

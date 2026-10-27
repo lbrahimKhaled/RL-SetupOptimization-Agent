@@ -37,10 +37,12 @@ def _sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def cache_key(track, setup):
-    """Everything the profile depends on; a cache is valid only if this matches exactly."""
+def cache_key(track, setup, car='av21', ers=False):
+    """Everything the profile depends on; a cache is valid only if this matches exactly.
+    The AV-21 key has no car fields, so caches built before the car option stay valid."""
     lap_dir = Path(qss_lap.__file__).resolve().parent
-    return json.loads(json.dumps({
+    extra = {} if car == 'av21' else {'car': car, 'ers': bool(ers)}
+    return json.loads(json.dumps({**extra,
         'schema': 1, 'track': track.name,
         'track_path_sha256': hashlib.sha256(np.ascontiguousarray(track.path).tobytes()).hexdigest(),
         'setup': setup.to_dict(),
@@ -71,9 +73,18 @@ class QSSProfile:
         return float(self.speed(s0 + np.linspace(0., distance_m, n + 1)).min())
 
 
-def compute(track, setup=None, *, ggv_data=None):
-    """Profile for `setup` (default p0 = Setup()) on track.path: (QSSProfile, ggv_data)."""
+def compute(track, setup=None, *, ggv_data=None, car='av21', ers=False):
+    """Profile for `setup` (default p0 = Setup()) on track.path: (QSSProfile, ggv_data).
+    Other cars than 'av21' take `qss_lap.lap_time`'s own profile (its car geometry, tyres and
+    friction-ellipse exponent; DRS off, as OCDBackend has none)."""
     setup = Setup() if setup is None else setup
+    if car != 'av21':
+        r = qss_lap.lap_time(setup, track, ggv_data=ggv_data, car=car, ers=ers, drs=False)
+        v = np.asarray(r['v_profile'], dtype=float)
+        meta = {'key': cache_key(track, setup, car, ers), 'ggv': r['ggv'], 'traction': r['traction'],
+                'drag_coeff': r['drag_coeff']}
+        profile = QSSProfile(np.array(track.path[:, 0]), np.r_[v, v[0]], r['lap_time_s'], meta)
+        return profile, (np.asarray(r['ggv']), np.asarray(r['traction']), r['details'])
     ggv, traction, details = ggv_data or qss_lap.measure_ggv(setup)
     # --- qss_lap.lap_time, lines 95-109 (same calls, same arguments) ---
     backend = OCDBackend()
@@ -98,8 +109,9 @@ def compute(track, setup=None, *, ggv_data=None):
     return profile, (ggv, traction, details)
 
 
-def default_path(track_name, tag='p0'):
-    return DATA_DIR / f'qss_profile_{track_name}_{tag}.npz'
+def default_path(track_name, tag='p0', car='av21', ers=False):
+    suffix = '' if car == 'av21' else f'_{car}' + ('_ers' if ers else '')
+    return DATA_DIR / f'qss_profile_{track_name}_{tag}{suffix}.npz'
 
 
 def save(profile, path):
@@ -116,19 +128,19 @@ def load(path):
         return QSSProfile(f['s'], f['v'], float(f['lap_time_s']), json.loads(str(f['meta'])))
 
 
-def load_or_build(track, path=None, *, rebuild=False):
+def load_or_build(track, path=None, *, rebuild=False, car='av21', ers=False):
     """p0 profile for `track`: from the cache file if its key matches, else recomputed.
     Writes the file only if it is missing or `rebuild`. Call once in the main process before
     starting vector-env workers."""
-    path = Path(path) if path is not None else default_path(track.name)
-    key = cache_key(track, Setup())
+    path = Path(path) if path is not None else default_path(track.name, car=car, ers=ers)
+    key = cache_key(track, Setup(), car, ers)
     if path.exists() and not rebuild:
         cached = load(path)
         if cached.meta.get('key') == key:
             return cached
         warnings.warn(f'{path.name}: cache key does not match the current code/track; recomputing '
                       'in memory (rebuild with scripts/build_qss_profile.py)', stacklevel=2)
-        return compute(track)[0]
-    profile = compute(track)[0]
+        return compute(track, car=car, ers=ers)[0]
+    profile = compute(track, car=car, ers=ers)[0]
     save(profile, path)
     return load(path)

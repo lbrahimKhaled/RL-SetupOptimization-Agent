@@ -312,7 +312,7 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
     try:
         th.set_num_threads(cfg.torch_threads)
         track = Track(cfg.env.track)
-        qss = qss_profile.load_or_build(track)
+        qss = qss_profile.load_or_build(track, car=cfg.env.car, ers=cfg.env.ers)
         tsha = track_sha256(track)
         cj = config_json(cfg)
         (run_dir / 'config.json').write_text(cj)
@@ -530,7 +530,7 @@ def resume_pipeline(run_dir, overrides=(), *, argv=None, allow_dirty=False, allo
             return refused[0][0]
         if overrides:
             (run_dir / 'config.json').write_text(config_json(cfg))
-        qss = qss_profile.load_or_build(track)
+        qss = qss_profile.load_or_build(track, car=cfg.env.car, ers=cfg.env.ers)
         envs = eval_envs(cfg, track, qss)
         vec = build_vec_env(cfg.env, cfg.n_envs, track, qss, start_method=cfg.vec_start_method)
         model = StagedSAC.load(last_zip, env=vec, device=cfg.device)
