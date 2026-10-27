@@ -1,5 +1,6 @@
 import json
 import sys
+from pathlib import Path
 from rlsetup import provenance
 from rlsetup.provenance import run_provenance, git_state, OCD_LAP_EXTRA_SOURCES
 from rlsetup.driving.config import EnvConfig
@@ -51,7 +52,7 @@ def test_every_imported_ocd_lap_module_is_hashed():
     from ocd_lap.simulation import SOURCES
     covered = set(SOURCES) | {'ocd_lap/evaluate.py', 'ocd_lap/provenance.py'} \
         | {f'ocd_lap/{f}' for f in OCD_LAP_EXTRA_SOURCES}
-    loaded = {'ocd_lap/' + m.__file__.split('/ocd_lap/')[-1]
+    loaded = {'ocd_lap/' + Path(m.__file__).as_posix().split('/ocd_lap/')[-1]
               for name, m in list(sys.modules.items())
               if (name == 'ocd_lap' or name.startswith('ocd_lap.')) and getattr(m, '__file__', None)}
     assert loaded - covered == set()
