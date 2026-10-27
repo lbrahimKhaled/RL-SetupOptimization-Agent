@@ -1,5 +1,10 @@
 # HANDOFF — read this first to resume (last updated 25 Oct 2026)
 
+## 27 Oct 2026 — Mac vs Windows (read first if you are on the Windows box)
+- Two machines: the Mac (M4, CPU, forkserver, `.venv`) and Windows (i9-14900 + RTX 4000 Ada, CUDA, spawn, conda `C:\Users\imk14\ocdenv`). Per-machine launchers, overrides and run roots (`runs/mac/D2`, `runs/windows/D2`) are in [platforms/](../../platforms/README.md). Mac paths in the sections below (`/Users/ibrahimkhaled/...`, `caffeinate`) apply to the Mac only.
+- Windows: launch long runs with `platforms\windows\start_detached.ps1` (hidden `Start-Process`); `nohup &` from Git Bash dies with its shell. Live run `runs/D2/full_win/seed0` (pre-split root); resume command in `platforms/windows/README.md`.
+- Windows tuning: not measured yet (`platforms/windows/bench.ps1`). Test failures on Windows, their causes and proposals, plus the open question about the car (AV-21 default vs sf70h_tum): [W1_windows_port.md](W1_windows_port.md).
+
 Goal of the current phase: build the **SAC driving agent** only; evaluate and tune it; then move on to the setup agent.
 
 ## Where everything is
