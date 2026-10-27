@@ -1,7 +1,8 @@
-"""Throwaway measurement (sim-runner): SubprocVecEnv(forkserver) throughput of DrivingEnv, random actions."""
+"""Throwaway measurement (sim-runner): SubprocVecEnv throughput of DrivingEnv, random actions
+(forkserver; spawn on Windows)."""
 import argparse, json, sys, time, platform
 from pathlib import Path
-sys.path.insert(0, '/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent')
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))   # repo root
 import numpy as np
 
 
@@ -39,17 +40,18 @@ def main():
     p.add_argument('--warmup', type=int, default=100)
     p.add_argument('--json', type=Path)
     p.add_argument('--demo', action='store_true')
+    p.add_argument('--start-method', default='spawn' if sys.platform == 'win32' else 'forkserver')
     a = p.parse_args()
     from ocd_lap.track import Track
     from rlsetup.driving import qss_profile
     from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
     track = Track('Shanghai'); qss_profile.load_or_build(track)   # main process first (R1)
-    out = dict(machine=platform.platform(), results=[])
+    out = dict(machine=platform.platform(), start_method=a.start_method, results=[])
     for n in a.workers:
         for kind in (['dummy'] if n == 1 else []) + ['subproc']:
             t0 = time.perf_counter()
             venv = DummyVecEnv([make_env(i) for i in range(n)]) if kind == 'dummy' else \
-                SubprocVecEnv([make_env(i) for i in range(n)], start_method='forkserver')
+                SubprocVecEnv([make_env(i) for i in range(n)], start_method=a.start_method)
             venv.seed(0); venv.reset()
             t_start = time.perf_counter() - t0
             rng = np.random.default_rng(0)
