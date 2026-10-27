@@ -4,7 +4,13 @@ run uses PYTHON_BIN = a fake python that records its arguments."""
 import json
 import os
 import subprocess
+import sys
+import pytest
 from rlsetup.provenance import REPO_ROOT
+
+# The bash launcher is the Mac one (platforms/mac/README.md); Windows uses run_d2_full.ps1,
+# tested in test_run_d2_full_ps1.py.
+pytestmark = pytest.mark.skipif(sys.platform == 'win32', reason='bash launcher: macOS / POSIX only')
 
 SCRIPT = REPO_ROOT / 'scripts' / 'run_d2_full.sh'
 PY = str(REPO_ROOT / '.venv' / 'bin' / 'python')
@@ -80,3 +86,31 @@ def test_refuses_second_instance(tmp_path):
     assert r.returncode == 1 and 'is running r' in r.stdout and not calls.exists()
     (tmp_path / 'r' / '.run_d2_full.lock').write_text('999999')                  # stale lock: taken over
     assert run(tmp_path, PYTHON_BIN=str(fake)).returncode == 0 and calls.exists()
+
+
+def test_overrides_file_reaches_demos_and_fresh_starts_only(tmp_path):
+    """OVERRIDES_FILE (platforms/<os>/train.overrides): --set for collect_demos.py and fresh
+    starts; a resume keeps the run's config.json (train.py refuses other overrides on resume)."""
+    seed_dir(tmp_path, 0, {'phase': 'rl', 'state': 'running'}, last_zip=True)
+    overrides = tmp_path / 'train.overrides'
+    overrides.write_text('# comment\na=1\n\n b=x  # trailing\r\n')
+    r = run(tmp_path, '--dry-run', OVERRIDES_FILE=str(overrides))
+    assert r.returncode == 0, r.stdout + r.stderr
+    cmds = commands(r.stdout)
+    assert cmds[0] == f'{PY} scripts/collect_demos.py --preset full --set a=1 --set b=x'
+    assert cmds[1].startswith(f'{PY} -m rlsetup.driving.train --resume --seed 0 ') and '--set a=1' not in cmds[1]
+    assert cmds[2].endswith(f'--set runs_root={tmp_path} --set a=1 --set b=x')
+    assert run(tmp_path, '--dry-run', OVERRIDES_FILE=str(tmp_path / 'missing')).returncode == 2
+
+
+def test_mac_launcher_dry_run(tmp_path):
+    """platforms/mac/run_d2_full.sh = scripts/run_d2_full.sh + RUNS_ROOT + the Mac overrides."""
+    e = dict(os.environ, RUN_NAME='r', RUNS_ROOT=str(tmp_path))
+    r = subprocess.run(['/bin/bash', str(REPO_ROOT / 'platforms' / 'mac' / 'run_d2_full.sh'), '--dry-run'],
+                       cwd='/', env=e, capture_output=True, text=True, timeout=60)
+    assert r.returncode == 0, r.stdout + r.stderr
+    mac = ('--set device=cpu --set vec_start_method=forkserver --set n_envs=4 --set gradient_steps=2 '
+           '--set torch_threads=1')
+    cmds = commands(r.stdout)
+    assert cmds[0] == f'{PY} scripts/collect_demos.py --preset full {mac}'
+    assert cmds[1].endswith(f'--set runs_root={tmp_path} {mac}')

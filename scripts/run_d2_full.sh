@@ -10,7 +10,11 @@
 #   MAX_WALL_H=3           wall-clock cap per seed and per invocation, h (a resumed seed gets a
 #                          fresh cap: the training code counts it from the start of the process)
 #   TOTAL_STEPS=2000000    total env steps per seed
-#   RUNS_ROOT              only for tests: run root instead of <repo>/runs/D2 (passed as runs_root)
+#   RUNS_ROOT              run root instead of <repo>/runs/D2 (passed as runs_root); set by
+#                          platforms/mac/run_d2_full.sh (runs/mac/D2) and by the tests
+#   OVERRIDES_FILE         platform overrides, one KEY=VALUE per line ('#' comments), e.g.
+#                          platforms/mac/train.overrides: passed as --set to collect_demos.py and to
+#                          fresh starts only (a resume keeps the run's config.json)
 #   PYTHON_BIN             only for tests: python for the pipeline commands (default <repo>/.venv)
 #
 # Per seed: status.json phase 'done' (completed / wall_clock_limit / collapsed) -> skip;
@@ -48,6 +52,14 @@ else
   ROOT_SET=""
 fi
 RUN_DIR="$ROOT/$RUN_NAME"
+PLAT_SET=""
+if [ -n "${OVERRIDES_FILE:-}" ]; then
+  if [ ! -f "$OVERRIDES_FILE" ]; then echo "missing overrides file: $OVERRIDES_FILE" >&2; exit 2; fi
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="$(printf '%s' "${line%%#*}" | tr -d '[:space:]')"
+    if [ -n "$line" ]; then PLAT_SET="$PLAT_SET --set $line"; fi
+  done < "$OVERRIDES_FILE"
+fi
 COMMON="--preset full --run-name $RUN_NAME --set max_wall_h=$MAX_WALL_H --set total_timesteps=$TOTAL_STEPS"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S %Z')] $*"; }
@@ -86,11 +98,13 @@ fi
 FAILED=0
 SUMMARY=""
 log "run_d2_full: repo $REPO, run $RUN_DIR, seeds $SEEDS, max_wall_h $MAX_WALL_H, total_steps $TOTAL_STEPS, dry_run $DRY"
+log "platform overrides: ${OVERRIDES_FILE:-none}${PLAT_SET}"
 log "git: $(git -C "$REPO" rev-parse --short HEAD 2>/dev/null) $(git -C "$REPO" status --porcelain --untracked-files=no 2>/dev/null | wc -l | tr -d ' ') tracked changes"
 
 # --- demos once (cached per dataset key; the seeds reuse the file) ---
 T0=$SECONDS
-run "$PY" scripts/collect_demos.py --preset full
+# shellcheck disable=SC2086
+run "$PY" scripts/collect_demos.py --preset full $PLAT_SET
 DEMO_RC=$?
 log "demos: exit $DEMO_RC ($((SECONDS - T0)) s)"
 if [ "$DEMO_RC" -ne 0 ]; then FAILED=1; fi
@@ -134,7 +148,7 @@ for s in $SEEDS; do
     fi
     action="fresh"
     # shellcheck disable=SC2086
-    run "$PY" -m rlsetup.driving.train --seed "$s" $COMMON $ROOT_SET
+    run "$PY" -m rlsetup.driving.train --seed "$s" $COMMON $ROOT_SET $PLAT_SET
     rc=$?
   fi
   if [ "$rc" -ne 0 ]; then FAILED=1; fi
