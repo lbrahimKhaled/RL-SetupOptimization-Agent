@@ -2,8 +2,9 @@
 
 ## 27 Oct 2026 — Mac vs Windows (read first if you are on the Windows box)
 - Two machines: the Mac (M4, CPU, forkserver, `.venv`) and Windows (i9-14900 + RTX 4000 Ada, CUDA, spawn, conda `C:\Users\imk14\ocdenv`). Per-machine launchers, overrides and run roots (`runs/mac/D2`, `runs/windows/D2`) are in [platforms/](../../platforms/README.md). Mac paths in the sections below (`/Users/ibrahimkhaled/...`, `caffeinate`) apply to the Mac only.
-- Windows: launch long runs with `platforms\windows\start_detached.ps1` (hidden `Start-Process`); `nohup &` from Git Bash dies with its shell. Live run `runs/D2/full_win/seed0` (pre-split root); resume command in `platforms/windows/README.md`.
-- Windows tuning: not measured yet (`platforms/windows/bench.ps1`). Test failures on Windows, their causes and proposals, plus the open question about the car (AV-21 default vs sf70h_tum): [W1_windows_port.md](W1_windows_port.md).
+- Windows: launch long runs with `platforms\windows\start_detached.ps1` (hidden `Start-Process`); `nohup &` from Git Bash dies with its shell. Live run `runs/D2/sf70h_win/seed0` (pre-split root, see the 27 Oct section at the end); resume commands in `platforms/windows/README.md`.
+- Windows tuning: not measured yet (`platforms/windows/bench.ps1`). Test failures on Windows, their causes and proposals: [W1_windows_port.md](W1_windows_port.md).
+- Mac: `platforms/mac/train.overrides` sets `device=mps` (Apple GPU) on request; the only measurement says MPS is 3x slower than one CPU thread at this network size, so benchmark first (`platforms/mac/README.md`, "GPU (MPS)").
 
 Goal of the current phase: build the **SAC driving agent** only; evaluate and tune it; then move on to the setup agent.
 
@@ -176,4 +177,4 @@ Machine: HP Z2 G9, i9-14900 (32 threads), 64 GB, RTX 4000 Ada 20 GB. Not admin, 
   Ibrahim's rule: train until a **clean deterministic lap 2 < 95 s**, else indefinitely. A detached PowerShell watcher (log `runs/D2/sf70h_win_watch.log`) stops it on that lap and resumes from last.zip after a process crash. First evals: step 0 178.12 s, 50k off track, **100k 117.68 s** (10/10 stochastic clean, best 120.78 s).
 - **Windows notes:** start long jobs with PowerShell `Start-Process -WindowStyle Hidden`; children of an interrupted Bash tool call die. `forkserver` does not exist on Windows: `--set vec_start_method=spawn`. TensorBoard: `runs/D2`, lap metrics mirrored every 2 min by a loop running `scripts/evals_to_tb.py runs/D2/sf70h_win/seed0`.
 - **Hardware instability (not our code):** 4 bluescreens in 5 days (0xF7, 0x20001, 0x1E, 0x3B), 5 unexpected shutdowns in 30 days, and random access violations inside numpy, also in an unrelated Python 3.9 on 23 Oct. Consistent with the known i9-13th/14th-gen degradation (microcode is already 0x12F). 480 isolated evaluation laps (CPU and CUDA) did not crash. A bluescreen kills training and the watcher; relaunch by hand after logging in. Raised with Ibrahim (AUB IT / HP).
-- **Not yet done:** the Mac/Windows split into per-platform folders, Windows tuning measurements, and the 7 Windows-only test failures (they also fail on the unmodified code: provenance x2, QSS cache key, R1 legacy rollout golden, run_d2_full.sh x3).
+- **Not yet done (as of this section; the split and the test analysis are now done, see the top of this file):** the Mac/Windows split into per-platform folders, Windows tuning measurements, and the 7 Windows-only test failures (they also fail on the unmodified code: provenance x2, QSS cache key, R1 legacy rollout golden, run_d2_full.sh x3).

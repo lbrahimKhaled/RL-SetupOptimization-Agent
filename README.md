@@ -65,11 +65,11 @@ Same code and presets on both machines. Each machine gets its own launcher, over
 | Runs | `runs/mac/D2` | `runs/windows/D2` |
 | Launch | `platforms/mac/train.sh`, `platforms/mac/run_d2_full.sh` | `platforms\windows\train.ps1`, `run_d2_full.ps1`, detached via `start_detached.ps1` |
 
-Windows test status and the open car question: [docs/handoff/W1_windows_port.md](docs/handoff/W1_windows_port.md).
+Windows test status: [docs/handoff/W1_windows_port.md](docs/handoff/W1_windows_port.md).
 
 ## Caveats for the reviewer
 
-- Working tree has **uncommitted edits** in `rlsetup/driving/agent.py` and `train.py`: device switched from `cpu` to `cuda`. Revert or commit before pinning a result to a hash.
+- The SAC model device is `TrainConfig.device` (default `cpu`; per-machine values in [platforms/](platforms/README.md)).
 - Brake torque (12 kN·m) is a placeholder until real SF70H data exists.
 - The ξref is the safe minimum-curvature line, a placeholder for Jad's laps.
 - `ocd_first_lap` carries a speed patch ([docs/ocd_patches/](docs/ocd_patches/0001-fast-rear-axle-omega.diff)) that must be applied there; it is bit-identical.

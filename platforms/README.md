@@ -13,4 +13,4 @@ Per-machine setup. The code and presets are shared. A platform contributes only 
 
 `train.overrides`: one `KEY=VALUE` per line, applied as `--set` to fresh runs and to demo collection. A resume keeps the run's own `config.json`. Both machines keep UTD 0.5 (`gradient_steps / n_envs`). `device` (`TrainConfig.device`, default `cpu`) places the SB3 model; env workers and BC always run on the CPU.
 
-Runs from before the split live in `runs/D2/` (Mac: `full1`, `r1_warm`, ...; Windows: `full_win`). Resume them with `RUNS_ROOT=runs/D2` or the plain `python -m rlsetup.driving.train` command.
+Runs from before the split live in `runs/D2/` (Mac: `full1`, `r1_warm`, ...; Windows: `full_win`, `sf70h_win`). Resume them with `RUNS_ROOT=runs/D2` or the plain `python -m rlsetup.driving.train` command.
