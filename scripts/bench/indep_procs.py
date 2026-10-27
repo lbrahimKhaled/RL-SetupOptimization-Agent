@@ -1,7 +1,8 @@
 """Throwaway (sim-runner): N independent processes, each DrivingEnv + random actions (no vec env,
 no lockstep): CPU scaling ceiling."""
 import json, sys, time, multiprocessing as mp
-sys.path.insert(0, '/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent')
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))   # repo root
 
 
 def work(args):
@@ -29,7 +30,7 @@ if __name__ == '__main__':
     from ocd_lap.track import Track
     from rlsetup.driving import qss_profile
     qss_profile.load_or_build(Track('Shanghai'))
-    ctx = mp.get_context('forkserver')
+    ctx = mp.get_context('spawn' if sys.platform == 'win32' else 'forkserver')
     for n in [int(x) for x in sys.argv[1:]] or [1, 4, 8]:
         with ctx.Manager() as m:
             b = m.Barrier(n)

@@ -1,5 +1,6 @@
 """Throwaway measurement (sim-runner): SB3 SAC train() gradient steps/s, 3x256 MLPs, batch 512,
-obs 159, act 3, CPU at given torch thread counts (dummy env, random replay data)."""
+obs 159, act 3, at given torch thread counts on --device cpu / cuda / mps (dummy env, random
+replay data)."""
 import argparse, json, sys, time
 from pathlib import Path
 import numpy as np
@@ -14,6 +15,13 @@ class Dummy(gym.Env):
         return np.zeros(159, np.float32), {}
     def step(self, a):
         return np.zeros(159, np.float32), 0., False, False, {}
+
+
+def sync(device):
+    if device == 'mps':
+        torch.mps.synchronize()
+    elif device.startswith('cuda'):
+        torch.cuda.synchronize()
 
 
 def main():
@@ -41,12 +49,10 @@ def main():
                                     rng.uniform(-1, 1, (1, 3)).astype(np.float32),
                                     rng.standard_normal(1).astype(np.float32), np.zeros(1), [{}])
         model.train(gradient_steps=a.warmup, batch_size=a.batch)
-        if a.device == 'mps':
-            torch.mps.synchronize()
+        sync(a.device)
         t = time.perf_counter()
         model.train(gradient_steps=a.steps, batch_size=a.batch)
-        if a.device == 'mps':
-            torch.mps.synchronize()
+        sync(a.device)
         wall = time.perf_counter() - t
         n_params = sum(p.numel() for p in model.policy.parameters())
         r = dict(device=a.device, threads=th, torch_threads=torch.get_num_threads(), batch=a.batch,
