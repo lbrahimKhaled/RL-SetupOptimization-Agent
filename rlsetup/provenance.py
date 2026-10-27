@@ -53,9 +53,10 @@ def ocd_first_lap_root():
 
 
 def rlsetup_sources_sha256():
-    """{path relative to the repo root: sha256} of every .py file in the rlsetup package."""
+    """{path relative to the repo root, '/'-separated on every OS: sha256} of every .py file in
+    the rlsetup package."""
     pkg = REPO_ROOT / 'rlsetup'
-    return {str(p.relative_to(REPO_ROOT)): sha256_file(p)
+    return {p.relative_to(REPO_ROOT).as_posix(): sha256_file(p)
             for p in sorted(pkg.rglob('*.py')) if '__pycache__' not in p.parts}
 
 
