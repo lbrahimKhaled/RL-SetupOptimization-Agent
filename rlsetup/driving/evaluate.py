@@ -77,13 +77,13 @@ def critic_of(policy):
 
 def act(actor, obs, deterministic):
     """(action (3,) float32, log pi(action|obs) or None for deterministic)."""
-    o = th.as_tensor(np.asarray(obs, np.float32)[None])
+    o = th.as_tensor(np.asarray(obs, np.float32)[None], device=actor.device)
     with th.no_grad():
         mean, log_std, _ = actor.get_action_dist_params(o)
         if deterministic:
-            return th.tanh(mean).numpy()[0].astype(np.float32), None
+            return th.tanh(mean).cpu().numpy()[0].astype(np.float32), None
         a, logp = actor.action_dist.log_prob_from_params(mean, log_std)
-    return a.numpy()[0].astype(np.float32), float(logp[0])
+    return a.cpu().numpy()[0].astype(np.float32), float(logp[0])
 
 
 @dataclass
@@ -263,8 +263,9 @@ def mc_indices(n, failed, stride=100, min_left=600):
 def q_values(critic, obs, actions):
     """(Q_min, Q_mean) arrays for batches of (obs, action)."""
     with th.no_grad():
-        qs = th.cat(critic(th.as_tensor(np.asarray(obs, np.float32)),
-                           th.as_tensor(np.asarray(actions, np.float32))), dim=1)
+        dev = getattr(critic, 'device', None)
+        qs = th.cat(critic(th.as_tensor(np.asarray(obs, np.float32), device=dev),
+                           th.as_tensor(np.asarray(actions, np.float32), device=dev)), dim=1).cpu()
     return qs.min(1).values.numpy().astype(float), qs.mean(1).numpy().astype(float)
 
 

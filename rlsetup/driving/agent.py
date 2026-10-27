@@ -110,7 +110,7 @@ def build_model(cfg, vec_env):
                      gamma=cfg.env.reward.gamma, train_freq=(a.train_freq, 'step'),
                      gradient_steps=cfg.gradient_steps, n_steps=a.n_steps, ent_coef=a.ent_coef,
                      target_entropy=a.target_entropy, use_sde=False, policy_kwargs=policy_kwargs,
-                     seed=cfg.seed, device='cpu', verbose=0)
+                     seed=cfg.seed, device=cfg.device, verbose=0)
 
 
 def init_output_bias(actor, *, pedal_deadzone, action=(0., -.275, -.8), log_std=-1., weight_scale=.01):
