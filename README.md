@@ -61,7 +61,7 @@ Same code and presets on both machines. Each machine gets its own launcher, over
 | | Mac (M4) | Windows (i9-14900 + RTX 4000 Ada) |
 |---|---|---|
 | Python | `.venv/bin/python` | conda `C:\Users\imk14\ocdenv` |
-| Overrides | cpu, forkserver, n_envs 4, gradient_steps 2, torch_threads 1 | cuda, spawn, n_envs 16, gradient_steps 8, torch_threads 2 (provisional, not tuned yet) |
+| Overrides | mps (Apple GPU), forkserver, n_envs 4, gradient_steps 2, torch_threads 1 | cuda, spawn, n_envs 16, gradient_steps 8, torch_threads 2 (provisional, not tuned yet) |
 | Runs | `runs/mac/D2` | `runs/windows/D2` |
 | Launch | `platforms/mac/train.sh`, `platforms/mac/run_d2_full.sh` | `platforms\windows\train.ps1`, `run_d2_full.ps1`, detached via `start_detached.ps1` |
 

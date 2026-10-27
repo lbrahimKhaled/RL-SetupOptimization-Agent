@@ -1,8 +1,10 @@
 # Mac (MacBook Air M4) defaults: TrainConfig overrides, one KEY=VALUE per line, applied to fresh
-# runs by platforms/mac/{train.sh,run_d2_full.sh}. Values = the measured M4 optimum
-# (docs/handoff/D1_sim_runner.md: 4 workers = P-cores, 1 torch thread, UTD 0.5).
-# device=cpu needs TrainConfig.device (commit "TrainConfig.device, default 'cpu'").
-device=cpu
+# runs by platforms/mac/{train.sh,run_d2_full.sh}. n_envs / gradient_steps / torch_threads = the
+# measured M4 optimum (docs/handoff/D1_sim_runner.md: 4 workers = P-cores, 1 torch thread, UTD 0.5).
+# device=mps (Apple GPU): Ibrahim's request, 27 Oct. NOT the measured optimum: D1_sim_runner §4b
+# measured SAC train() at 60 grad steps/s on MPS vs 198 on 1 CPU thread (3x slower at 3x256,
+# batch 512). Check with platforms/mac/README.md "GPU (MPS)"; set device=cpu if it is slower.
+device=mps
 vec_start_method=forkserver
 n_envs=4
 gradient_steps=2

@@ -3,7 +3,6 @@
 # PROVISIONAL: the values of the live run runs/D2/full_win (about 175 decisions/s, learner-bound).
 # Not yet tuned. Replace them with the bench.ps1 results (README.md, "Tuning"), keeping UTD 0.5
 # (gradient_steps = n_envs / 2).
-# device=cuda needs TrainConfig.device (commit "TrainConfig.device, default 'cpu'").
 device=cuda
 vec_start_method=spawn
 n_envs=16
