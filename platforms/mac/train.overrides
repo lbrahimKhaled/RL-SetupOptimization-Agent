@@ -1,0 +1,9 @@
+# Mac (MacBook Air M4) defaults: TrainConfig overrides, one KEY=VALUE per line, applied to fresh
+# runs by platforms/mac/{train.sh,run_d2_full.sh}. Values = the measured M4 optimum
+# (docs/handoff/D1_sim_runner.md: 4 workers = P-cores, 1 torch thread, UTD 0.5).
+# device=cpu needs TrainConfig.device (commit "TrainConfig.device, default 'cpu'").
+device=cpu
+vec_start_method=forkserver
+n_envs=4
+gradient_steps=2
+torch_threads=1
