@@ -16,13 +16,13 @@
 ## Defaults (`train.overrides`): PROVISIONAL
 | Key | Value | Source |
 |---|---|---|
-| `device` | `cuda` | Live run `full_win` |
+| `device` | `cuda` | Runs `full_win`, `sf70h_win` |
 | `vec_start_method` | `spawn` | No fork / forkserver on Windows |
-| `n_envs` | 16 | Live run `full_win`, not tuned |
+| `n_envs` | 16 | Runs `full_win`, `sf70h_win`; not tuned |
 | `gradient_steps` | 8 | UTD 0.5 (same as the Mac) |
-| `torch_threads` | 2 | Live run `full_win`, not tuned |
+| `torch_threads` | 2 | Runs `full_win`, `sf70h_win`; not tuned |
 
-`full_win` measured about 175 decisions/s and is learner-bound: GPU 25–45 % busy, because small MLPs on CUDA are dominated by kernel-launch overhead. Replace these values with the results of "Tuning" below.
+`full_win` measured about 175 decisions/s (`sf70h_win` about 160) and is learner-bound: GPU 25–45 % busy, because small MLPs on CUDA are dominated by kernel-launch overhead. Replace these values with the results of "Tuning" below.
 
 ## Launch
 Long runs must be detached with `start_detached.ps1` (`Start-Process -WindowStyle Hidden`, stdout and stderr in files). A process started with `nohup ... &` from Git Bash dies when its parent shell or tool call ends; that already killed one run.
@@ -35,11 +35,12 @@ platforms\windows\start_detached.ps1 -Log runs\windows\full_stdout.log platforms
 ```
 `run_d2_full.ps1` is the port of `scripts/run_d2_full.sh`. It uses the same environment variables (`RUN_NAME`, `MAX_WALL_H`, `TOTAL_STEPS`, `RUNS_ROOT`, `OVERRIDES_FILE`, `PYTHON_BIN`) and makes the same per-seed decisions. It keeps the same lock file, report and exit code. `tests/test_run_d2_full_ps1.py` tests it (runs on Windows only).
 
-**The pre-split run `runs/D2/full_win`** keeps the old root. Don't move it while it runs. To resume it after a crash, use either command:
+**Pre-split runs** (`runs/D2/full_win`, the live `runs/D2/sf70h_win` with its watcher, HANDOFF 27 Oct) keep the old root. Don't move them while they run. To resume one by hand (NAME = `full_win` or `sf70h_win`):
 ```powershell
-python -m rlsetup.driving.train --preset full --seed 0 --run-name full_win --resume --allow-code-change --allow-dirty   # with env.ps1's PATH / PYTHONPATH
-$env:RUNS_ROOT = 'runs/D2'; platforms\windows\train.ps1 --resume --preset full --seed 0 --run-name full_win --allow-code-change --allow-dirty
+python -m rlsetup.driving.train --preset full --seed 0 --run-name NAME --resume --allow-code-change --allow-dirty   # with env.ps1's PATH / PYTHONPATH
+$env:RUNS_ROOT = 'runs/D2'; platforms\windows\train.ps1 --resume --preset full --seed 0 --run-name NAME --allow-code-change --allow-dirty
 ```
+`sf70h_win` was started with `--set env.car=sf70h_tum --set "demos.fraction_range=(0.5,0.8)"` on top of these overrides; its config.json keeps them. A new sf70h_tum run: `platforms\windows\train.ps1 --preset full --seed 0 --run-name NAME --set env.car=sf70h_tum --set "demos.fraction_range=(0.5,0.8)"`.
 TensorBoard: `tensorboard --logdir runs/windows/D2 --host 127.0.0.1 --port 6006` (the live instance uses `runs/D2`).
 
 ## Tuning (task 2): NOT MEASURED YET
@@ -48,7 +49,7 @@ TensorBoard: `tensorboard --logdir runs/windows/D2 --host 127.0.0.1 --port 6006`
 2. `vec`: `vec_throughput.py`, spawn env workers 4 to 24, random actions, decisions/s.
 3. `e2e`: `sac_e2e.py` at UTD 0.5 (gradient_steps = workers / 2), 8, 12, 16 and 24 workers, on CPU and on CUDA. It uses a plain SB3 SAC (no n-step, no critic LayerNorm), so it ranks the configurations; check the absolute rate against the next real run's `wall_train_s`.
 
-While a run is live, `bench.ps1` skips the CUDA steps, because GPU sharing would slow both. It also records in `meta.json` that the CPU numbers are contended. For final numbers, run it once `full_win` has finished. Then choose the fastest end-to-end configuration at UTD 0.5, put it in `train.overrides`, and record the numbers in the table below.
+While a run is live, `bench.ps1` skips the CUDA steps, because GPU sharing would slow both. It also records in `meta.json` that the CPU numbers are contended. For final numbers, run it when no training run is live. Then choose the fastest end-to-end configuration at UTD 0.5, put it in `train.overrides`, and record the numbers in the table below.
 
 | Measurement | Result |
 |---|---|
