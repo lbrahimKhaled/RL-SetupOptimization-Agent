@@ -10,13 +10,26 @@ The machine the project was developed and run on: CPU training with forkserver e
 ## Defaults (`train.overrides`)
 | Key | Value | Why |
 |---|---|---|
-| `device` | `cpu` | Measured M4 optimum. `mps` was not measured; do not switch without a benchmark |
+| `device` | `mps` | Apple GPU, by request (27 Oct). The only measurement so far says it is **slower**; see below |
 | `vec_start_method` | `forkserver` | |
 | `n_envs` | 4 | 4 performance cores (D1_sim_runner §4) |
 | `gradient_steps` | 2 | UTD 0.5 |
 | `torch_threads` | 1 | Fastest learner on the M4 (D1_sim_runner §4) |
 
-These match the `TrainConfig` defaults, so a plain `python -m rlsetup.driving.train` behaves the same apart from the run root.
+Apart from `device` (the `TrainConfig` default is `cpu`), these match the `TrainConfig` defaults.
+
+## GPU (MPS)
+`device=mps` puts the SB3 model (actor, critics, entropy coefficient, replay-buffer samples) on the Apple GPU, so gradient steps, acting and evaluation run there. Env workers (physics) and BC stay on the CPU. BC runs on the CPU on every machine, so its result does not depend on the device. Runs from before this change have no `device` in `config.json`, so they resume on the CPU.
+
+The only measurement (D1_sim_runner §4b, M4, SB3 `train()`, 3×256 MLPs, batch 512) is **60 grad steps/s on MPS vs 198 on 1 CPU thread**. These networks are too small for the GPU to pay off: every step pays kernel-launch and sync overhead. Before a long run, measure it on the Mac:
+```sh
+.venv/bin/python scripts/bench/sac_train_speed.py --device cpu --threads 1 --steps 1000
+.venv/bin/python scripts/bench/sac_train_speed.py --device mps --threads 1 --steps 1000
+.venv/bin/python scripts/bench/sac_e2e.py --workers 4 --grad 2 --device mps     # end to end, UTD 0.5
+.venv/bin/python scripts/bench/sac_e2e.py --workers 4 --grad 2 --device cpu
+.venv/bin/python -m pytest -q tests/test_agent.py -k accelerator               # MPS code path
+```
+If MPS is slower end to end, set `device=cpu` in `train.overrides`, or pass `--set device=cpu` for a single run.
 
 ## Launch
 ```sh

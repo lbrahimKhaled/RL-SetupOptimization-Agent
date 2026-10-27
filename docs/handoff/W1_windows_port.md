@@ -2,7 +2,7 @@
 
 Done from a Linux cloud container (x86_64, GCC 13.3, Python 3.12, CPU torch). Here `ocd_native` was built from `ocd_first_lap` with Linux GCC. That gives a third platform, which separates platform effects from version effects. The Windows box, its live run and its GPU were **not reachable** from here. Nothing below was measured on Windows, and no Windows numbers are claimed.
 
-Base: `d1-driving-env` at 15772d1, `ocd_first_lap` `sf70h-tum-car` at 7d6f2aa, and for comparison ocd_first_lap 1c5ea98 ("Stage 6"). The Windows-only commits RL 5c90818 (TrainConfig.device) and ocd 3945634 (CMake) were not pushed, so they are **not** in this work. `device=` in `platforms/*/train.overrides` needs 5c90818.
+Base: `d1-driving-env` at 15772d1, `ocd_first_lap` `sf70h-tum-car` at 7d6f2aa, and for comparison ocd_first_lap 1c5ea98 ("Stage 6"). The Windows-only commits RL 5c90818 (TrainConfig.device) and ocd 3945634 (CMake) were not pushed, so they are **not** in this work. `TrainConfig.device` was re-implemented here (same field name, so `full_win`'s config.json loads); 5c90818 now conflicts with it, so drop it on the Windows box rather than merge it.
 
 ## 1. Mac vs Windows split
 `platforms/{mac,windows}/`: launcher, environment note, `train.overrides`, run root (`runs/mac/D2`, `runs/windows/D2`). See [platforms/README.md](../../platforms/README.md).

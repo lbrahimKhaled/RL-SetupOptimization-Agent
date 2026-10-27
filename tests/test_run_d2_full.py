@@ -109,7 +109,7 @@ def test_mac_launcher_dry_run(tmp_path):
     r = subprocess.run(['/bin/bash', str(REPO_ROOT / 'platforms' / 'mac' / 'run_d2_full.sh'), '--dry-run'],
                        cwd='/', env=e, capture_output=True, text=True, timeout=60)
     assert r.returncode == 0, r.stdout + r.stderr
-    mac = ('--set device=cpu --set vec_start_method=forkserver --set n_envs=4 --set gradient_steps=2 '
+    mac = ('--set device=mps --set vec_start_method=forkserver --set n_envs=4 --set gradient_steps=2 '
            '--set torch_threads=1')
     cmds = commands(r.stdout)
     assert cmds[0] == f'{PY} scripts/collect_demos.py --preset full {mac}'
