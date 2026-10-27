@@ -10,7 +10,7 @@ The machine the project was developed and run on: CPU training with forkserver e
 ## Defaults (`train.overrides`)
 | Key | Value | Why |
 |---|---|---|
-| `device` | `mps` | Apple GPU, by request (27 Oct). The only measurement so far says it is **slower**; see below |
+| `device` | `cpu` | MPS measured 3.6x slower on the M4 (27 Oct: 56 vs 200 grad steps/s); see below |
 | `vec_start_method` | `forkserver` | |
 | `n_envs` | 4 | 4 performance cores (D1_sim_runner §4) |
 | `gradient_steps` | 2 | UTD 0.5 |
