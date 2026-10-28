@@ -11,6 +11,7 @@ of its inputs).
 | `tum/` | TUM laptime-simulation's own lap (QSS point mass), per raceline point | `tum_tum_default.csv` (91.238 s), `tum_ers.csv` (93.243 s), `tum_none.csv` (94.886 s) |
 | `tum_pure_pursuit_ocd/` | TUM's lap driven in OCD (`sf70h_tum`, ERS on) by pure pursuit on TUM's raceline at TUM's `ers` speed profile, 50 Hz | `pp_f1.00.csv` (lap 2 = 104.700 s), `search.json` (speed-scale search and diagnostic sweep) |
 | `rl/` | The RL driver (`runs/mac/D2/sf70h_mac_r1/seed0/checkpoints/best.zip`, step 6.95M) on its own env | `rl_det_seed0.csv` (deterministic, lap 2 = 103.238 s, 50 Hz), `rl_sto_seed0..9.csv` (stochastic, 25 Hz), `summary.json` |
+| `figures/` | Made from the CSVs above only (no simulation): `scripts/comparison/compare_laps.py` and `ghost_video.py` | `lap_comparison.png` (speed and time delta vs distance, time lost per corner group, g-g, lap times), `segments.json` (per corner group: time, min / max speed, braking point, every source), `ghost_lap.png` (one video frame); `ghost_lap.mp4` (real-time ghost lap, 108 s, 23 MB) is made locally and not committed |
 
 Common conventions (OCD sources): x, y in the racetrack-database frame (the same frame as TUM's
 raceline file); yaw counter-clockwise from +x; body frame x forward, y left; lateral offsets
@@ -288,6 +289,10 @@ python3.12 -m venv ~/Documents/tum/tumenv
 
 # 3. RL driver (~35 s; needs runs/mac/D2/sf70h_mac_r1/seed0, which is not in git)
 .venv/bin/python scripts/comparison/export_rl_laps.py
+
+# figures and the ghost-lap video (~10 min; needs ffmpeg and ocd_first_lap on PYTHONPATH)
+(cd scripts/comparison && ../../.venv/bin/python compare_laps.py)
+.venv/bin/python scripts/comparison/ghost_video.py
 
 # column tables of this README
 .venv/bin/python scripts/comparison/common.py
