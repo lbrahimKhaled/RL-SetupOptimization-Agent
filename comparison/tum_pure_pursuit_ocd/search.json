@@ -1,0 +1,299 @@
+{
+ "rule": "f* = highest f in 1.00, 0.98, ... that completes lap 2 without spin/nonfinite/stall; runs below f* down to 0.80 are diagnostics only (no CSV)",
+ "f_star": 1.0,
+ "written": [
+  "pp_f1.00.csv"
+ ],
+ "footprint_inside_fraction_on_line": {
+  "raceline": 0.7013667852462085,
+  "safe_line": 1.0
+ },
+ "runs": [
+  {
+   "f": 1.0,
+   "termination": "lap2_complete",
+   "completed_lap2": true,
+   "lap_times_s": [
+    104.62279589620503,
+    104.69999999999997
+   ],
+   "lap2_s": 104.69999999999997,
+   "sim_time_s": 212.58,
+   "progress_m": 10977.907359074248,
+   "start": {
+    "s_path_m": 5188.773713834052,
+    "s_raceline_m": 5141.753389173569,
+    "speed_mps": 50.181552299999986
+   },
+   "on_track_fraction_all": 0.7042054755856618,
+   "on_track_fraction_lap2": 0.7083094555873926,
+   "max_abs_e_raceline_lap2_m": 17.737024990916662,
+   "mean_abs_e_raceline_lap2_m": 2.1134541851421393,
+   "max_abs_rear_slip_lap2": 0.37238995984700035,
+   "max_abs_sideslip_lap2_rad": 0.14833308202075698,
+   "v_max_lap2_kmh": 297.22418778297504,
+   "wall_s": 3.9891037079505622,
+   "exported": true
+  },
+  {
+   "f": 0.98,
+   "termination": "lap2_complete",
+   "completed_lap2": true,
+   "lap_times_s": [
+    104.31298378779526,
+    104.33794115826505
+   ],
+   "lap2_s": 104.33794115826505,
+   "sim_time_s": 211.96,
+   "progress_m": 10977.967347641981,
+   "start": {
+    "s_path_m": 5188.773713834052,
+    "s_raceline_m": 5141.753389173569,
+    "speed_mps": 49.17792125399998
+   },
+   "on_track_fraction_all": 0.7480656727684469,
+   "on_track_fraction_lap2": 0.7527314548591144,
+   "max_abs_e_raceline_lap2_m": 9.067876427253578,
+   "mean_abs_e_raceline_lap2_m": 1.4656554212664525,
+   "max_abs_rear_slip_lap2": 0.36807870326037767,
+   "max_abs_sideslip_lap2_rad": 0.10803025744392986,
+   "v_max_lap2_kmh": 291.2824404752222,
+   "wall_s": 4.141378749976866,
+   "exported": false
+  },
+  {
+   "f": 0.96,
+   "termination": "lap2_complete",
+   "completed_lap2": true,
+   "lap_times_s": [
+    104.62345037684082,
+    104.60852945976067
+   ],
+   "lap2_s": 104.60852945976067,
+   "sim_time_s": 212.6,
+   "progress_m": 10977.727393371079,
+   "start": {
+    "s_path_m": 5188.773713834052,
+    "s_raceline_m": 5141.7034226274,
+    "speed_mps": 48.17429020799999
+   },
+   "on_track_fraction_all": 0.7710253998118533,
+   "on_track_fraction_lap2": 0.7760994263862333,
+   "max_abs_e_raceline_lap2_m": 7.219450558017667,
+   "mean_abs_e_raceline_lap2_m": 1.131727278400007,
+   "max_abs_rear_slip_lap2": 0.34979265976368457,
+   "max_abs_sideslip_lap2_rad": 0.09748779679830075,
+   "v_max_lap2_kmh": 285.3391129589735,
+   "wall_s": 3.990042292047292,
+   "exported": false
+  },
+  {
+   "f": 0.94,
+   "termination": "lap2_complete",
+   "completed_lap2": true,
+   "lap_times_s": [
+    105.70878792521881,
+    105.70272724035159
+   ],
+   "lap2_s": 105.70272724035159,
+   "sim_time_s": 214.86,
+   "progress_m": 10978.54723712958,
+   "start": {
+    "s_path_m": 5188.773713834052,
+    "s_raceline_m": 5141.7034226274,
+    "speed_mps": 47.170659161999986
+   },
+   "on_track_fraction_all": 0.7738061993856464,
+   "on_track_fraction_lap2": 0.7791863765373699,
+   "max_abs_e_raceline_lap2_m": 5.65435307169766,
+   "mean_abs_e_raceline_lap2_m": 0.9674621993671662,
+   "max_abs_rear_slip_lap2": 0.34803572498169927,
+   "max_abs_sideslip_lap2_rad": 0.07864573269799241,
+   "v_max_lap2_kmh": 279.3571061047466,
+   "wall_s": 4.094269499997608,
+   "exported": false
+  },
+  {
+   "f": 0.92,
+   "termination": "lap2_complete",
+   "completed_lap2": true,
+   "lap_times_s": [
+    106.95314908367142,
+    106.92646149671616
+   ],
+   "lap2_s": 106.92646149671616,
+   "sim_time_s": 217.4,
+   "progress_m": 10978.527240940337,
+   "start": {
+    "s_path_m": 5188.773713834052,
+    "s_raceline_m": 5141.653456081231,
+    "speed_mps": 46.16702811599999
+   },
+   "on_track_fraction_all": 0.7759889604415824,
+   "on_track_fraction_lap2": 0.7813727323732934,
+   "max_abs_e_raceline_lap2_m": 4.371679641741128,
+   "mean_abs_e_raceline_lap2_m": 0.8283904217928119,
+   "max_abs_rear_slip_lap2": 0.3363040714948295,
+   "max_abs_sideslip_lap2_rad": 0.0632498861986519,
+   "v_max_lap2_kmh": 273.37524426772086,
+   "wall_s": 4.0255396669963375,
+   "exported": false
+  },
+  {
+   "f": 0.9,
+   "termination": "lap2_complete",
+   "completed_lap2": true,
+   "lap_times_s": [
+    108.35714284226862,
+    108.34346726706167
+   ],
+   "lap2_s": 108.34346726706167,
+   "sim_time_s": 220.3,
+   "progress_m": 10978.727202832553,
+   "start": {
+    "s_path_m": 5188.773713834052,
+    "s_raceline_m": 5141.653456081231,
+    "speed_mps": 45.16339706999999
+   },
+   "on_track_fraction_all": 0.7783931003177486,
+   "on_track_fraction_lap2": 0.7836840162421558,
+   "max_abs_e_raceline_lap2_m": 3.7111329582663353,
+   "mean_abs_e_raceline_lap2_m": 0.7292534969565024,
+   "max_abs_rear_slip_lap2": 0.3457593732749055,
+   "max_abs_sideslip_lap2_rad": 0.06671974412309371,
+   "v_max_lap2_kmh": 267.47043197404525,
+   "wall_s": 4.165740083903074,
+   "exported": false
+  },
+  {
+   "f": 0.88,
+   "termination": "lap2_complete",
+   "completed_lap2": true,
+   "lap_times_s": [
+    109.96225274123091,
+    109.9528291674166
+   ],
+   "lap2_s": 109.9528291674166,
+   "sim_time_s": 223.58,
+   "progress_m": 10977.827374317327,
+   "start": {
+    "s_path_m": 5188.773713834052,
+    "s_raceline_m": 5141.653456081231,
+    "speed_mps": 44.159766023999985
+   },
+   "on_track_fraction_all": 0.7790500044726719,
+   "on_track_fraction_lap2": 0.7844278697471349,
+   "max_abs_e_raceline_lap2_m": 3.3965481504781225,
+   "mean_abs_e_raceline_lap2_m": 0.6539813231349951,
+   "max_abs_rear_slip_lap2": 0.3484460492788858,
+   "max_abs_sideslip_lap2_rad": 0.07017119527437951,
+   "v_max_lap2_kmh": 261.54654013511333,
+   "wall_s": 4.417747875093482,
+   "exported": false
+  },
+  {
+   "f": 0.86,
+   "termination": "lap2_complete",
+   "completed_lap2": true,
+   "lap_times_s": [
+    111.7822294883511,
+    111.75573775075125
+   ],
+   "lap2_s": 111.75573775075125,
+   "sim_time_s": 227.3,
+   "progress_m": 10978.647218075756,
+   "start": {
+    "s_path_m": 5188.773713834052,
+    "s_raceline_m": 5141.603489535061,
+    "speed_mps": 43.15613497799999
+   },
+   "on_track_fraction_all": 0.7755389353277606,
+   "on_track_fraction_lap2": 0.7811381531853973,
+   "max_abs_e_raceline_lap2_m": 3.1155982264725153,
+   "mean_abs_e_raceline_lap2_m": 0.5966602723190709,
+   "max_abs_rear_slip_lap2": 0.36167290124571355,
+   "max_abs_sideslip_lap2_rad": 0.07364893623909842,
+   "v_max_lap2_kmh": 255.57926626368226,
+   "wall_s": 4.363592625013553,
+   "exported": false
+  },
+  {
+   "f": 0.84,
+   "termination": "lap2_complete",
+   "completed_lap2": true,
+   "lap_times_s": [
+    113.7889539046323,
+    113.75627115126512
+   ],
+   "lap2_s": 113.75627115126512,
+   "sim_time_s": 231.38,
+   "progress_m": 10977.72739337119,
+   "start": {
+    "s_path_m": 5188.773713834052,
+    "s_raceline_m": 5141.603489535061,
+    "speed_mps": 42.15250393199999
+   },
+   "on_track_fraction_all": 0.7716310830668165,
+   "on_track_fraction_lap2": 0.7772111834007386,
+   "max_abs_e_raceline_lap2_m": 2.8593256736715147,
+   "mean_abs_e_raceline_lap2_m": 0.5526196581909072,
+   "max_abs_rear_slip_lap2": 0.3615301328833263,
+   "max_abs_sideslip_lap2_rad": 0.07689379617608924,
+   "v_max_lap2_kmh": 249.490651635544,
+   "wall_s": 4.401645875070244,
+   "exported": false
+  },
+  {
+   "f": 0.82,
+   "termination": "lap2_complete",
+   "completed_lap2": true,
+   "lap_times_s": [
+    115.98736838807638,
+    115.96739268581004
+   ],
+   "lap2_s": 115.96739268581004,
+   "sim_time_s": 235.88,
+   "progress_m": 10977.627412425069,
+   "start": {
+    "s_path_m": 5188.773713834052,
+    "s_raceline_m": 5141.553522988892,
+    "speed_mps": 41.148872885999985
+   },
+   "on_track_fraction_all": 0.7688655248431406,
+   "on_track_fraction_lap2": 0.7742324939634356,
+   "max_abs_e_raceline_lap2_m": 2.6453084270401965,
+   "mean_abs_e_raceline_lap2_m": 0.5107615353264982,
+   "max_abs_rear_slip_lap2": 0.37854518850090735,
+   "max_abs_sideslip_lap2_rad": 0.07988262375461266,
+   "v_max_lap2_kmh": 243.6823496280574,
+   "wall_s": 4.481769416015595,
+   "exported": false
+  },
+  {
+   "f": 0.8,
+   "termination": "lap2_complete",
+   "completed_lap2": true,
+   "lap_times_s": [
+    118.3885713783709,
+    118.37785714285751
+   ],
+   "lap2_s": 118.37785714285751,
+   "sim_time_s": 240.8,
+   "progress_m": 10978.167309534212,
+   "start": {
+    "s_path_m": 5188.773713834052,
+    "s_raceline_m": 5141.553522988892,
+    "speed_mps": 40.14524183999999
+   },
+   "on_track_fraction_all": 0.7691860465116279,
+   "on_track_fraction_lap2": 0.7747930393647575,
+   "max_abs_e_raceline_lap2_m": 2.395086889288196,
+   "mean_abs_e_raceline_lap2_m": 0.47260984027078223,
+   "max_abs_rear_slip_lap2": 0.37423085726435346,
+   "max_abs_sideslip_lap2_rad": 0.08131921871616934,
+   "v_max_lap2_kmh": 237.76645067768163,
+   "wall_s": 4.866813041968271,
+   "exported": false
+  }
+ ]
+}

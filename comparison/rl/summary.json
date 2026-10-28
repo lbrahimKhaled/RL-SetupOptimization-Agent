@@ -1,0 +1,167 @@
+{
+ "checkpoint": {
+  "file": "best.zip",
+  "sha256": "43f0d089687fec913847b40be16923de98f0a755e3a431a180650dae29fd136f",
+  "num_timesteps": 6950000,
+  "training_eval_step_of_best": 6950000
+ },
+ "deterministic_lap_times_s": [
+  103.89331652777723,
+  103.23790594919477
+ ],
+ "stochastic": [
+  {
+   "seed": 0,
+   "clean": true,
+   "lap_s": 105.5027320542269,
+   "termination": "lap_complete",
+   "truncation": null,
+   "decisions": 2730,
+   "training_eval": {
+    "clean": true,
+    "lap_s": 105.5027320542269,
+    "termination": "lap_complete",
+    "truncation": null
+   },
+   "reproduces": true
+  },
+  {
+   "seed": 1,
+   "clean": false,
+   "lap_s": null,
+   "termination": "off_track",
+   "truncation": null,
+   "decisions": 2316,
+   "training_eval": {
+    "clean": false,
+    "lap_s": null,
+    "termination": "off_track",
+    "truncation": null
+   },
+   "reproduces": true
+  },
+  {
+   "seed": 2,
+   "clean": false,
+   "lap_s": null,
+   "termination": "off_track",
+   "truncation": null,
+   "decisions": 1376,
+   "training_eval": {
+    "clean": false,
+    "lap_s": null,
+    "termination": "off_track",
+    "truncation": null
+   },
+   "reproduces": true
+  },
+  {
+   "seed": 3,
+   "clean": true,
+   "lap_s": 105.48851566018423,
+   "termination": "lap_complete",
+   "truncation": null,
+   "decisions": 2729,
+   "training_eval": {
+    "clean": true,
+    "lap_s": 105.48851566018423,
+    "termination": "lap_complete",
+    "truncation": null
+   },
+   "reproduces": true
+  },
+  {
+   "seed": 4,
+   "clean": false,
+   "lap_s": null,
+   "termination": "off_track",
+   "truncation": null,
+   "decisions": 1664,
+   "training_eval": {
+    "clean": false,
+    "lap_s": null,
+    "termination": "off_track",
+    "truncation": null
+   },
+   "reproduces": true
+  },
+  {
+   "seed": 5,
+   "clean": true,
+   "lap_s": 105.80065782656762,
+   "termination": "lap_complete",
+   "truncation": null,
+   "decisions": 2737,
+   "training_eval": {
+    "clean": true,
+    "lap_s": 105.80065782656762,
+    "termination": "lap_complete",
+    "truncation": null
+   },
+   "reproduces": true
+  },
+  {
+   "seed": 6,
+   "clean": true,
+   "lap_s": 105.6590717199187,
+   "termination": "lap_complete",
+   "truncation": null,
+   "decisions": 2734,
+   "training_eval": {
+    "clean": true,
+    "lap_s": 105.6590717199187,
+    "termination": "lap_complete",
+    "truncation": null
+   },
+   "reproduces": true
+  },
+  {
+   "seed": 7,
+   "clean": true,
+   "lap_s": 105.76048276368596,
+   "termination": "lap_complete",
+   "truncation": null,
+   "decisions": 2736,
+   "training_eval": {
+    "clean": true,
+    "lap_s": 105.76048276368596,
+    "termination": "lap_complete",
+    "truncation": null
+   },
+   "reproduces": true
+  },
+  {
+   "seed": 8,
+   "clean": true,
+   "lap_s": 105.38991787442117,
+   "termination": "lap_complete",
+   "truncation": null,
+   "decisions": 2727,
+   "training_eval": {
+    "clean": true,
+    "lap_s": 105.38991787442117,
+    "termination": "lap_complete",
+    "truncation": null
+   },
+   "reproduces": true
+  },
+  {
+   "seed": 9,
+   "clean": true,
+   "lap_s": 105.41703444232598,
+   "termination": "lap_complete",
+   "truncation": null,
+   "decisions": 2727,
+   "training_eval": {
+    "clean": true,
+    "lap_s": 105.41703444232598,
+    "termination": "lap_complete",
+    "truncation": null
+   },
+   "reproduces": true
+  }
+ ],
+ "stochastic_clean": 7,
+ "stochastic_lap_mean_s": 105.57405890590437,
+ "training_eval_sto_lap_mean_s": 105.57405890590437
+}
