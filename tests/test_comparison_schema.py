@@ -22,6 +22,16 @@ def test_csv_headers_match_schema(source):
         assert meta['file'] == f.name and meta['source'] == source
 
 
+def test_pure_pursuit_ers_off_csv_matches_schema():
+    files = sorted((ROOT / 'comparison' / 'tum_pure_pursuit_ocd_noers').glob('*.csv'))
+    assert files
+    for f in files:
+        with f.open() as fh:
+            assert fh.readline().rstrip('\n').split(',') == common.names('tum_pure_pursuit_ocd'), f.name
+        meta = json.loads(f.with_suffix('.meta.json').read_text())
+        assert meta['source'] == 'tum_pure_pursuit_ocd' and meta['conditions']['ers'] is False
+
+
 def test_readme_tables_match_schema():
     text = (ROOT / 'comparison/README.md').read_text()
     for source in common.SCHEMAS:
