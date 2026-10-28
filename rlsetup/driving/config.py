@@ -118,6 +118,10 @@ class EnvConfig:
     car: str = 'av21'                    # ocd_lap.cars name: 'av21' (OCD's shipped car) or 'sf70h_tum'
     ers: bool = False                    # the car's ERS. Off: OCDBackend's 4 MJ is per lap, and DrivingEnv's
                                          # multi-lap, random-start episodes neither refill nor observe it
+    setup: str = 'p0'                    # car setup by name, rlsetup.driving.setups: 'p0' (Setup()) or 'p1_TUM'
+    reference: str = 'path'              # xi_ref: 'path' = Track.path (safe line) or 'raceline' = Track.reference
+                                         # (racetrack-database raceline = TUM's). Track progress, the lap
+                                         # line and the QSS profile stay on Track.path either way
     action_repeat: int = 2               # 2 x 50 Hz base ticks -> 25 Hz decisions (R2.3)
     pedal_deadzone: bool = True          # R3, pending Ibrahim: pedal = clip((a + .5) / 1.5, 0, 1)
     obs_gear: bool = False               # R4.3, pending Ibrahim: add gear / 8 to the observation

@@ -178,3 +178,29 @@ Machine: HP Z2 G9, i9-14900 (32 threads), 64 GB, RTX 4000 Ada 20 GB. Not admin, 
 - **Windows notes:** start long jobs with PowerShell `Start-Process -WindowStyle Hidden`; children of an interrupted Bash tool call die. `forkserver` does not exist on Windows: `--set vec_start_method=spawn`. TensorBoard: `runs/D2`, lap metrics mirrored every 2 min by a loop running `scripts/evals_to_tb.py runs/D2/sf70h_win/seed0`.
 - **Hardware instability (not our code):** 4 bluescreens in 5 days (0xF7, 0x20001, 0x1E, 0x3B), 5 unexpected shutdowns in 30 days, and random access violations inside numpy, also in an unrelated Python 3.9 on 23 Oct. Consistent with the known i9-13th/14th-gen degradation (microcode is already 0x12F). 480 isolated evaluation laps (CPU and CUDA) did not crash. A bluescreen kills training and the watcher; relaunch by hand after logging in. Raised with Ibrahim (AUB IT / HP).
 - **Not yet done (as of this section; the split and the test analysis are now done, see the top of this file):** the Mac/Windows split into per-platform folders, Windows tuning measurements, and the 7 Windows-only test failures (they also fail on the unmodified code: provenance x2, QSS cache key, R1 legacy rollout golden, run_d2_full.sh x3).
+
+## 28 Oct — two new runs: `p1_TUM` (TUM-like setup) and `p0_TUMref` (TUM raceline as xi_ref)
+Both: sf70h_tum, ERS / DRS off, time_pbrs reward from scratch, demos at f in (0.5, 0.8), BC gate recorded but not required, no step / wall-clock cap (the settings of `sf70h_mac_r1`). Branch `comparison-tum-vs-rl`.
+
+| Preset = run name | Setup | Brakes | xi_ref (obs + shaping) | QSS lap (safe line) |
+|---|---|---|---|---|
+| `p1_TUM` | `p1_TUM` | 15 kN m | Track.path (safe line), as before | 103.56 s |
+| `p0_TUMref` | `p0` (old) | 12 kN m | Track.reference = TUM's raceline | 104.78 s |
+
+- **Setups** (`rlsetup/driving/setups.py`, `EnvConfig.setup`): `p0` = `Setup()`, used by every earlier run (checked: every run's metadata and all code paths). `p1_TUM` = p0 with TUM's model assumptions (laptime-simulation `car.py` @ afa0aa7; TUM's car has no setup): roll stiffness front share 0.4533 (static axle load), aero front share 0.4508 (CzA 2.20 / 2.68), brake bias 0.49 (median ideal split over TUM's braking points), LSD drive lock 1.0 (TUM sums both rear wheels). Brakes 15 kN m (`EnvConfig.max_brake_torque_Nm`): TUM's tyres take up to 13.7 kN m, the front axle needs ~14.5 kN m at bias 0.49.
+- **Measured, TUM's `none` lap driven in OCD by pure pursuit (ERS off):** p0 + 12 kN m 105.72 s (72.6 % on track); p1_TUM + 15 kN m 104.03 s (75.9 %). QSS on the safe line: 104.78 → 103.56 s.
+- **Reference line** (`EnvConfig.reference`): `'path'` (default, unchanged) or `'raceline'`. With the raceline the scripted drivers (start placement, settle, demonstrations) follow the safe line (`DrivingEnv.drive_line`), because the raceline does not fit the 4.6 x 2.0 m car on 30 % of its length (the eval start leaves the track otherwise); the policy sees and is shaped toward the raceline. Track progress, laps and the QSS profile stay on Track.path.
+- QSS profiles are per setup and brake torque (`qss_profile.for_env`); a missing cache is built in ~2 s and written to `data/`.
+- p0 / safe-line runs are bit-identical to before (R1 legacy digest unchanged).
+
+Launch (fresh run; `--resume` for a crash, as usual):
+```sh
+# Mac
+platforms/mac/train.sh --preset p1_TUM --seed 0 --run-name p1_TUM
+platforms/mac/train.sh --preset p0_TUMref --seed 0 --run-name p0_TUMref
+```
+```powershell
+# Windows
+platforms\windows\start_detached.ps1 -Log runs\windows\p1_TUM_stdout.log platforms\windows\train.ps1 --preset p1_TUM --seed 0 --run-name p1_TUM
+platforms\windows\start_detached.ps1 -Log runs\windows\p0_TUMref_stdout.log platforms\windows\train.ps1 --preset p0_TUMref --seed 0 --run-name p0_TUMref
+```

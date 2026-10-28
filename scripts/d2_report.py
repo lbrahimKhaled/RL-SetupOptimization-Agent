@@ -56,7 +56,7 @@ def reevaluate(seed_dir, n_sto=STO_LAPS):
     cfg = train_config_from_dict(_read_json(seed_dir / 'config.json'))
     th.set_num_threads(1)
     track = Track(cfg.env.track)
-    envs = eval_envs(cfg, track, qss_profile.load_or_build(track))
+    envs = eval_envs(cfg, track, qss_profile.for_env(track, cfg.env))
     model = StagedSAC.load(seed_dir / 'checkpoints' / 'last.zip', device='cpu')
     det = flying_lap(model, envs['eval_det'], deterministic=True, seed=cfg.eval.seed)
     sto = [flying_lap(model, envs['eval_sto'], deterministic=False, seed=k) for k in range(n_sto)]

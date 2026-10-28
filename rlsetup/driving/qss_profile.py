@@ -27,6 +27,7 @@ from ocd_lap.translator import P
 from ..provenance import REPO_ROOT, run_provenance
 
 DATA_DIR = REPO_ROOT / 'data'
+BRAKE_TORQUE_NM = 12000.   # total brake torque of the QSS brake ramp (qss_lap default, EnvConfig default)
 # ocd_lap modules whose code determines the profile (the ocd_lap code_version omits some).
 # rig.py and vertical_model.py: imported by handling.py (D2 group 0, lead decision).
 _SOURCES = ('qss_lap.py', 'handling.py', 'manoeuvres.py', 'powertrain.py', 'backend.py',
@@ -37,11 +38,14 @@ def _sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def cache_key(track, setup, car='av21', ers=False):
+def cache_key(track, setup, car='av21', ers=False, brake_torque_Nm=BRAKE_TORQUE_NM):
     """Everything the profile depends on; a cache is valid only if this matches exactly.
-    The AV-21 key has no car fields, so caches built before the car option stay valid."""
+    The AV-21 key has no car fields and a 12 kN m key no brake field, so caches built before the
+    car / brake options stay valid."""
     lap_dir = Path(qss_lap.__file__).resolve().parent
     extra = {} if car == 'av21' else {'car': car, 'ers': bool(ers)}
+    if brake_torque_Nm != BRAKE_TORQUE_NM:
+        extra['brake_torque_Nm'] = float(brake_torque_Nm)
     return json.loads(json.dumps({**extra,
         'schema': 1, 'track': track.name,
         'track_path_sha256': hashlib.sha256(np.ascontiguousarray(track.path).tobytes()).hexdigest(),
@@ -73,15 +77,18 @@ class QSSProfile:
         return float(self.speed(s0 + np.linspace(0., distance_m, n + 1)).min())
 
 
-def compute(track, setup=None, *, ggv_data=None, car='av21', ers=False):
+def compute(track, setup=None, *, ggv_data=None, car='av21', ers=False, brake_torque_Nm=BRAKE_TORQUE_NM):
     """Profile for `setup` (default p0 = Setup()) on track.path: (QSSProfile, ggv_data).
     Other cars than 'av21' take `qss_lap.lap_time`'s own profile (its car geometry, tyres and
-    friction-ellipse exponent; DRS off, as OCDBackend has none)."""
+    friction-ellipse exponent; DRS off, as OCDBackend has none). `brake_torque_Nm`: total torque
+    of the g-g-v brake ramp (the env's max_brake_torque_Nm)."""
     setup = Setup() if setup is None else setup
+    if ggv_data is None and brake_torque_Nm != BRAKE_TORQUE_NM:
+        ggv_data = qss_lap.measure_ggv(setup, car=car, brake_torque_Nm=brake_torque_Nm)
     if car != 'av21':
         r = qss_lap.lap_time(setup, track, ggv_data=ggv_data, car=car, ers=ers, drs=False)
         v = np.asarray(r['v_profile'], dtype=float)
-        meta = {'key': cache_key(track, setup, car, ers), 'ggv': r['ggv'], 'traction': r['traction'],
+        meta = {'key': cache_key(track, setup, car, ers, brake_torque_Nm), 'ggv': r['ggv'], 'traction': r['traction'],
                 'drag_coeff': r['drag_coeff']}
         profile = QSSProfile(np.array(track.path[:, 0]), np.r_[v, v[0]], r['lap_time_s'], meta)
         return profile, (np.asarray(r['ggv']), np.asarray(r['traction']), r['details'])
@@ -103,14 +110,16 @@ def compute(track, setup=None, *, ggv_data=None, car='av21', ers=False):
         drag_coeff=drag, m_veh=params[P + 'mass_vehicle_kg'], ggv=ggv_full, v_max=100.)
     t = tph.calc_t_profile.calc_t_profile(vx_profile=np.r_[v, v[0]], el_lengths=el)
     # ---
-    meta = {'key': cache_key(track, setup), 'ggv': np.asarray(ggv).tolist(),
+    meta = {'key': cache_key(track, setup, brake_torque_Nm=brake_torque_Nm), 'ggv': np.asarray(ggv).tolist(),
             'traction': np.asarray(traction).tolist(), 'drag_coeff': drag}
     profile = QSSProfile(np.array(track.path[:, 0]), np.r_[v, v[0]], float(t[-1]), meta)
     return profile, (ggv, traction, details)
 
 
-def default_path(track_name, tag='p0', car='av21', ers=False):
+def default_path(track_name, tag='p0', car='av21', ers=False, brake_torque_Nm=BRAKE_TORQUE_NM):
     suffix = '' if car == 'av21' else f'_{car}' + ('_ers' if ers else '')
+    if brake_torque_Nm != BRAKE_TORQUE_NM:
+        suffix += f'_brake{brake_torque_Nm:g}'
     return DATA_DIR / f'qss_profile_{track_name}_{tag}{suffix}.npz'
 
 
@@ -128,19 +137,29 @@ def load(path):
         return QSSProfile(f['s'], f['v'], float(f['lap_time_s']), json.loads(str(f['meta'])))
 
 
-def load_or_build(track, path=None, *, rebuild=False, car='av21', ers=False):
-    """p0 profile for `track`: from the cache file if its key matches, else recomputed.
-    Writes the file only if it is missing or `rebuild`. Call once in the main process before
-    starting vector-env workers."""
-    path = Path(path) if path is not None else default_path(track.name, car=car, ers=ers)
-    key = cache_key(track, Setup(), car, ers)
+def load_or_build(track, path=None, *, rebuild=False, car='av21', ers=False, setup='p0',
+                  brake_torque_Nm=BRAKE_TORQUE_NM):
+    """Profile of the named setup `setup` (rlsetup.driving.setups) for `track`: from the cache
+    file if its key matches, else recomputed. Writes the file only if it is missing or `rebuild`.
+    Call once in the main process before starting vector-env workers."""
+    from .setups import get as get_setup
+    path = Path(path) if path is not None else default_path(track.name, setup, car=car, ers=ers,
+                                                            brake_torque_Nm=brake_torque_Nm)
+    s = get_setup(setup)
+    key = cache_key(track, s, car, ers, brake_torque_Nm)
     if path.exists() and not rebuild:
         cached = load(path)
         if cached.meta.get('key') == key:
             return cached
         warnings.warn(f'{path.name}: cache key does not match the current code/track; recomputing '
                       'in memory (rebuild with scripts/build_qss_profile.py)', stacklevel=2)
-        return compute(track, car=car, ers=ers)[0]
-    profile = compute(track, car=car, ers=ers)[0]
+        return compute(track, s, car=car, ers=ers, brake_torque_Nm=brake_torque_Nm)[0]
+    profile = compute(track, s, car=car, ers=ers, brake_torque_Nm=brake_torque_Nm)[0]
     save(profile, path)
     return load(path)
+
+
+def for_env(track, env_cfg, **kw):
+    """load_or_build for an EnvConfig: its car, ERS, named setup and brake torque."""
+    return load_or_build(track, car=env_cfg.car, ers=env_cfg.ers, setup=env_cfg.setup,
+                         brake_torque_Nm=env_cfg.max_brake_torque_Nm, **kw)
