@@ -55,6 +55,22 @@ class ReferenceLine:
         return cls(track.path, f'{track.name}:Track.path')
 
     @classmethod
+    def from_track_raceline(cls, track):
+        """The racetrack-database racing line (Track.reference), byte-identical to TUM's Shanghai
+        raceline in laptime-simulation. With the 4.6 x 2.0 m sf70h_tum footprint placed exactly on
+        it, only 70 % of it (per metre) is inside the track (comparison/README.md)."""
+        return cls(track.reference, f'{track.name}:Track.reference')
+
+    @classmethod
+    def for_track(cls, track, which='path'):
+        """xi_ref named by EnvConfig.reference: 'path' (Track.path) or 'raceline' (Track.reference)."""
+        if which == 'path':
+            return cls.from_track_path(track)
+        if which == 'raceline':
+            return cls.from_track_raceline(track)
+        raise ValueError(f"unknown reference {which!r} (known: 'path', 'raceline')")
+
+    @classmethod
     def from_csv(cls, path):
         """x, y [m] columns in the track's frame ('#' comments allowed), e.g. Jad's laps."""
         xy = np.loadtxt(path, delimiter=',', comments='#', ndmin=2)

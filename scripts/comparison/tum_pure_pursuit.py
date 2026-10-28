@@ -4,6 +4,7 @@
     .venv/bin/python scripts/comparison/tum_pure_pursuit.py            # needs comparison/tum/tum_ers.csv
     .venv/bin/python scripts/comparison/tum_pure_pursuit.py --no-ers --tum-csv comparison/tum/tum_none.csv \
         --out comparison/tum_pure_pursuit_ocd_noers                    # ERS off: the RL run's conditions
+    add --setup p1_TUM --brake-torque 15000 for the TUM-like setup (rlsetup/driving/setups.py)
 
 Car and simulator: ocd_first_lap OCDBackend(powertrain='engine', car='sf70h_tum', ers=True,
 max_brake_torque_Nm=12000) with the p0 setup `Setup()` (as the RL driver's env, but ERS on). DRS
@@ -51,11 +52,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import common  # noqa: E402
 import ocd_trace  # noqa: E402
 from ocd_lap.backend import OCDBackend, StartPose, Inputs, DT  # noqa: E402
-from ocd_lap.car_setup import Setup  # noqa: E402
 from ocd_lap.simulation import CONTROL_STEPS  # noqa: E402
 from ocd_lap.track import Track  # noqa: E402
 from rlsetup.driving.config import EnvConfig, DemoConfig  # noqa: E402
 from rlsetup.driving.demo_driver import DemoDriver  # noqa: E402
+from rlsetup.driving import setups  # noqa: E402
 from rlsetup.provenance import run_provenance  # noqa: E402
 
 CAR = 'sf70h_tum'
@@ -163,18 +164,21 @@ def run(f, track, geo, profile, setup):
 
 
 def main():
+    global ERS, MAX_BRAKE_TORQUE_NM
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--tum-csv', default=str(common.OUT_ROOT / 'tum' / 'tum_ers.csv'))
     ap.add_argument('--out', default=str(common.OUT_ROOT / 'tum_pure_pursuit_ocd'))
     ap.add_argument('--no-ers', action='store_true', help='ERS off (no refill at the line)')
+    ap.add_argument('--setup', default='p0', help='named setup (rlsetup.driving.setups)')
+    ap.add_argument('--brake-torque', type=float, default=MAX_BRAKE_TORQUE_NM, help='total brake torque, N m')
     args = ap.parse_args()
-    global ERS
     ERS = not args.no_ers
+    MAX_BRAKE_TORQUE_NM = args.brake_torque
     out = Path(args.out)
     track = Track('Shanghai')
     geo = ocd_trace.Geometry(track)
     profile = TumProfile(args.tum_csv, geo.raceline)
-    setup = Setup()
+    setup = setups.get(args.setup)
     tum_meta = json.loads(Path(args.tum_csv).with_suffix('.meta.json').read_text())
     prov = run_provenance(track.name)
     ceiling = {'raceline': line_inside_fraction(track, geo.raceline), 'safe_line': line_inside_fraction(track, geo.path_ref)}
@@ -201,7 +205,7 @@ def main():
             common.write_meta(path, {
                 'source': 'tum_pure_pursuit_ocd', 'summary': summary,
                 'lap_time_s': summary['lap2_s'], 'speed_scale_f': summary['f'],
-                'conditions': {'car': CAR, 'setup': asdict(setup), 'ers': ERS, 'ers_refill_at_line': ERS,
+                'conditions': {'car': CAR, 'setup_name': args.setup, 'setup': asdict(setup), 'ers': ERS, 'ers_refill_at_line': ERS,
                                'drs': False, 'recuperation': False,
                                'max_brake_torque_Nm': MAX_BRAKE_TORQUE_NM, 'brake_bias_front': setup.brake_bias_front,
                                'line': 'Track.reference (TUM raceline)', 'speed_profile': f"TUM variant {tum_meta.get('variant', Path(args.tum_csv).stem)}",

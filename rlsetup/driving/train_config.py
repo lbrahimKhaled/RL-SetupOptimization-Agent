@@ -238,8 +238,31 @@ def _r1_warm_smoke():
                    stop=replace(c.stop, plateau=False))
 
 
+def _p1_tum():
+    """sf70h_tum car with the TUM-like setup p1_TUM (rlsetup/driving/setups.py) and 15 kN m brakes,
+    ERS / DRS off; otherwise the settings of run sf70h_mac_r1: time_pbrs reward from scratch, demo
+    speed fraction (0.5, 0.8), BC gate recorded but not required, no step / wall-clock cap (runs
+    until stopped). Run name: p1_TUM."""
+    c = TrainConfig(preset='p1_TUM')
+    return replace(c, total_timesteps=1_000_000_000, max_wall_h=None,
+                   env=replace(c.env, car='sf70h_tum', ers=False, setup='p1_TUM', max_brake_torque_Nm=15000.,
+                               reward=replace(c.env.reward, mode='time_pbrs')),
+                   demos=replace(c.demos, fraction_range=(.5, .8)),
+                   bc=replace(c.bc, gate_required=False))
+
+
+def _p0_tumref():
+    """Like p1_TUM but with the old setup p0 (12 kN m brakes) and TUM's raceline as xi_ref
+    (EnvConfig.reference = 'raceline', Track.reference): the reference-line counterpart of
+    p1_TUM. Run name: p0_TUMref."""
+    c = _p1_tum()
+    return replace(c, preset='p0_TUMref',
+                   env=replace(c.env, setup='p0', max_brake_torque_Nm=12000., reference='raceline'))
+
+
 PRESETS = {'full': lambda: TrainConfig(preset='full'), 'smoke': _smoke, 'r1_warm': _r1_warm,
-           'r1_warm_smoke': _r1_warm_smoke}
+           'r1_warm_smoke': _r1_warm_smoke, 'p1_TUM': _p1_tum,
+           'p0_TUMref': _p0_tumref}
 
 
 # --- dict / override helpers (JSON round trip of nested frozen dataclasses) -------------------------

@@ -99,7 +99,7 @@ class DemoPolicy:
         self.env = env.unwrapped
         self.fraction = float(fraction)
         e = self.env
-        self.driver = DemoDriver(e.ref, e.cfg.demo, pedal_deadzone=e.cfg.pedal_deadzone,
+        self.driver = DemoDriver(e.drive_line, e.cfg.demo, pedal_deadzone=e.cfg.pedal_deadzone,
                                  control_dt_s=e.decision_dt, car=e.cfg.car)
 
     def reset(self):
@@ -111,4 +111,4 @@ class DemoPolicy:
 
     def __call__(self, observation=None):
         e = self.env
-        return self.driver.act(e.state, e.s_ref, self.target_speed())
+        return self.driver.act(e.state, e.s_drive, self.target_speed())

@@ -23,7 +23,7 @@ def main(argv=None):
     args = p.parse_args(argv)
     cfg = apply_overrides(PRESETS[args.preset](), args.overrides)
     track = Track(cfg.env.track)
-    qss = qss_profile.load_or_build(track)
+    qss = qss_profile.for_env(track, cfg.env)
     try:
         path, meta, used = ensure_demos(cfg.env, cfg.demos, qss, track_sha256(track), cfg.demo_dir,
                                         start_method=cfg.vec_start_method)

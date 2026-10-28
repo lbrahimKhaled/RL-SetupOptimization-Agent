@@ -74,13 +74,12 @@ import math
 import gymnasium as gym
 import numpy as np
 from ocd_lap.backend import OCDBackend, StartPose, DT
-from ocd_lap.car_setup import Setup
 from ocd_lap.env import OCDRacingEnv, RewardWeights
 from ocd_lap.simulation import CONTROL_STEPS
 from .config import EnvConfig
 from .demo_driver import DemoDriver, action_to_inputs
 from .reference import ReferenceLine, track_grid
-from . import qss_profile
+from . import qss_profile, setups
 
 EGO_SIZE = 9
 NO_LAP_PROGRESS_M = -1e7       # training: base progress start, lap completion out of reach
@@ -105,10 +104,11 @@ def _zero_costs():
 
 class DrivingEnv(OCDRacingEnv):
     def __init__(self, config=EnvConfig(), *, setup=None, track=None, reference=None, qss=None):
-        """`setup`: default car setup (None = p0 = `Setup()`); `track`: optional prebuilt
+        """`setup`: default car setup (None = the named setup `config.setup`, p0 = `Setup()` by
+        default); `track`: optional prebuilt
         `ocd_lap.track.Track` (build it once in the main process before vector-env workers
         start, R1; OCDRacingEnv.__init__ still loads the track by name, which only reads the
-        safe-line cache once it is valid); `reference`: `ReferenceLine` (default Track.path);
+        safe-line cache once it is valid); `reference`: `ReferenceLine` (default: config.reference);
         `qss`: `QSSProfile` (default: the cached p0 profile)."""
         cfg = self.cfg = config
         if not (isinstance(cfg.action_repeat, int) and cfg.action_repeat >= 1):
@@ -127,7 +127,7 @@ class DrivingEnv(OCDRacingEnv):
             if not (math.isfinite(n) and n >= 1 and abs(n - round(n)) <= 1e-9 * max(1., n)):
                 raise ValueError(f'{name} must be a positive multiple of the decision period '
                                  f'{self.decision_dt:g} s')
-        setup = Setup() if setup is None else setup   # p0 (DECISIONS #4); never OCD's shipped car
+        setup = setups.get(cfg.setup) if setup is None else setup   # p0 by default (DECISIONS #4); never OCD's shipped car
         super().__init__(cfg.track if track is None else track.name, setup,
                          vmax=cfg.track_vmax_mps if track is None else track.vmax,
                          max_time_s=cfg.max_episode_s, weights=weights,
@@ -136,10 +136,14 @@ class DrivingEnv(OCDRacingEnv):
                                                             car=cfg.car, ers=cfg.ers))
         if track is not None:
             self.track = track
-        self.ref = reference if reference is not None else ReferenceLine.from_track_path(self.track)
+        self.ref = reference if reference is not None else ReferenceLine.for_track(self.track, cfg.reference)
         self.grid = track_grid(self.track, self.ref, cfg.obs.grid_m)
-        self.qss = qss if qss is not None else qss_profile.load_or_build(self.track, car=cfg.car, ers=cfg.ers)
-        self.settle_driver = DemoDriver(self.ref, cfg.demo, pedal_deadzone=cfg.pedal_deadzone,
+        self.qss = qss if qss is not None else qss_profile.for_env(self.track, cfg)
+        # Line the scripted drivers follow (start placement, settle, demonstrations): xi_ref, except
+        # for the raceline, which does not fit the car everywhere; then Track.path, the safe line
+        # (whose arc length is the env's track position self.s).
+        self.drive_line = self.ref if cfg.reference == 'path' else ReferenceLine.from_track_path(self.track)
+        self.settle_driver = DemoDriver(self.drive_line, cfg.demo, pedal_deadzone=cfg.pedal_deadzone,
                                         control_dt_s=self.decision_dt, car=cfg.car)
         o = cfg.obs
         k = np.arange(1, o.n_preview + 1)
@@ -177,6 +181,11 @@ class DrivingEnv(OCDRacingEnv):
         return action_to_inputs(self._validate_action(action).astype(float), self.cfg.pedal_deadzone)
 
     # --- geometry -------------------------------------------------------------------------------
+    @property
+    def s_drive(self):
+        """Arc length on drive_line at the car: s_ref when it is xi_ref, else the track position s."""
+        return self._s_ref if self.drive_line is self.ref else float(self.s % self.track.length)
+
     @property
     def s_ref(self):
         return self._s_ref
@@ -275,17 +284,18 @@ class DrivingEnv(OCDRacingEnv):
     def _start_and_settle(self, setup, s0, v0, pose, trace):
         """Place the car and run the settle phase. Returns False if it left the track."""
         backend, track, ref = self.backend, self.track, self.ref
+        on_ref = self.drive_line is ref
         if pose is None:
-            s_ref0 = float(self.grid.s_ref_at(s0))
-            x, y = ref.point(s_ref0)
-            pose = StartPose(float(x), float(y), ref.heading(s_ref0), v0)
+            s_ref0 = float(self.grid.s_ref_at(s0)) if on_ref else float(s0 % track.length)
+            x, y = self.drive_line.point(s_ref0)
+            pose = StartPose(float(x), float(y), self.drive_line.heading(s_ref0), v0)
         else:
             s_ref0 = None
         self.state = st = backend.reset(setup, pose)
         if not track.contains_car(st['x'], st['y'], st['yaw'], self.footprint):
             return False
         self.s = float(track.match([st['x'], st['y']], s0)[0])
-        self._s_ref = ref.match((st['x'], st['y']), s_ref0)
+        self._s_ref = ref.match((st['x'], st['y']), s_ref0 if on_ref else float(self.grid.s_ref_at(self.s)))
         self._settle_steps = self.physics_steps = 0
         self.last_action = np.array([0., -1., -1.], dtype=np.float32)  # nothing pressed
         self._kin = None
@@ -296,7 +306,7 @@ class DrivingEnv(OCDRacingEnv):
         steps = self.cfg.action_repeat * CONTROL_STEPS
         for _ in range(n_decisions):
             self._push_history(self._ego())
-            action = self.settle_driver.act(st, self._s_ref, v0)
+            action = self.settle_driver.act(st, self.s_drive, v0)
             inputs = self.to_inputs(action)
             for _ in range(steps):
                 st = backend.step(inputs)

@@ -124,7 +124,7 @@ def main():
     ckpt = run_dir / 'checkpoints' / args.checkpoint
     model = StagedSAC.load(ckpt, device='cpu')
     track = Track(cfg.env.track)
-    qss = qss_profile.load_or_build(track, car=cfg.env.car, ers=cfg.env.ers)
+    qss = qss_profile.for_env(track, cfg.env)
     det_env = RecordingEnv(replace(cfg.env, evaluation=True, record_telemetry=True), track=track, qss=qss)
     sto_env = RecordingEnv(replace(cfg.env, evaluation=True, eval_laps=1, record_telemetry=True), track=track, qss=qss)
     evals = {}
