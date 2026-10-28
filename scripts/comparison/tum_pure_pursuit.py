@@ -2,6 +2,8 @@
 """Drive TUM's Shanghai lap in OCD: pure pursuit on TUM's raceline at TUM's `ers` speed profile.
 
     .venv/bin/python scripts/comparison/tum_pure_pursuit.py            # needs comparison/tum/tum_ers.csv
+    .venv/bin/python scripts/comparison/tum_pure_pursuit.py --no-ers --tum-csv comparison/tum/tum_none.csv \
+        --out comparison/tum_pure_pursuit_ocd_noers                    # ERS off: the RL run's conditions
 
 Car and simulator: ocd_first_lap OCDBackend(powertrain='engine', car='sf70h_tum', ers=True,
 max_brake_torque_Nm=12000) with the p0 setup `Setup()` (as the RL driver's env, but ERS on). DRS
@@ -58,6 +60,7 @@ from rlsetup.provenance import run_provenance  # noqa: E402
 
 CAR = 'sf70h_tum'
 BRAKE_CAP = 1.                      # DemoConfig.brake_cap override (see docstring)
+ERS = True                          # --no-ers: ERS off, no refill (the RL run's conditions)
 MAX_BRAKE_TORQUE_NM = EnvConfig().max_brake_torque_Nm     # 12 kN m, DECISIONS #5
 RUN_IN_M = EnvConfig().eval_run_in_m                      # 200 m
 LAPS = EnvConfig().eval_laps                              # 2
@@ -95,7 +98,7 @@ class TumProfile:
 def run(f, track, geo, profile, setup):
     """One flying-lap run at speed scale f. Returns (rows, summary)."""
     cfg = replace(DemoConfig(), brake_cap=BRAKE_CAP)
-    backend = OCDBackend(powertrain='engine', car=CAR, ers=True, max_brake_torque_Nm=MAX_BRAKE_TORQUE_NM)
+    backend = OCDBackend(powertrain='engine', car=CAR, ers=ERS, max_brake_torque_Nm=MAX_BRAKE_TORQUE_NM)
     footprint = backend.spec.footprint
     raceline = geo.raceline
     driver = DemoDriver(raceline, cfg, pedal_deadzone=True, control_dt_s=CONTROL_STEPS * DT, car=CAR)
@@ -128,7 +131,7 @@ def run(f, track, geo, profile, setup):
         d0 = dist
         dist += (g['s_path_m'] - s_path + track.length / 2) % track.length - track.length / 2
         s_path, s_ref = g['s_path_m'], g['s_raceline_m']
-        if clock.update(d0, dist, t0, t):
+        if clock.update(d0, dist, t0, t) and ERS:
             backend.refill_ers()                 # per-lap 4 MJ, as ocd_lap.simulation.drive
         row = dict(t_s=t, lap=clock.lap, t_lap_s=clock.t_lap(t), progress_m=dist, **g,
                    **ocd_trace.backend_sample(backend, st, inputs), on_track=int(inside), target_speed_mps=target)
@@ -163,7 +166,10 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('--tum-csv', default=str(common.OUT_ROOT / 'tum' / 'tum_ers.csv'))
     ap.add_argument('--out', default=str(common.OUT_ROOT / 'tum_pure_pursuit_ocd'))
+    ap.add_argument('--no-ers', action='store_true', help='ERS off (no refill at the line)')
     args = ap.parse_args()
+    global ERS
+    ERS = not args.no_ers
     out = Path(args.out)
     track = Track('Shanghai')
     geo = ocd_trace.Geometry(track)
@@ -195,10 +201,10 @@ def main():
             common.write_meta(path, {
                 'source': 'tum_pure_pursuit_ocd', 'summary': summary,
                 'lap_time_s': summary['lap2_s'], 'speed_scale_f': summary['f'],
-                'conditions': {'car': CAR, 'setup': asdict(setup), 'ers': True, 'ers_refill_at_line': True,
+                'conditions': {'car': CAR, 'setup': asdict(setup), 'ers': ERS, 'ers_refill_at_line': ERS,
                                'drs': False, 'recuperation': False,
                                'max_brake_torque_Nm': MAX_BRAKE_TORQUE_NM, 'brake_bias_front': setup.brake_bias_front,
-                               'line': 'Track.reference (TUM raceline)', 'speed_profile': 'TUM variant ers',
+                               'line': 'Track.reference (TUM raceline)', 'speed_profile': f"TUM variant {tum_meta.get('variant', Path(args.tum_csv).stem)}",
                                'physics_dt_s': DT, 'control_dt_s': CONTROL_STEPS * DT, 'sample_rate_hz': 1 / (CONTROL_STEPS * DT),
                                'run_in_m': RUN_IN_M, 'laps': LAPS, 'footprint_m': backend_footprint()},
                 'controller': {'class': 'rlsetup.driving.demo_driver.DemoDriver',

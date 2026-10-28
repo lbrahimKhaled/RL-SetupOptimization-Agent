@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Lap comparison of the sf70h_tum car at Shanghai from the comparison/ data (no simulation is run):
-RL driver (lap 2, deterministic), TUM QSS (`none`: no ERS / DRS = the RL run's conditions;
-`tum_default`: ERS with recuperation + DRS), TUM's `ers` speeds driven in OCD by pure pursuit.
+"""Lap comparison of the sf70h_tum car at Shanghai from the comparison/ data (no simulation is run),
+ERS and DRS off everywhere (the RL run's conditions): RL driver (lap 2, deterministic), TUM QSS
+`none`, and that TUM lap driven in OCD by pure pursuit with ERS off
+(comparison/tum_pure_pursuit_ocd_noers).
 
-Writes comparison/figures/lap_comparison.png (speed and time delta vs lap distance, time lost per
-corner group, g-g) and comparison/figures/segments.json (per corner group: time, minimum and entry
+Writes comparison/figures/lap_comparison.png (speed, lateral offset from the RL driver's reference
+line xi_ref = Track.path, and time delta vs lap distance; time lost per corner group; g-g) and
+comparison/figures/segments.json (per corner group: time, minimum and entry
 speed, braking point, for every source). Corner groups run from one speed peak of TUM `none` to the
 next, so each holds one braking zone and its corner(s). Distance = arc length on TUM's raceline (OCD
 laps projected onto it; TUM's spline rescaled to the polyline length).
@@ -19,9 +21,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from ghost_video import CMP, L_RACELINE, ocd_lap2, read_csv, tum_lap, t_at_s
 
-COLORS = {'rl': '#2a78d6', 'tum_none': '#eb6834', 'tum_default': '#1baf7a', 'pp': '#eda100'}
-LABELS = {'rl': 'RL driver (OCD, ERS off)', 'tum_none': 'TUM QSS, ERS/DRS off',
-          'tum_default': 'TUM QSS default (ERS+recup, DRS)', 'pp': "TUM's speeds in OCD (pure pursuit, ERS on)"}
+COLORS = {'rl': '#2a78d6', 'tum_none': '#eb6834', 'pp': '#1baf7a'}
+LABELS = {'rl': 'RL driver (OCD)', 'tum_none': 'TUM QSS (point mass)', 'pp': 'TUM QSS lap driven in OCD (pure pursuit)'}
 INK, INK2, SURFACE = '#0b0b0b', '#52514e', '#fcfcfb'
 
 
@@ -56,11 +57,32 @@ def brake_point(lap, apex, prev_apex, grid=1.):
     return float(ss[np.argmax(v)] % L_RACELINE)
 
 
+def project(pts, line_xy):
+    """(arc length on the closed polyline `line_xy`, signed lateral offset, + = left) of each point."""
+    if np.allclose(line_xy[0], line_xy[-1]):
+        line_xy = line_xy[:-1]
+    a = line_xy; b = np.roll(line_xy, -1, axis=0)
+    seg = b - a
+    seg_len = np.hypot(seg[:, 0], seg[:, 1])
+    s0 = np.r_[0., np.cumsum(seg_len)[:-1]]
+    out_s, out_e = [], []
+    for p in pts:
+        u = np.clip(((p - a) * seg).sum(1) / seg_len ** 2, 0, 1)
+        q = a + u[:, None] * seg
+        d = np.hypot(*(p - q).T)
+        k = int(np.argmin(d))
+        side = np.sign(seg[k, 0] * (p[1] - a[k, 1]) - seg[k, 1] * (p[0] - a[k, 0]))
+        out_s.append(s0[k] + u[k] * seg_len[k]); out_e.append(side * d[k])
+    return np.array(out_s), np.array(out_e)
+
+
 def main():
+    from ocd_lap.track import Track
+    track = Track('Shanghai')
     laps = {'rl': ocd_lap2(CMP / 'rl' / 'rl_det_seed0.csv'),
             'tum_none': tum_lap(CMP / 'tum' / 'tum_none.csv'),
-            'tum_default': tum_lap(CMP / 'tum' / 'tum_tum_default.csv'),
-            'pp': ocd_lap2(CMP / 'tum_pure_pursuit_ocd' / 'pp_f1.00.csv')}
+            'pp': ocd_lap2(CMP / 'tum_pure_pursuit_ocd_noers' / 'pp_f1.00.csv')}
+    off_pp = 1 - float(np.nanmean(laps['pp']['on_track']))
     ref = laps['tum_none']
     pk = peaks(ref['speed_mps'], ref['s'])
     bounds = [ref['s'][i] for i in pk]
@@ -93,13 +115,14 @@ def main():
     # --- figure ---
     plt.rcParams.update({'font.size': 9, 'axes.edgecolor': '#c3c2b7', 'axes.labelcolor': INK2,
                          'xtick.color': INK2, 'ytick.color': INK2, 'axes.titlecolor': INK})
-    fig = plt.figure(figsize=(14, 10), facecolor=SURFACE)
-    gs = fig.add_gridspec(3, 2, width_ratios=[2.2, 1], height_ratios=[1.15, 1, 1], left=.06, right=.985,
-                          bottom=.06, top=.87, hspace=.42, wspace=.18)
-    ax_v = fig.add_subplot(gs[0, 0]); ax_dt = fig.add_subplot(gs[1, 0], sharex=ax_v)
-    ax_seg = fig.add_subplot(gs[2, 0]); ax_gg = fig.add_subplot(gs[1:, 1]); ax_tab = fig.add_subplot(gs[0, 1])
-    order = ['tum_default', 'tum_none', 'pp', 'rl']
-    for ax in (ax_v, ax_dt):
+    fig = plt.figure(figsize=(14, 12.5), facecolor=SURFACE)
+    gs = fig.add_gridspec(4, 2, width_ratios=[2.2, 1], height_ratios=[1.1, 1, 1, 1], left=.06, right=.985,
+                          bottom=.05, top=.89, hspace=.45, wspace=.18)
+    ax_v = fig.add_subplot(gs[0, 0]); ax_e = fig.add_subplot(gs[1, 0], sharex=ax_v)
+    ax_dt = fig.add_subplot(gs[2, 0], sharex=ax_v)
+    ax_seg = fig.add_subplot(gs[3, 0]); ax_gg = fig.add_subplot(gs[1:3, 1]); ax_tab = fig.add_subplot(gs[0, 1])
+    order = ['tum_none', 'pp', 'rl']
+    for ax in (ax_v, ax_e, ax_dt):
         for k in range(1, len(edges) - 1):
             ax.axvline(edges[k] / 1000, color='#e5e4df', lw=.8, zorder=0)
         ax.set_facecolor(SURFACE); ax.grid(axis='y', color='#e5e4df', lw=.6)
@@ -113,7 +136,44 @@ def main():
     ax_v.set_title('Speed along the lap', loc='left', fontsize=10.5)
     grid = np.linspace(0, L_RACELINE, 2000)
     t_ref = np.interp(grid, ref['s'], ref['t'])
-    for name in ['tum_default', 'pp', 'rl']:
+    # lateral offsets from xi_ref (Track.path), along the TUM raceline's arc length
+    path_xy, race_xy = track.path[:, 1:3], track.reference[:, 1:3]
+    # track edges: where the normal to xi_ref at each station (every 2 m) meets the track boundary
+    from shapely.geometry import LineString
+    from rlsetup.driving.reference import ReferenceLine
+    ref_line = ReferenceLine.from_track_path(track)
+    st = np.arange(0., ref_line.length, 2.)
+    p_st = np.array([ref_line.point(si) for si in st])
+    psi = np.array([ref_line.heading(si) for si in st])
+    n_left = np.column_stack([-np.sin(psi), np.cos(psi)])
+    boundary = track.polygon.boundary
+    e_l, e_r = np.full(len(st), np.nan), np.full(len(st), np.nan)
+    for i, (p0, n) in enumerate(zip(p_st, n_left)):
+        hit = LineString([p0 - 25 * n, p0 + 25 * n]).intersection(boundary)
+        pts = np.array([[q.x, q.y] for q in getattr(hit, 'geoms', [hit]) if not q.is_empty])
+        if len(pts):
+            d = (pts - p0) @ n
+            if (d > 0).any():
+                e_l[i] = d[d > 0].min()
+            if (d < 0).any():
+                e_r[i] = d[d < 0].max()
+    s_g, _ = project(p_st, race_xy)
+    o = np.argsort(s_g)
+    for e, lab in ((e_l, 'track edges'), (e_r, None)):
+        ax_e.plot(s_g[o] / 1000, e[o], color='#8f8e88', lw=.9, label=lab)
+    _, e_race = project(race_xy, path_xy)
+    ax_e.plot(track.reference[:, 0] / 1000, e_race, color=COLORS['tum_none'], lw=1.4,
+              label='TUM raceline (TUM QSS; pure pursuit target)')
+    for name in ['pp', 'rl']:
+        lap = laps[name]
+        ax_e.plot(lap['s'] / 1000, lap['e_path_m'], color=COLORS[name], lw=2 if name == 'rl' else 1.2,
+                  label=LABELS[name])
+    ax_e.axhline(0, color='#52514e', lw=1.3, label='ξref = RL reference line (safe line), offset 0')
+    ax_e.set_ylabel('offset from ξref (m, + = left)')
+    ax_e.set_title("Where each car drives across the track, relative to the RL driver's reference line ξref",
+                   loc='left', fontsize=10.5)
+    ax_e.legend(loc='lower left', fontsize=7.5, ncol=3, frameon=False)
+    for name in ['pp', 'rl']:
         lap = laps[name]
         dt = np.interp(grid, lap['s'], lap['t']) - t_ref
         ax_dt.plot(grid / 1000, dt, color=COLORS[name], lw=2 if name == 'rl' else 1.4)
@@ -150,22 +210,23 @@ def main():
     ax_gg.set_title('g-g diagram', loc='left', fontsize=10.5)
 
     ax_tab.axis('off')
-    rows = [['', 'lap 2 (s)', 'vs TUM QSS off']]
-    for name in ['tum_default', 'tum_none', 'pp', 'rl']:
-        rows.append([LABELS[name].split(' (')[0] if name != 'pp' else "TUM speeds in OCD", f'{lap_times[name]:.2f}',
-                     f"{lap_times[name] - lap_times['tum_none']:+.2f}"])
-    rows.append(['Real SF70H, 2017 Q (Vettel)', '91.86', f"{91.864 - lap_times['tum_none']:+.2f}"])
-    tb = ax_tab.table(cellText=rows, bbox=[0, 0, 1, .56], cellLoc='left', colWidths=[.5, .2, .3])
+    rows = [['', 'lap 2 (s)', 'vs TUM QSS', 'on track']]
+    for name in ['tum_none', 'pp', 'rl']:
+        on = np.nan if np.isnan(laps[name]['on_track']).all() else np.nanmean(laps[name]['on_track'])
+        rows.append([{'tum_none': 'TUM QSS', 'pp': 'TUM lap in OCD', 'rl': 'RL driver'}[name], f'{lap_times[name]:.2f}',
+                     f"{lap_times[name] - lap_times['tum_none']:+.2f}", 'not checked' if np.isnan(on) else f'{100 * on:.0f} %'])
+    tb = ax_tab.table(cellText=rows, bbox=[0, .05, 1, .5], cellLoc='left', colWidths=[.37, .19, .21, .23])
     tb.auto_set_font_size(False); tb.set_fontsize(8.5)
     for (r, c), cell in tb.get_celld().items():
         cell.set_edgecolor('#e5e4df'); cell.set_facecolor(SURFACE)
         if r == 0:
             cell.set_text_props(color=INK2)
-    fig.suptitle('sf70h_tum at Shanghai: RL driver vs TUM laptime-simulation (lap 2)', x=.06, ha='left', y=.985,
+    fig.suptitle('sf70h_tum at Shanghai, ERS and DRS off: RL driver vs TUM laptime-simulation (lap 2)', x=.06,
+                 ha='left', y=.985,
                  fontsize=14, fontweight='bold', color=INK)
-    fig.text(.06, .935, 'Not like-for-like: TUM = point mass on its raceline, ideal brakes, no track limits. RL and pure '
-             'pursuit = OCD double-track, 12 kN·m brakes, 4.6 × 2.0 m footprint checked.\nPure pursuit was off track on '
-             '29 % of its lap (TUM\'s line does not fit the footprint). Data: comparison/README.md.',
+    fig.text(.06, .945, 'TUM QSS = point mass on its raceline, ideal brakes, no track limits. RL and pure pursuit = OCD '
+             'double-track, 12 kN·m brakes, 4.6 × 2.0 m footprint checked.\nPure pursuit was off track on '
+             f'{100 * off_pp:.0f} % of its lap (TUM\'s line does not fit the footprint). Data: comparison/README.md.',
              fontsize=8.5, color=INK2, va='top')
     fig.savefig(out_dir / 'lap_comparison.png', dpi=130, facecolor=SURFACE)
     print(json.dumps(lap_times))

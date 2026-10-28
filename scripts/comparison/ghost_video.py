@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Ghost-lap MP4 of the sf70h_tum car at Shanghai from the comparison/ data (no simulation is run).
 
-Lap 2 of the RL driver (comparison/rl/rl_det_seed0.csv), TUM's own QSS laps (comparison/tum/:
-`none` = no ERS / DRS, the RL run's conditions, and `tum_default` = ERS with recuperation + DRS) and
-TUM's `ers` lap driven in OCD by pure pursuit (comparison/tum_pure_pursuit_ocd/pp_f1.00.csv), all
+ERS and DRS off everywhere (the RL run's conditions): lap 2 of the RL driver
+(comparison/rl/rl_det_seed0.csv), TUM's QSS lap `none` (comparison/tum/tum_none.csv) and that lap
+driven in OCD by pure pursuit with ERS off (comparison/tum_pure_pursuit_ocd_noers/pp_f1.00.csv), all
 started together at the line and played in real time. Left: the circuit with every car; right top:
 a close-up following the RL car (sf70h_tum footprint, TUM `none` ghost box on its raceline); right
-bottom: speed vs lap distance with each car's current point.
+bottom: speed vs lap distance with each car's current point. Both maps show the RL driver's
+reference line xi_ref (Track.path, the safe line) and the 20 xi_ref preview stations (up to 300 m
+ahead on Track.path, ObsConfig) that are in its observation at that moment.
 
     .venv/bin/python scripts/comparison/ghost_video.py [--out comparison/figures/ghost_lap.mp4] [--speedup 1]
 
@@ -14,6 +16,7 @@ Needs ocd_first_lap on the path (track edges and the car footprint) and ffmpeg.
 """
 import argparse
 import csv
+import json
 from pathlib import Path
 import numpy as np
 import matplotlib
@@ -35,13 +38,18 @@ def read_csv(path, cols):
 
 def ocd_lap2(path):
     """Lap 2 of an OCD recording: t from the line, s along the raceline (unwrapped, monotone)."""
-    d = read_csv(path, ['lap', 't_lap_s', 'x_m', 'y_m', 'yaw_rad', 'speed_mps', 's_raceline_m', 'on_track'])
+    d = read_csv(path, ['lap', 't_lap_s', 'x_m', 'y_m', 'yaw_rad', 'speed_mps', 's_raceline_m', 's_path_m', 'e_path_m', 'on_track'])
     m = d['lap'] == 2
     out = {k: v[m] for k, v in d.items()}
     s = out['s_raceline_m'].copy()
     s[(s > L_RACELINE / 2) & (np.arange(len(s)) < len(s) // 4)] -= L_RACELINE
     out['s'] = np.maximum.accumulate(s)
     out['t'] = out['t_lap_s']
+    # close the lap at the exact (interpolated) crossing time from the metadata
+    T = json.loads(Path(path).with_suffix('.meta.json').read_text())['lap_time_s']
+    for k in out:
+        out[k] = np.r_[out[k], out[k][-1]]
+    out['t'][-1], out['s'][-1] = T, max(out['s'][-2], L_RACELINE)
     return out
 
 
@@ -83,11 +91,14 @@ def main():
     cars_ = [  # name, lap, colour, legend label, HUD label
         ('rl', ocd_lap2(CMP / 'rl' / 'rl_det_seed0.csv'), '#2a78d6', 'RL driver (OCD, ERS off)', 'RL driver'),
         ('tum_none', tum_lap(CMP / 'tum' / 'tum_none.csv'), '#eb6834', 'TUM QSS, ERS/DRS off', 'TUM QSS, ERS/DRS off'),
-        ('tum_default', tum_lap(CMP / 'tum' / 'tum_tum_default.csv'), '#1baf7a', 'TUM QSS default (ERS+recup, DRS)',
-         'TUM QSS default'),
-        ('pp', ocd_lap2(CMP / 'tum_pure_pursuit_ocd' / 'pp_f1.00.csv'), '#eda100',
-         "TUM's speeds driven in OCD (pure pursuit, ERS on)", 'TUM speeds in OCD'),
+        ('pp', ocd_lap2(CMP / 'tum_pure_pursuit_ocd_noers' / 'pp_f1.00.csv'), '#1baf7a',
+         "TUM QSS lap driven in OCD (pure pursuit)", 'TUM lap in OCD'),
     ]
+    from rlsetup.driving.config import ObsConfig
+    oc = ObsConfig()
+    preview_d = oc.preview_horizon_m * (np.arange(1, oc.n_preview + 1) / oc.n_preview) ** oc.preview_exponent
+    path_s, path_x, path_y = track.path[:, 0], track.path[:, 1], track.path[:, 2]
+    off_pp = 1 - float(np.nanmean(cars_[2][1]['on_track']))
     rl = cars_[0][1]
     T_end = max(c[1]['t'][-1] for c in cars_) + 3.
     n_frames = int(T_end * a.fps / a.speedup)
@@ -95,19 +106,27 @@ def main():
         n_frames = min(n_frames, a.frames)
 
     fig = plt.figure(figsize=(12.8, 7.2), dpi=100, facecolor='#fcfcfb')
-    gs = fig.add_gridspec(2, 2, width_ratios=[1.25, 1], height_ratios=[1.2, 1], left=.02, right=.985,
-                          bottom=.11, top=.73, hspace=.3, wspace=.1)
+    gs = fig.add_gridspec(2, 2, width_ratios=[1.25, 1], height_ratios=[1.25, 1], left=.02, right=.985,
+                          bottom=.11, top=.75, hspace=.52, wspace=.1)
     ax_map = fig.add_subplot(gs[:, 0]); ax_close = fig.add_subplot(gs[0, 1]); ax_v = fig.add_subplot(gs[1, 1])
     for ax in (ax_map, ax_close):
         for edge in (track.left, track.right):
             e = np.vstack([edge, edge[0]])
             ax.plot(e[:, 0], e[:, 1], color='#64748b', lw=.8)
         ax.set_aspect('equal'); ax.set_xticks([]); ax.set_yticks([])
-    for ax, lw in ((ax_map, .6), (ax_close, 1.)):
-        ax.plot(track.reference[:, 1], track.reference[:, 2], '--', color='#f4a582', lw=lw, zorder=1)
-        ax.plot(track.path[:, 1], track.path[:, 2], ':', color='#94a3b8', lw=lw, zorder=1)
+    keys = []
+    for ax, lw in ((ax_map, .7), (ax_close, 1.3)):
+        keys = [ax.plot(track.reference[:, 1], track.reference[:, 2], '--', color='#f4a582', lw=lw, zorder=1,
+                        label='TUM raceline (TUM QSS and pure pursuit)')[0],
+                ax.plot(path_x, path_y, '-', color='#52514e', lw=lw, zorder=2,
+                        label='RL reference line ξref (safe line, in the RL observation)')[0]]
+    previews = [ax.plot([], [], 'o', ms=ms, mfc='none', mec='#0b0b0b', mew=.9, zorder=4,
+                        label='ξref preview points the RL policy sees (20, up to 300 m)')[0]
+                for ax, ms in ((ax_map, 3), (ax_close, 5))]
+    fig.legend(handles=keys + previews[1:], loc='center', bbox_to_anchor=(.785, .452), ncol=1, fontsize=7.5,
+               frameon=False)
     ax_map.set_title('Shanghai International Circuit, lap 2 from the line', fontsize=11, loc='left')
-    ax_close.set_title('Close-up on the RL car  (dashed: TUM raceline, dotted: safe line)', fontsize=10, loc='left')
+    ax_close.set_title('Close-up on the RL car', fontsize=10, loc='left')
 
     dots, trails = {}, {}
     for name, lap, col, lab, _ in cars_:
@@ -125,7 +144,7 @@ def main():
     ax_v.set_xlabel('lap distance along the TUM raceline (km)', fontsize=9); ax_v.set_ylabel('speed (km/h)', fontsize=9)
     ax_v.grid(alpha=.3); ax_v.tick_params(labelsize=8)
 
-    fig.suptitle('sf70h_tum at Shanghai: RL driver vs TUM laptime-simulation (ghost lap, real time)',
+    fig.suptitle('sf70h_tum at Shanghai, ERS and DRS off: RL driver vs TUM laptime-simulation (ghost lap, real time)',
                  x=.02, ha='left', y=.985, fontsize=15, fontweight='bold')
     clock = fig.text(.02, .935, '', fontsize=9.5, family='monospace', va='top')
     hud = {}
@@ -133,9 +152,9 @@ def main():
         y = .905 - k * .03
         fig.text(.02, y, '\u25cf', color=col, fontsize=12, va='top')
         hud[name] = fig.text(.035, y - .003, '', fontsize=9.5, family='monospace', va='top', color='#0b0b0b')
-    fig.text(.02, .015, 'Not like-for-like: TUM = point mass on its raceline, no track limits; RL and pure pursuit = '
-             'OCD double-track, 12 kN·m brakes; RL kept the 4.6 × 2.0 m footprint on track, pure pursuit was off '
-             'track 29 % of its lap. Data: comparison/ (README).', fontsize=7.5, color='#475569')
+    fig.text(.02, .015, 'TUM QSS = point mass on its raceline, no track limits. RL and pure pursuit = OCD double-track, '
+             f'12 kN·m brakes. RL kept the 4.6 × 2.0 m footprint on track; pure pursuit was off track {100 * off_pp:.0f} % '
+             'of its lap. Data: comparison/ (README).', fontsize=7.5, color='#475569')
     foot_closed = foot
 
     def box(x, y, yaw):
@@ -159,6 +178,10 @@ def main():
                 status = f'{v * 3.6:5.0f} km/h  {s / 1000:5.2f} km' + (f'  gap at RL point {gap:+6.2f} s' if name != 'rl' else '')
             hud[name].set_text(f'{lab:<50}{status}')
         body_rl.set_xy(box(xr, yr, yawr))
+        sp = float(np.interp(min(t, rl['t'][-1]), rl['t'], rl['s_path_m']))
+        st = (sp + preview_d) % track.length
+        for pv in previews:
+            pv.set_data(np.interp(st, path_s, path_x), np.interp(st, path_s, path_y))
         xt, yt, yawt, *_ = state_at(cars_[1][1], t)
         body_tum.set_xy(box(xt, yt, yawt))
         k = np.searchsorted(rl['t'], min(t, rl['t'][-1]))
