@@ -1,0 +1,41 @@
+{
+  "checkpoint": {
+    "source": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p1_TUM/seed0/checkpoints/best.zip",
+    "snapshot": "checkpoint.zip",
+    "sha256": "42e14362aba596492ab345a3e9e55ad70406fe5e51201d215de5798902585f45",
+    "bytes": 7779031,
+    "num_timesteps": 9600000,
+    "training_eval_step_of_best": 9600000
+  },
+  "deterministic_clean": true,
+  "deterministic_lap_times_s": [
+    101.85983833263197,
+    101.26992540585894
+  ],
+  "reproduction": {
+    "expected_lap2_s": 101.26992540585894,
+    "measured_lap2_s": 101.26992540585894,
+    "difference_s": 0.0,
+    "tolerance_s": 1e-06,
+    "within_tolerance": true,
+    "training_device": "cpu",
+    "inference_device": "cpu",
+    "device_changed": false,
+    "note": "CPU and MPS inference can diverge; comparison uses the measured snapshot lap."
+  },
+  "recorder_check": {
+    "lap_times_match_env": true,
+    "configured_reference": "path",
+    "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+    "recorder_crossings_s": [
+      3.6650846766694904,
+      105.52492300930146,
+      206.7948484151604
+    ]
+  },
+  "stochastic_requested": 0,
+  "stochastic": [],
+  "complete": true,
+  "stochastic_clean": 0,
+  "stochastic_lap_mean_s": null
+}

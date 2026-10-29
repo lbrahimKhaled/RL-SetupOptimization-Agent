@@ -1,0 +1,21 @@
+{
+  "utc": "2026-10-28T19:00:21.027760+00:00",
+  "p1_TUM": {
+    "previous_recorded_step": 2310000,
+    "current_step": 2510000,
+    "advanced": true,
+    "latest_eval_utc": "2026-10-28T18:58:44Z",
+    "latest_eval_step": 2500000,
+    "latest_speed_steps_per_s": 148.25734568691303,
+    "status": "running"
+  },
+  "p0_TUMref": {
+    "previous_recorded_step": 950000,
+    "current_step": 1050000,
+    "advanced": true,
+    "latest_eval_utc": "2026-10-28T18:58:13Z",
+    "latest_eval_step": 1050000,
+    "latest_speed_steps_per_s": 76.47050800086474,
+    "status": "running"
+  }
+}

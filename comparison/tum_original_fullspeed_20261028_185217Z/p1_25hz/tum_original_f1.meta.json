@@ -1,0 +1,1717 @@
+{
+ "source": "original_TUM_fullspeed_pure_pursuit_diagnostic",
+ "started_utc": "2026-10-28T18:57:32.055457+00:00",
+ "lap_time_s": 104.36090224242731,
+ "summary": {
+  "f": 1.0,
+  "termination": "lap2_complete",
+  "completed_lap2": true,
+  "lap_times_s": [
+   104.5102223547964,
+   104.36090224242731
+  ],
+  "lap2_s": 104.36090224242731,
+  "sim_time_s": 212.32,
+  "progress_m": 10980.146923843962,
+  "start": {
+   "s_path_m": 5188.773713834052,
+   "s_raceline_m": 5142.752720096958,
+   "speed_mps": 50.181552299999986
+  },
+  "on_track_fraction_all": 0.7565938206480783,
+  "on_track_fraction_lap2": 0.7693486590038314,
+  "max_abs_e_raceline_lap2_m": 11.999839583524876,
+  "mean_abs_e_raceline_lap2_m": 1.2959240393712306,
+  "max_abs_rear_slip_lap2": 0.6307675548279701,
+  "max_abs_sideslip_lap2_rad": 0.1255081441118507,
+  "v_max_lap2_kmh": 276.35539791347594,
+  "wall_s": 6.389043999952264
+ },
+ "lap2_metrics": {
+  "speed_magnitude_vs_TUM_unpreviewed_at_current_position": {
+   "samples": 2610,
+   "mae_mps": 4.147794475430915,
+   "rmse_mps": 5.4192716657031,
+   "bias_actual_minus_target_mps": -3.888365160192495,
+   "max_lag_mps": 19.511010836554505,
+   "max_overspeed_mps": 3.3455819932833606,
+   "mean_actual_mps": 51.89425455084199,
+   "mean_reference_mps": 55.782619711034485
+  },
+  "speed_magnitude_vs_preview_command_applied_during_tick": {
+   "samples": 2610,
+   "mae_mps": 4.103573610869784,
+   "rmse_mps": 5.542722398691778,
+   "bias_actual_minus_target_mps": -3.6980576715755595,
+   "max_lag_mps": 13.765038470561443,
+   "max_overspeed_mps": 2.5156621190133137,
+   "mean_actual_mps": 51.89425455084199,
+   "mean_reference_mps": 55.59231222241754
+  },
+  "body_vx_vs_preview_command_applied_during_tick": {
+   "samples": 2610,
+   "mae_mps": 4.1121233456397945,
+   "rmse_mps": 5.557755175317533,
+   "bias_actual_minus_target_mps": -3.7203145097270727,
+   "max_lag_mps": 13.769031250789268,
+   "max_overspeed_mps": 2.5153334908977456,
+   "mean_actual_mps": 51.87199771269047,
+   "mean_reference_mps": 55.59231222241754
+  },
+  "e_raceline_rms_m": 2.4289918414646303,
+  "e_raceline_max_abs_m": 11.999839583524876,
+  "on_track_fraction": 0.7693486590038314,
+  "offtrack_segments": [
+   {
+    "t_start_bound_s": 113.24,
+    "t_end_bound_s": 113.88,
+    "flagged_intervals": 16,
+    "interval_duration_bound_s": 0.64,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 393.03707639305657,
+    "end_s_raceline_m": 439.0562711122879,
+    "start_xy_m": [
+     -383.0638739484353,
+     -87.64041037538279
+    ],
+    "end_xy_m": [
+     -427.9716642470228,
+     -97.54145240880301
+    ]
+   },
+   {
+    "t_start_bound_s": 126.11999999999999,
+    "t_end_bound_s": 128.4,
+    "flagged_intervals": 57,
+    "interval_duration_bound_s": 2.2800000000000002,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 914.2142681518957,
+    "end_s_raceline_m": 983.099293131927,
+    "start_xy_m": [
+     -460.93197161645185,
+     -52.56720787087514
+    ],
+    "end_xy_m": [
+     -437.9471641397625,
+     16.85211912203025
+    ]
+   },
+   {
+    "t_start_bound_s": 129.96,
+    "t_end_bound_s": 130.96,
+    "flagged_intervals": 25,
+    "interval_duration_bound_s": 1.0,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 1053.3983151988473,
+    "end_s_raceline_m": 1103.5144437756564,
+    "start_xy_m": [
+     -469.18818178902035,
+     81.48283693119437
+    ],
+    "end_xy_m": [
+     -501.45403498239244,
+     119.96903891835038
+    ]
+   },
+   {
+    "t_start_bound_s": 135.60000000000002,
+    "t_end_bound_s": 136.68,
+    "flagged_intervals": 27,
+    "interval_duration_bound_s": 1.08,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 1412.6568442495184,
+    "end_s_raceline_m": 1479.5120808410165,
+    "start_xy_m": [
+     -678.6957181332873,
+     369.9976763254605
+    ],
+    "end_xy_m": [
+     -699.7846032918306,
+     433.4825006521568
+    ]
+   },
+   {
+    "t_start_bound_s": 136.72,
+    "t_end_bound_s": 137.48,
+    "flagged_intervals": 19,
+    "interval_duration_bound_s": 0.76,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 1483.359501040557,
+    "end_s_raceline_m": 1511.9893281834593,
+    "start_xy_m": [
+     -700.975786200679,
+     437.10480276648906
+    ],
+    "end_xy_m": [
+     -709.8560329449301,
+     464.3543631575494
+    ]
+   },
+   {
+    "t_start_bound_s": 140.36,
+    "t_end_bound_s": 141.64000000000001,
+    "flagged_intervals": 32,
+    "interval_duration_bound_s": 1.28,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 1586.0740339238466,
+    "end_s_raceline_m": 1620.5441103589264,
+    "start_xy_m": [
+     -672.2474375287072,
+     514.1048657294632
+    ],
+    "end_xy_m": [
+     -644.3086067385436,
+     492.9625598185215
+    ]
+   },
+   {
+    "t_start_bound_s": 142.0,
+    "t_end_bound_s": 142.92000000000002,
+    "flagged_intervals": 23,
+    "interval_duration_bound_s": 0.92,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 1634.2345170966723,
+    "end_s_raceline_m": 1668.1111466696555,
+    "start_xy_m": [
+     -634.202535943451,
+     483.7545757758892
+    ],
+    "end_xy_m": [
+     -612.2129591027053,
+     457.9868419728985
+    ]
+   },
+   {
+    "t_start_bound_s": 152.32000000000002,
+    "t_end_bound_s": 152.56,
+    "flagged_intervals": 6,
+    "interval_duration_bound_s": 0.24,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 2253.9503287577877,
+    "end_s_raceline_m": 2264.3921193848073,
+    "start_xy_m": [
+     -228.9939840272364,
+     372.7572667288699
+    ],
+    "end_xy_m": [
+     -220.63159930016243,
+     379.02342542018596
+    ]
+   },
+   {
+    "t_start_bound_s": 156.16000000000003,
+    "t_end_bound_s": 156.4,
+    "flagged_intervals": 6,
+    "interval_duration_bound_s": 0.24,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 2440.351270116533,
+    "end_s_raceline_m": 2448.5453609923807,
+    "start_xy_m": [
+     -91.16890514614406,
+     305.9403172444282
+    ],
+    "end_xy_m": [
+     -87.30732631001364,
+     298.43156034479426
+    ]
+   },
+   {
+    "t_start_bound_s": 158.96,
+    "t_end_bound_s": 159.6,
+    "flagged_intervals": 16,
+    "interval_duration_bound_s": 0.64,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 2535.702297172794,
+    "end_s_raceline_m": 2559.4800561903276,
+    "start_xy_m": [
+     -9.836056468713627,
+     285.6412970821797
+    ],
+    "end_xy_m": [
+     4.8350631797778565,
+     304.8076914849275
+    ]
+   },
+   {
+    "t_start_bound_s": 161.72,
+    "t_end_bound_s": 162.8,
+    "flagged_intervals": 27,
+    "interval_duration_bound_s": 1.08,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 2665.648889919867,
+    "end_s_raceline_m": 2727.5074316655364,
+    "start_xy_m": [
+     -4.544070577236861,
+     406.4808576398958
+    ],
+    "end_xy_m": [
+     -36.15274595668188,
+     459.6300297003946
+    ]
+   },
+   {
+    "t_start_bound_s": 164.16000000000003,
+    "t_end_bound_s": 164.48,
+    "flagged_intervals": 8,
+    "interval_duration_bound_s": 0.32,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 2819.296029561354,
+    "end_s_raceline_m": 2838.6330936837576,
+    "start_xy_m": [
+     -83.04722468654835,
+     538.5803228473113
+    ],
+    "end_xy_m": [
+     -92.84868509265452,
+     555.2475291364241
+    ]
+   },
+   {
+    "t_start_bound_s": 164.60000000000002,
+    "t_end_bound_s": 167.8,
+    "flagged_intervals": 80,
+    "interval_duration_bound_s": 3.2,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 2849.82560616858,
+    "end_s_raceline_m": 3037.1998333929446,
+    "start_xy_m": [
+     -98.49220173633942,
+     564.8742651356807
+    ],
+    "end_xy_m": [
+     -192.33126520494594,
+     727.0813932436334
+    ]
+   },
+   {
+    "t_start_bound_s": 169.20000000000002,
+    "t_end_bound_s": 169.36,
+    "flagged_intervals": 4,
+    "interval_duration_bound_s": 0.16,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 3072.252824766493,
+    "end_s_raceline_m": 3074.9429986547852,
+    "start_xy_m": [
+     -219.295662918497,
+     747.9432571009662
+    ],
+    "end_xy_m": [
+     -222.13842600809735,
+     748.2142458314182
+    ]
+   },
+   {
+    "t_start_bound_s": 173.04000000000002,
+    "t_end_bound_s": 174.16,
+    "flagged_intervals": 28,
+    "interval_duration_bound_s": 1.12,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 3180.011559895727,
+    "end_s_raceline_m": 3216.9281976609977,
+    "start_xy_m": [
+     -318.440681910453,
+     724.9113114761245
+    ],
+    "end_xy_m": [
+     -336.8869439602103,
+     760.3967809246445
+    ]
+   },
+   {
+    "t_start_bound_s": 175.24,
+    "t_end_bound_s": 175.64000000000001,
+    "flagged_intervals": 10,
+    "interval_duration_bound_s": 0.4,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 3261.441420942836,
+    "end_s_raceline_m": 3278.3274599560586,
+    "start_xy_m": [
+     -327.6644646704359,
+     805.8321175718987
+    ],
+    "end_xy_m": [
+     -321.4220346606868,
+     821.4889403111372
+    ]
+   },
+   {
+    "t_start_bound_s": 180.04000000000002,
+    "t_end_bound_s": 181.28,
+    "flagged_intervals": 31,
+    "interval_duration_bound_s": 1.24,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 3527.8916384207646,
+    "end_s_raceline_m": 3610.4363436905924,
+    "start_xy_m": [
+     -116.6458041370732,
+     782.1755204553311
+    ],
+    "end_xy_m": [
+     -72.1488050127573,
+     712.6613009686466
+    ]
+   },
+   {
+    "t_start_bound_s": 183.92000000000002,
+    "t_end_bound_s": 184.68,
+    "flagged_intervals": 19,
+    "interval_duration_bound_s": 0.76,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 3808.2040467515103,
+    "end_s_raceline_m": 3863.1672792520408,
+    "start_xy_m": [
+     33.55830451813284,
+     545.5191039029569
+    ],
+    "end_xy_m": [
+     62.82757453500707,
+     498.99542203667806
+    ]
+   },
+   {
+    "t_start_bound_s": 194.48000000000002,
+    "t_end_bound_s": 195.44,
+    "flagged_intervals": 24,
+    "interval_duration_bound_s": 0.96,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 4612.615934880256,
+    "end_s_raceline_m": 4653.038891516534,
+    "start_xy_m": [
+     466.77186334749484,
+     -132.31148502121337
+    ],
+    "end_xy_m": [
+     488.6781973348486,
+     -166.23587305095802
+    ]
+   },
+   {
+    "t_start_bound_s": 195.60000000000002,
+    "t_end_bound_s": 196.4,
+    "flagged_intervals": 20,
+    "interval_duration_bound_s": 0.8,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 4659.3346922163055,
+    "end_s_raceline_m": 4678.371193013839,
+    "start_xy_m": [
+     492.0695329772359,
+     -171.53665580217867
+    ],
+    "end_xy_m": [
+     501.8541508987503,
+     -187.86740615760377
+    ]
+   },
+   {
+    "t_start_bound_s": 197.60000000000002,
+    "t_end_bound_s": 197.96,
+    "flagged_intervals": 9,
+    "interval_duration_bound_s": 0.36,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 4699.556934692636,
+    "end_s_raceline_m": 4704.566315077596,
+    "start_xy_m": [
+     501.6183091693755,
+     -208.506365270529
+    ],
+    "end_xy_m": [
+     498.3200173844562,
+     -212.5041327766896
+    ]
+   },
+   {
+    "t_start_bound_s": 198.64000000000001,
+    "t_end_bound_s": 200.12,
+    "flagged_intervals": 37,
+    "interval_duration_bound_s": 1.48,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 4716.218344624438,
+    "end_s_raceline_m": 4747.485765206329,
+    "start_xy_m": [
+     486.7204102787266,
+     -216.7161920449766
+    ],
+    "end_xy_m": [
+     458.7240088590323,
+     -201.33781649774417
+    ]
+   },
+   {
+    "t_start_bound_s": 205.4,
+    "t_end_bound_s": 206.12,
+    "flagged_intervals": 18,
+    "interval_duration_bound_s": 0.72,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 5002.064118168294,
+    "end_s_raceline_m": 5035.941029609593,
+    "start_xy_m": [
+     308.34111050227636,
+     1.8109534137044707
+    ],
+    "end_xy_m": [
+     288.6809139006758,
+     29.388087067200132
+    ]
+   },
+   {
+    "t_start_bound_s": 207.56,
+    "t_end_bound_s": 208.6,
+    "flagged_intervals": 26,
+    "interval_duration_bound_s": 1.04,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 5092.238783072487,
+    "end_s_raceline_m": 5133.259077422387,
+    "start_xy_m": [
+     241.80857162631156,
+     59.431033124553544
+    ],
+    "end_xy_m": [
+     201.3297497266646,
+     50.726299366641506
+    ]
+   },
+   {
+    "t_start_bound_s": 209.20000000000002,
+    "t_end_bound_s": 210.56,
+    "flagged_intervals": 34,
+    "interval_duration_bound_s": 1.36,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 5163.73867242468,
+    "end_s_raceline_m": 5234.4913373849295,
+    "start_xy_m": [
+     171.46481191876165,
+     44.559951843442775
+    ],
+    "end_xy_m": [
+     102.69381008623388,
+     27.854990075790404
+    ]
+   }
+  ]
+ },
+ "valid_fair_RL_comparison": false,
+ "validity": "Off-track continuation diagnostic; same OCD car/setup, but track limits do not terminate. No claim of a clean lap or superiority over TUM solver.",
+ "controller": {
+  "identity": "rlsetup.driving.demo_driver.DemoDriver geometric pure pursuit plus speed PI and rear-slip traction control; no learned weights",
+  "config": {
+   "speed_kp": 0.4,
+   "speed_ki": 0.2,
+   "integral_limit_m": 5.0,
+   "brake_cap": 1.0,
+   "lookahead_m": 3.0,
+   "lookahead_s": 0.35,
+   "speed_preview_s": 0.5,
+   "released_pedal_action": -0.8,
+   "traction_control": true,
+   "traction_slip_start": 0.08,
+   "traction_slip_span": 0.12
+  },
+  "control_dt_s": 0.04,
+  "physics_steps_per_command": 20,
+  "target": "1.0 * TUM_none_v(s_raceline_at_tick_start + 0.5 * max(vx_at_tick_start,0))",
+  "unpreviewed_metric": "TUM_none_v(s_raceline_at_recorded_tick_end)",
+  "preview_metric": "stored target commanded during the interval, compared to end-of-interval measured speed",
+  "speed_scale_f": 1.0,
+  "PI_integral_initial_m": 0.0,
+  "weights_loaded": false
+ },
+ "conditions": {
+  "car": "sf70h_tum",
+  "setup_name": "p1_TUM",
+  "setup": {
+   "ride_freq_front_hz": 4.2347,
+   "ride_freq_rear_hz": 3.372,
+   "damping_ratio_front": 0.14412,
+   "damping_ratio_rear": 0.10593,
+   "rebound_bump_ratio": 1.0,
+   "fast_slow_ratio": 1.0,
+   "heave_freq_front_hz": 0.0,
+   "heave_freq_rear_hz": 0.0,
+   "heave_damping_ratio": 0.0,
+   "roll_stiffness_Nm_per_rad": 275835.0,
+   "roll_stiffness_front_share": 0.4533,
+   "ride_height_front_m": 0.035,
+   "rake_m": 0.05,
+   "aero_level": 0.5,
+   "aero_front_share": 0.4508,
+   "brake_bias_front": 0.49,
+   "final_drive_ratio": 1.0,
+   "camber_front_deg": 0.0,
+   "camber_rear_deg": 0.0,
+   "toe_front_deg": 0.0,
+   "toe_rear_deg": 0.0,
+   "lsd_preload_Nm": 0.0,
+   "lsd_lock_drive": 1.0,
+   "lsd_lock_coast": 0.0,
+   "packer_gap_front_m": 0.1,
+   "packer_gap_rear_m": 0.1
+  },
+  "max_brake_torque_Nm": 15000.0,
+  "ers": false,
+  "drs": false,
+  "recuperation": false,
+  "line": "Original Track.reference TUM raceline, no safe-line substitution",
+  "physics_dt_s": 0.002,
+  "control_hz": 25,
+  "physics_steps_per_command": 20,
+  "run_in_m_on_Track_path": 200.0,
+  "timing_line": "Track.path s=0, tick crossings interpolated by existing LapClock",
+  "laps": 2,
+  "footprint_m": [
+   [
+    2.468,
+    1.0
+   ],
+   [
+    2.468,
+    -1.0
+   ],
+   [
+    -2.1319999999999997,
+    -1.0
+   ],
+   [
+    -2.1319999999999997,
+    1.0
+   ]
+  ],
+  "start_pose": {
+   "x_m": 193.85558594000008,
+   "y_m": 49.734719020000014,
+   "yaw_rad": -2.9299026201653295,
+   "speed_mps": 50.181552299999986,
+   "s_path_m": 5188.773713834052,
+   "s_raceline_m": 5140.75405826825,
+   "initial_on_track": false,
+   "settle_s": 0.0,
+   "initial_PI_integral_m": 0.0
+  }
+ },
+ "stop_rules": {
+  "footprint_exit_terminates": false,
+  "spin_heading_error_rad": 1.5707963267948966,
+  "stall_speed_mps": 3.0,
+  "stall_time_s": 2.0,
+  "time_limit_s": 400.0
+ },
+ "footprint_recording": {
+  "checked_every_physics_dt_s": 0.002,
+  "on_track_flag": "AND across every physics step of each control interval; zero means one or more footprint violations occurred during that interval.",
+  "segments": "Contiguous flagged control intervals; times bound violation durations at the control interval resolution, not exact physics crossing times.",
+  "flagged_intervals_all": 1292,
+  "offtrack_segments_all": [
+   {
+    "t_start_bound_s": 0.0,
+    "t_end_bound_s": 2.0,
+    "flagged_intervals": 50,
+    "interval_duration_bound_s": 2.0,
+    "start_lap": 0,
+    "end_lap": 0,
+    "start_s_raceline_m": 5142.752720096958,
+    "end_s_raceline_m": 5250.430674460691,
+    "start_xy_m": [
+     191.89654510275443,
+     49.31365341935041
+    ],
+    "end_xy_m": [
+     87.1624956235273,
+     24.251180252349528
+    ]
+   },
+   {
+    "t_start_bound_s": 8.72,
+    "t_end_bound_s": 9.36,
+    "flagged_intervals": 16,
+    "interval_duration_bound_s": 0.64,
+    "start_lap": 1,
+    "end_lap": 1,
+    "start_s_raceline_m": 394.5860399484148,
+    "end_s_raceline_m": 440.6052307948643,
+    "start_xy_m": [
+     -384.5866172474125,
+     -87.9867909697828
+    ],
+    "end_xy_m": [
+     -429.4852740768024,
+     -97.86540629082151
+    ]
+   },
+   {
+    "t_start_bound_s": 21.560000000000002,
+    "t_end_bound_s": 23.88,
+    "flagged_intervals": 58,
+    "interval_duration_bound_s": 2.32,
+    "start_lap": 1,
+    "end_lap": 1,
+    "start_s_raceline_m": 914.2142681518957,
+    "end_s_raceline_m": 984.6480570550758,
+    "start_xy_m": [
+     -461.4918324927445,
+     -52.83808911002914
+    ],
+    "end_xy_m": [
+     -438.16884502797757,
+     18.73002541594469
+    ]
+   },
+   {
+    "t_start_bound_s": 25.400000000000002,
+    "t_end_bound_s": 26.400000000000002,
+    "flagged_intervals": 25,
+    "interval_duration_bound_s": 1.0,
+    "start_lap": 1,
+    "end_lap": 1,
+    "start_s_raceline_m": 1053.848007127466,
+    "end_s_raceline_m": 1103.764276243419,
+    "start_xy_m": [
+     -469.5160989322773,
+     81.80672912865872
+    ],
+    "end_xy_m": [
+     -501.58594850478715,
+     120.17667150149693
+    ]
+   },
+   {
+    "t_start_bound_s": 31.040000000000003,
+    "t_end_bound_s": 32.92,
+    "flagged_intervals": 47,
+    "interval_duration_bound_s": 1.8800000000000001,
+    "start_lap": 1,
+    "end_lap": 1,
+    "start_s_raceline_m": 1412.6068777437577,
+    "end_s_raceline_m": 1511.9893281834593,
+    "start_xy_m": [
+     -678.6865697772125,
+     369.9738750865208
+    ],
+    "end_xy_m": [
+     -709.8536574126318,
+     464.34453448687253
+    ]
+   },
+   {
+    "t_start_bound_s": 35.800000000000004,
+    "t_end_bound_s": 37.08,
+    "flagged_intervals": 32,
+    "interval_duration_bound_s": 1.28,
+    "start_lap": 1,
+    "end_lap": 1,
+    "start_s_raceline_m": 1586.173911895762,
+    "end_s_raceline_m": 1621.4434776921603,
+    "start_xy_m": [
+     -672.1418274187961,
+     514.0776773202059
+    ],
+    "end_xy_m": [
+     -643.5683439165001,
+     492.4000914694099
+    ]
+   },
+   {
+    "t_start_bound_s": 37.440000000000005,
+    "t_end_bound_s": 38.36,
+    "flagged_intervals": 23,
+    "interval_duration_bound_s": 0.92,
+    "start_lap": 1,
+    "end_lap": 1,
+    "start_s_raceline_m": 1635.2837849366074,
+    "end_s_raceline_m": 1669.6600959639757,
+    "start_xy_m": [
+     -633.4545680036456,
+     482.9791661948629
+    ],
+    "end_xy_m": [
+     -611.2893806491423,
+     456.7423443617925
+    ]
+   },
+   {
+    "t_start_bound_s": 47.68,
+    "t_end_bound_s": 47.96,
+    "flagged_intervals": 7,
+    "interval_duration_bound_s": 0.28,
+    "start_lap": 1,
+    "end_lap": 1,
+    "start_s_raceline_m": 2253.4007529275395,
+    "end_s_raceline_m": 2265.890923969322,
+    "start_xy_m": [
+     -229.397137357203,
+     372.380017943348
+    ],
+    "end_xy_m": [
+     -219.38276298150862,
+     379.867989981697
+    ]
+   },
+   {
+    "t_start_bound_s": 51.480000000000004,
+    "t_end_bound_s": 51.800000000000004,
+    "flagged_intervals": 8,
+    "interval_duration_bound_s": 0.32,
+    "start_lap": 1,
+    "end_lap": 1,
+    "start_s_raceline_m": 2438.0529508389136,
+    "end_s_raceline_m": 2449.6445358313217,
+    "start_xy_m": [
+     -92.13996918974537,
+     308.0834357222357
+    ],
+    "end_xy_m": [
+     -86.73255601786275,
+     297.5208350760109
+    ]
+   },
+   {
+    "t_start_bound_s": 54.28,
+    "t_end_bound_s": 55.0,
+    "flagged_intervals": 18,
+    "interval_duration_bound_s": 0.72,
+    "start_lap": 1,
+    "end_lap": 1,
+    "start_s_raceline_m": 2533.804163114184,
+    "end_s_raceline_m": 2560.3793097035923,
+    "start_xy_m": [
+     -11.082550387029219,
+     284.1644775903017
+    ],
+    "end_xy_m": [
+     5.540277693911758,
+     305.46468264594415
+    ]
+   },
+   {
+    "t_start_bound_s": 57.2,
+    "t_end_bound_s": 58.36,
+    "flagged_intervals": 29,
+    "interval_duration_bound_s": 1.16,
+    "start_lap": 1,
+    "end_lap": 1,
+    "start_s_raceline_m": 2667.297771524246,
+    "end_s_raceline_m": 2732.204289746718,
+    "start_xy_m": [
+     -5.411275856927545,
+     407.867997209822
+    ],
+    "end_xy_m": [
+     -38.52977554943669,
+     463.726880934356
+    ]
+   },
+   {
+    "t_start_bound_s": 59.6,
+    "t_end_bound_s": 63.52,
+    "flagged_intervals": 98,
+    "interval_duration_bound_s": 3.92,
+    "start_lap": 1,
+    "end_lap": 1,
+    "start_s_raceline_m": 2814.349338277741,
+    "end_s_raceline_m": 3042.645723502721,
+    "start_xy_m": [
+     -80.40568517271453,
+     534.3871934025854
+    ],
+    "end_xy_m": [
+     -195.25594609093855,
+     731.6678703603004
+    ]
+   },
+   {
+    "t_start_bound_s": 64.75999999999999,
+    "t_end_bound_s": 64.88,
+    "flagged_intervals": 3,
+    "interval_duration_bound_s": 0.12,
+    "start_lap": 1,
+    "end_lap": 1,
+    "start_s_raceline_m": 3072.751319436106,
+    "end_s_raceline_m": 3074.6441333067837,
+    "start_xy_m": [
+     -219.93803957393592,
+     748.0388654649812
+    ],
+    "end_xy_m": [
+     -221.8360005923867,
+     748.2256517112422
+    ]
+   },
+   {
+    "t_start_bound_s": 68.47999999999999,
+    "t_end_bound_s": 69.96000000000001,
+    "flagged_intervals": 37,
+    "interval_duration_bound_s": 1.48,
+    "start_lap": 1,
+    "end_lap": 1,
+    "start_s_raceline_m": 3176.4151532929313,
+    "end_s_raceline_m": 3225.920643125396,
+    "start_xy_m": [
+     -315.5913334746486,
+     721.6812599616715
+    ],
+    "end_xy_m": [
+     -338.4018160190821,
+     770.1446122702911
+    ]
+   },
+   {
+    "t_start_bound_s": 70.75999999999999,
+    "t_end_bound_s": 71.28,
+    "flagged_intervals": 13,
+    "interval_duration_bound_s": 0.52,
+    "start_lap": 1,
+    "end_lap": 1,
+    "start_s_raceline_m": 3260.7419951373217,
+    "end_s_raceline_m": 3283.7729464183717,
+    "start_xy_m": [
+     -327.95064519720177,
+     805.1645810482858
+    ],
+    "end_xy_m": [
+     -318.5005034988268,
+     826.1202447471992
+    ]
+   },
+   {
+    "t_start_bound_s": 75.52,
+    "t_end_bound_s": 76.8,
+    "flagged_intervals": 32,
+    "interval_duration_bound_s": 1.28,
+    "start_lap": 1,
+    "end_lap": 1,
+    "start_s_raceline_m": 3526.492581427785,
+    "end_s_raceline_m": 3611.985307532433,
+    "start_xy_m": [
+     -117.44245089396073,
+     783.3406949403366
+    ],
+    "end_xy_m": [
+     -71.29132879274879,
+     711.3398211666375
+    ]
+   },
+   {
+    "t_start_bound_s": 79.39999999999999,
+    "t_end_bound_s": 80.2,
+    "flagged_intervals": 20,
+    "interval_duration_bound_s": 0.8,
+    "start_lap": 1,
+    "end_lap": 1,
+    "start_s_raceline_m": 3807.1047820600415,
+    "end_s_raceline_m": 3865.1659420792807,
+    "start_xy_m": [
+     32.99070973499009,
+     546.416809640872
+    ],
+    "end_xy_m": [
+     63.897798218524926,
+     497.2934119714438
+    ]
+   },
+   {
+    "t_start_bound_s": 89.96,
+    "t_end_bound_s": 90.92,
+    "flagged_intervals": 24,
+    "interval_duration_bound_s": 0.96,
+    "start_lap": 1,
+    "end_lap": 1,
+    "start_s_raceline_m": 4611.866436303556,
+    "end_s_raceline_m": 4652.589191485211,
+    "start_xy_m": [
+     466.34453880804057,
+     -131.67115066421474
+    ],
+    "end_xy_m": [
+     488.43866991183523,
+     -165.85545999907174
+    ]
+   },
+   {
+    "t_start_bound_s": 91.08,
+    "t_end_bound_s": 91.92,
+    "flagged_intervals": 21,
+    "interval_duration_bound_s": 0.84,
+    "start_lap": 1,
+    "end_lap": 1,
+    "start_s_raceline_m": 4658.884992145131,
+    "end_s_raceline_m": 4678.920541990336,
+    "start_xy_m": [
+     491.8493096527838,
+     -171.201048454836
+    ],
+    "end_xy_m": [
+     502.06416887436495,
+     -188.38234773714512
+    ]
+   },
+   {
+    "t_start_bound_s": 93.08,
+    "t_end_bound_s": 93.44,
+    "flagged_intervals": 9,
+    "interval_duration_bound_s": 0.36,
+    "start_lap": 1,
+    "end_lap": 1,
+    "start_s_raceline_m": 4699.357880223829,
+    "end_s_raceline_m": 4704.368275454391,
+    "start_xy_m": [
+     501.7243761511874,
+     -208.32341920163876
+    ],
+    "end_xy_m": [
+     498.4854988444836,
+     -212.359215650654
+    ]
+   },
+   {
+    "t_start_bound_s": 94.11999999999999,
+    "t_end_bound_s": 95.64,
+    "flagged_intervals": 38,
+    "interval_duration_bound_s": 1.52,
+    "start_lap": 1,
+    "end_lap": 1,
+    "start_s_raceline_m": 4716.019087761329,
+    "end_s_raceline_m": 4747.535730298744,
+    "start_xy_m": [
+     486.9650770525862,
+     -216.71983937980036
+    ],
+    "end_xy_m": [
+     458.71246182439296,
+     -201.32599908284513
+    ]
+   },
+   {
+    "t_start_bound_s": 101.03999999999999,
+    "t_end_bound_s": 101.8,
+    "flagged_intervals": 19,
+    "interval_duration_bound_s": 0.76,
+    "start_lap": 1,
+    "end_lap": 1,
+    "start_s_raceline_m": 5001.71435294207,
+    "end_s_raceline_m": 5037.439936155414,
+    "start_xy_m": [
+     308.54100242405167,
+     1.495129969645832
+    ],
+    "end_xy_m": [
+     287.7811476452226,
+     30.53586326857862
+    ]
+   },
+   {
+    "t_start_bound_s": 103.2,
+    "t_end_bound_s": 104.24000000000001,
+    "flagged_intervals": 26,
+    "interval_duration_bound_s": 1.04,
+    "start_lap": 1,
+    "end_lap": 1,
+    "start_s_raceline_m": 5092.038957893999,
+    "end_s_raceline_m": 5133.009244738268,
+    "start_xy_m": [
+     241.9728178154584,
+     59.42106638743655
+    ],
+    "end_xy_m": [
+     201.53022011292083,
+     50.84477713254416
+    ]
+   },
+   {
+    "t_start_bound_s": 104.92,
+    "t_end_bound_s": 106.4,
+    "flagged_intervals": 37,
+    "interval_duration_bound_s": 1.48,
+    "start_lap": 1,
+    "end_lap": 1,
+    "start_s_raceline_m": 5167.236331811285,
+    "end_s_raceline_m": 5245.6838500909325,
+    "start_xy_m": [
+     168.05008529917365,
+     43.825766639038264
+    ],
+    "end_xy_m": [
+     91.7848776370663,
+     25.324436810909052
+    ]
+   },
+   {
+    "t_start_bound_s": 113.24,
+    "t_end_bound_s": 113.88,
+    "flagged_intervals": 16,
+    "interval_duration_bound_s": 0.64,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 393.03707639305657,
+    "end_s_raceline_m": 439.0562711122879,
+    "start_xy_m": [
+     -383.0638739484353,
+     -87.64041037538279
+    ],
+    "end_xy_m": [
+     -427.9716642470228,
+     -97.54145240880301
+    ]
+   },
+   {
+    "t_start_bound_s": 126.11999999999999,
+    "t_end_bound_s": 128.4,
+    "flagged_intervals": 57,
+    "interval_duration_bound_s": 2.2800000000000002,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 914.2142681518957,
+    "end_s_raceline_m": 983.099293131927,
+    "start_xy_m": [
+     -460.93197161645185,
+     -52.56720787087514
+    ],
+    "end_xy_m": [
+     -437.9471641397625,
+     16.85211912203025
+    ]
+   },
+   {
+    "t_start_bound_s": 129.96,
+    "t_end_bound_s": 130.96,
+    "flagged_intervals": 25,
+    "interval_duration_bound_s": 1.0,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 1053.3983151988473,
+    "end_s_raceline_m": 1103.5144437756564,
+    "start_xy_m": [
+     -469.18818178902035,
+     81.48283693119437
+    ],
+    "end_xy_m": [
+     -501.45403498239244,
+     119.96903891835038
+    ]
+   },
+   {
+    "t_start_bound_s": 135.60000000000002,
+    "t_end_bound_s": 136.68,
+    "flagged_intervals": 27,
+    "interval_duration_bound_s": 1.08,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 1412.6568442495184,
+    "end_s_raceline_m": 1479.5120808410165,
+    "start_xy_m": [
+     -678.6957181332873,
+     369.9976763254605
+    ],
+    "end_xy_m": [
+     -699.7846032918306,
+     433.4825006521568
+    ]
+   },
+   {
+    "t_start_bound_s": 136.72,
+    "t_end_bound_s": 137.48,
+    "flagged_intervals": 19,
+    "interval_duration_bound_s": 0.76,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 1483.359501040557,
+    "end_s_raceline_m": 1511.9893281834593,
+    "start_xy_m": [
+     -700.975786200679,
+     437.10480276648906
+    ],
+    "end_xy_m": [
+     -709.8560329449301,
+     464.3543631575494
+    ]
+   },
+   {
+    "t_start_bound_s": 140.36,
+    "t_end_bound_s": 141.64000000000001,
+    "flagged_intervals": 32,
+    "interval_duration_bound_s": 1.28,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 1586.0740339238466,
+    "end_s_raceline_m": 1620.5441103589264,
+    "start_xy_m": [
+     -672.2474375287072,
+     514.1048657294632
+    ],
+    "end_xy_m": [
+     -644.3086067385436,
+     492.9625598185215
+    ]
+   },
+   {
+    "t_start_bound_s": 142.0,
+    "t_end_bound_s": 142.92000000000002,
+    "flagged_intervals": 23,
+    "interval_duration_bound_s": 0.92,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 1634.2345170966723,
+    "end_s_raceline_m": 1668.1111466696555,
+    "start_xy_m": [
+     -634.202535943451,
+     483.7545757758892
+    ],
+    "end_xy_m": [
+     -612.2129591027053,
+     457.9868419728985
+    ]
+   },
+   {
+    "t_start_bound_s": 152.32000000000002,
+    "t_end_bound_s": 152.56,
+    "flagged_intervals": 6,
+    "interval_duration_bound_s": 0.24,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 2253.9503287577877,
+    "end_s_raceline_m": 2264.3921193848073,
+    "start_xy_m": [
+     -228.9939840272364,
+     372.7572667288699
+    ],
+    "end_xy_m": [
+     -220.63159930016243,
+     379.02342542018596
+    ]
+   },
+   {
+    "t_start_bound_s": 156.16000000000003,
+    "t_end_bound_s": 156.4,
+    "flagged_intervals": 6,
+    "interval_duration_bound_s": 0.24,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 2440.351270116533,
+    "end_s_raceline_m": 2448.5453609923807,
+    "start_xy_m": [
+     -91.16890514614406,
+     305.9403172444282
+    ],
+    "end_xy_m": [
+     -87.30732631001364,
+     298.43156034479426
+    ]
+   },
+   {
+    "t_start_bound_s": 158.96,
+    "t_end_bound_s": 159.6,
+    "flagged_intervals": 16,
+    "interval_duration_bound_s": 0.64,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 2535.702297172794,
+    "end_s_raceline_m": 2559.4800561903276,
+    "start_xy_m": [
+     -9.836056468713627,
+     285.6412970821797
+    ],
+    "end_xy_m": [
+     4.8350631797778565,
+     304.8076914849275
+    ]
+   },
+   {
+    "t_start_bound_s": 161.72,
+    "t_end_bound_s": 162.8,
+    "flagged_intervals": 27,
+    "interval_duration_bound_s": 1.08,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 2665.648889919867,
+    "end_s_raceline_m": 2727.5074316655364,
+    "start_xy_m": [
+     -4.544070577236861,
+     406.4808576398958
+    ],
+    "end_xy_m": [
+     -36.15274595668188,
+     459.6300297003946
+    ]
+   },
+   {
+    "t_start_bound_s": 164.16000000000003,
+    "t_end_bound_s": 164.48,
+    "flagged_intervals": 8,
+    "interval_duration_bound_s": 0.32,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 2819.296029561354,
+    "end_s_raceline_m": 2838.6330936837576,
+    "start_xy_m": [
+     -83.04722468654835,
+     538.5803228473113
+    ],
+    "end_xy_m": [
+     -92.84868509265452,
+     555.2475291364241
+    ]
+   },
+   {
+    "t_start_bound_s": 164.60000000000002,
+    "t_end_bound_s": 167.8,
+    "flagged_intervals": 80,
+    "interval_duration_bound_s": 3.2,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 2849.82560616858,
+    "end_s_raceline_m": 3037.1998333929446,
+    "start_xy_m": [
+     -98.49220173633942,
+     564.8742651356807
+    ],
+    "end_xy_m": [
+     -192.33126520494594,
+     727.0813932436334
+    ]
+   },
+   {
+    "t_start_bound_s": 169.20000000000002,
+    "t_end_bound_s": 169.36,
+    "flagged_intervals": 4,
+    "interval_duration_bound_s": 0.16,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 3072.252824766493,
+    "end_s_raceline_m": 3074.9429986547852,
+    "start_xy_m": [
+     -219.295662918497,
+     747.9432571009662
+    ],
+    "end_xy_m": [
+     -222.13842600809735,
+     748.2142458314182
+    ]
+   },
+   {
+    "t_start_bound_s": 173.04000000000002,
+    "t_end_bound_s": 174.16,
+    "flagged_intervals": 28,
+    "interval_duration_bound_s": 1.12,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 3180.011559895727,
+    "end_s_raceline_m": 3216.9281976609977,
+    "start_xy_m": [
+     -318.440681910453,
+     724.9113114761245
+    ],
+    "end_xy_m": [
+     -336.8869439602103,
+     760.3967809246445
+    ]
+   },
+   {
+    "t_start_bound_s": 175.24,
+    "t_end_bound_s": 175.64000000000001,
+    "flagged_intervals": 10,
+    "interval_duration_bound_s": 0.4,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 3261.441420942836,
+    "end_s_raceline_m": 3278.3274599560586,
+    "start_xy_m": [
+     -327.6644646704359,
+     805.8321175718987
+    ],
+    "end_xy_m": [
+     -321.4220346606868,
+     821.4889403111372
+    ]
+   },
+   {
+    "t_start_bound_s": 180.04000000000002,
+    "t_end_bound_s": 181.28,
+    "flagged_intervals": 31,
+    "interval_duration_bound_s": 1.24,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 3527.8916384207646,
+    "end_s_raceline_m": 3610.4363436905924,
+    "start_xy_m": [
+     -116.6458041370732,
+     782.1755204553311
+    ],
+    "end_xy_m": [
+     -72.1488050127573,
+     712.6613009686466
+    ]
+   },
+   {
+    "t_start_bound_s": 183.92000000000002,
+    "t_end_bound_s": 184.68,
+    "flagged_intervals": 19,
+    "interval_duration_bound_s": 0.76,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 3808.2040467515103,
+    "end_s_raceline_m": 3863.1672792520408,
+    "start_xy_m": [
+     33.55830451813284,
+     545.5191039029569
+    ],
+    "end_xy_m": [
+     62.82757453500707,
+     498.99542203667806
+    ]
+   },
+   {
+    "t_start_bound_s": 194.48000000000002,
+    "t_end_bound_s": 195.44,
+    "flagged_intervals": 24,
+    "interval_duration_bound_s": 0.96,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 4612.615934880256,
+    "end_s_raceline_m": 4653.038891516534,
+    "start_xy_m": [
+     466.77186334749484,
+     -132.31148502121337
+    ],
+    "end_xy_m": [
+     488.6781973348486,
+     -166.23587305095802
+    ]
+   },
+   {
+    "t_start_bound_s": 195.60000000000002,
+    "t_end_bound_s": 196.4,
+    "flagged_intervals": 20,
+    "interval_duration_bound_s": 0.8,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 4659.3346922163055,
+    "end_s_raceline_m": 4678.371193013839,
+    "start_xy_m": [
+     492.0695329772359,
+     -171.53665580217867
+    ],
+    "end_xy_m": [
+     501.8541508987503,
+     -187.86740615760377
+    ]
+   },
+   {
+    "t_start_bound_s": 197.60000000000002,
+    "t_end_bound_s": 197.96,
+    "flagged_intervals": 9,
+    "interval_duration_bound_s": 0.36,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 4699.556934692636,
+    "end_s_raceline_m": 4704.566315077596,
+    "start_xy_m": [
+     501.6183091693755,
+     -208.506365270529
+    ],
+    "end_xy_m": [
+     498.3200173844562,
+     -212.5041327766896
+    ]
+   },
+   {
+    "t_start_bound_s": 198.64000000000001,
+    "t_end_bound_s": 200.12,
+    "flagged_intervals": 37,
+    "interval_duration_bound_s": 1.48,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 4716.218344624438,
+    "end_s_raceline_m": 4747.485765206329,
+    "start_xy_m": [
+     486.7204102787266,
+     -216.7161920449766
+    ],
+    "end_xy_m": [
+     458.7240088590323,
+     -201.33781649774417
+    ]
+   },
+   {
+    "t_start_bound_s": 205.4,
+    "t_end_bound_s": 206.12,
+    "flagged_intervals": 18,
+    "interval_duration_bound_s": 0.72,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 5002.064118168294,
+    "end_s_raceline_m": 5035.941029609593,
+    "start_xy_m": [
+     308.34111050227636,
+     1.8109534137044707
+    ],
+    "end_xy_m": [
+     288.6809139006758,
+     29.388087067200132
+    ]
+   },
+   {
+    "t_start_bound_s": 207.56,
+    "t_end_bound_s": 208.6,
+    "flagged_intervals": 26,
+    "interval_duration_bound_s": 1.04,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 5092.238783072487,
+    "end_s_raceline_m": 5133.259077422387,
+    "start_xy_m": [
+     241.80857162631156,
+     59.431033124553544
+    ],
+    "end_xy_m": [
+     201.3297497266646,
+     50.726299366641506
+    ]
+   },
+   {
+    "t_start_bound_s": 209.20000000000002,
+    "t_end_bound_s": 210.56,
+    "flagged_intervals": 34,
+    "interval_duration_bound_s": 1.36,
+    "start_lap": 2,
+    "end_lap": 2,
+    "start_s_raceline_m": 5163.73867242468,
+    "end_s_raceline_m": 5234.4913373849295,
+    "start_xy_m": [
+     171.46481191876165,
+     44.559951843442775
+    ],
+    "end_xy_m": [
+     102.69381008623388,
+     27.854990075790404
+    ]
+   }
+  ]
+ },
+ "track": {
+  "name": "Shanghai",
+  "path_length_m": 5388.773713834052,
+  "raceline_length_m": 5340.770241508524,
+  "raceline_digest": "63e383066baaf6c6",
+  "safe_path_digest_used_only_for_timing": "d5917a27a10035e1",
+  "max_TUM_csv_point_distance_to_original_raceline_m": 9.301334885205149e-05
+ },
+ "tum_input": {
+  "csv": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/comparison/tum/tum_none.csv",
+  "sha256": "1370d33415589f20530f51686c7d934afca871a6e9dcf10358de6731e6e626a7",
+  "lap_time_s_in_TUM_solver": 94.88618556208073,
+  "variant": "none",
+  "metadata": {
+   "source": "tum",
+   "variant": "none",
+   "lap_time_s": 94.88618556208073,
+   "v_max_kmh": 284.48931104900726,
+   "v_min_kmh": 56.52000000000001,
+   "raceline_length_m": 5341.425515681778,
+   "stepsize_m": 4.9966562354366495,
+   "n_points": 1069,
+   "ers_used_J": 0.0,
+   "ers_final_J": 0.0,
+   "mguk_recuperated_J": 0.0,
+   "drs_share_of_points": 0.0,
+   "settings": {
+    "drs": false,
+    "driver_changes": {
+     "em_strategy": "NONE",
+     "initial_energy": 0.0,
+     "use_recuperation": false
+    },
+    "track": {
+     "trackname": "Shanghai",
+     "flip_track": false,
+     "mu_weather": 1.0,
+     "interp_stepsize_des": 5.0,
+     "curv_filt_width": 10.0,
+     "use_drs1": false,
+     "use_drs2": false,
+     "use_pit": false
+    },
+    "solver": {
+     "vehicle": "F1_Shanghai.ini",
+     "series": "F1",
+     "limit_braking_weak_side": "FA",
+     "v_start": 27.77777777777778,
+     "find_v_start": true,
+     "max_no_em_iters": 5,
+     "es_diff_max": 1.0
+    },
+    "driver": {
+     "vel_subtr_corner": 0.5,
+     "vel_lim_glob": null,
+     "yellow_s1": false,
+     "yellow_s2": false,
+     "yellow_s3": false,
+     "yellow_throttle": 0.3,
+     "initial_energy": 0.0,
+     "em_strategy": "NONE",
+     "use_recuperation": false,
+     "use_lift_coast": false,
+     "lift_coast_dist": 10.0
+    },
+    "debug": {
+     "use_plot": false,
+     "use_debug_plots": false,
+     "use_plot_comparison_tph": false,
+     "use_print": false,
+     "use_print_result": false
+    }
+   },
+   "model": "TUM laptime-simulation quasi-steady-state forward/backward solver (FB+), point mass with per-wheel load transfer, axle-wise friction check, F1_Shanghai.ini",
+   "code": {
+    "tum_laptime_simulation": {
+     "url": "https://github.com/TUMFTM/laptime-simulation",
+     "path": "/Users/ibrahimkhaled/Documents/tum/laptime-simulation",
+     "commit": "afa0aa710adb9fdd23fa3d6fbdd6a13664253616",
+     "dirty": false,
+     "untracked": false,
+     "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "run_tum_laptimesim_py": {
+     "path": "/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap/scripts/run_tum_laptimesim.py",
+     "sha256": "9652ba62f6737673af504285ad460bcf647baec009f95e94bcc90e2a4548cad2"
+    },
+    "ocd_first_lap": {
+     "path": "/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap",
+     "commit": "7d6f2aaf4e387bc63b916769421bdcc6ae480202",
+     "dirty": false,
+     "untracked": false,
+     "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "this_repo": {
+     "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent",
+     "commit": "ef80ca5bd201993e86e9c45b3fc939afcded82c7",
+     "dirty": false,
+     "untracked": true,
+     "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "script": {
+     "path": "scripts/comparison/export_tum_lap.py",
+     "sha256": "71a9514f90bc805b590e11213f626b5aa4c125d54ad8394ec00d9380c23425a1",
+     "common_sha256": "6d1b10ba795dfe2de284b5e5b8add8853773f89d2a926932f3a0d17484a16227"
+    }
+   },
+   "inputs_sha256": {
+    "vehicle_ini": "1a34e39bad20bf747f57c7b586be98b4928694b95dba174ed450d4452af08335",
+    "track_pars_ini": "2a2ade96acf531f3c1260f01fafb6113f5bd2f7e346c3a9b4c0a65119d3b21b4",
+    "raceline_csv": "db621f25b9eb3c444fa51be52cbf96cc7dc077932b32f25b424da0ff70ce7c04",
+    "ocd_first_lap_vendored_raceline": "db621f25b9eb3c444fa51be52cbf96cc7dc077932b32f25b424da0ff70ce7c04"
+   },
+   "python": "3.12.13",
+   "packages": {
+    "numpy": "1.26.4",
+    "scipy": "1.13.1",
+    "matplotlib": "3.8.4",
+    "trajectory-planning-helpers": "0.66",
+    "quadprog": "0.1.14"
+   },
+   "command": "scripts/comparison/export_tum_lap.py /Users/ibrahimkhaled/Documents/tum/laptime-simulation",
+   "file": "tum_none.csv",
+   "rows": 1070,
+   "sha256": "1370d33415589f20530f51686c7d934afca871a6e9dcf10358de6731e6e626a7",
+   "created_utc": "2026-10-28T08:03:18+00:00"
+  }
+ },
+ "code": {
+  "rlsetup": {
+   "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent",
+   "commit": "604efe7b5acf40261fff7bdf637e18cd9f2aaca8",
+   "dirty": false,
+   "untracked": true,
+   "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "rlsetup_sources_sha256": {
+   "rlsetup/__init__.py": "e54c1d042ab47972bb61868a40c841a34334c935b8628225ae2029cb7799f647",
+   "rlsetup/driving/__init__.py": "e51bed95f0dfa7bb68b0353ac1d1cc13d02e66a1f6c3b5eb92b95e176eb48eb9",
+   "rlsetup/driving/agent.py": "38b9c732a83df58f96306239fb07393a3177bec002aa2b8adc36a181a364ffe5",
+   "rlsetup/driving/bc.py": "0ecc9d18a552d3f4a36a56cc173fb915ca291c88a5296cd2225fe76aae254c0e",
+   "rlsetup/driving/callbacks.py": "7e0d3387316ffec87cb768cc5c1fbd1d48569a0c068ea6ca4a396abb62ff3869",
+   "rlsetup/driving/config.py": "0dfef096f71b12c67dc4439e77285cda1cc28399161cb97715aa1e722c4f3d48",
+   "rlsetup/driving/demo_driver.py": "9ea116cb686e93931ce8c1c69b04a4d4f6290ea9e99e1c0de8fbc51848f27852",
+   "rlsetup/driving/demos.py": "522fcbee6ec7d448ec6bf8c0e2a631d472cb64359ab4224ff2f807fde7c015f9",
+   "rlsetup/driving/env.py": "736560b891122ac464e018e2bb7a2d8c0813d1749a6ee0095754435dd2665058",
+   "rlsetup/driving/evaluate.py": "2392899a5f5830f619ffc3f4aa646e633b676cc2b15a934d73d6986b4ff41727",
+   "rlsetup/driving/policy.py": "e9103392f284d121e4301d6511c9116ffd6b2994fbbbd11402486de0806e597c",
+   "rlsetup/driving/qss_profile.py": "286c785da3d040ecdc179ec04df860487b8446d9058b3bded0ae096ac853ca28",
+   "rlsetup/driving/reference.py": "ec66dfe5f49e4df687683b60f0be4ce5f19448f6d9426fe11e40ff5724bdbd84",
+   "rlsetup/driving/relabel.py": "2d38184cd0bd0386b1038d0a277bbf4d17c23550b13ca2569e2bf9245984ed6e",
+   "rlsetup/driving/setups.py": "3016e6017a7ba88288c12140316048c4fa98c00dc7efa0bdceceea28346b1f99",
+   "rlsetup/driving/train.py": "7fc9d3d6fc666e6b4705d9d002bd976b4d6170f7bbc2e08a6d3e3981ed56831f",
+   "rlsetup/driving/train_config.py": "f64dc3a8e84d3058426c10246836eef5296421c2a834f4ba2742257b7856fbb1",
+   "rlsetup/driving/vec.py": "7bcde69c55f66aa27973d48fe3c2ece69548b1893ff7ac30e40e0066899278cd",
+   "rlsetup/provenance.py": "e56d2b0227aad0141ead6aeb8efe3afe3d2019f0255abca99a90cd6921ab8a22",
+   "rlsetup/runs.py": "04907834627096f0d03e05878fe772b91b51c13dc9938184323beaf286154071"
+  },
+  "ocd_first_lap": {
+   "path": "/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap",
+   "commit": "39456345227a91128e1bed42482f63e2a4484521",
+   "dirty": false,
+   "untracked": false,
+   "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "ocd_lap_code_version": "27abf3ed0d78",
+  "ocd_lap_extra_sources_sha256": {
+   "ocd_lap/__init__.py": "ba75b38ec95145c9a24be0b23265294b16b41d202464f6f7c640fbd81353065a",
+   "ocd_lap/env.py": "ecc30665a0a37da097b68d8062434a6eff9531953aef3e2202a60fdaa2ccb654",
+   "ocd_lap/qss_lap.py": "251d38338e46ca46297c6815bbca0e3922d5535ce871096390c65ebc39640f44",
+   "ocd_lap/handling.py": "4372ecac0110536e5ef5794b303560d73fd74665739cd84a9631e976b3842195",
+   "ocd_lap/manoeuvres.py": "c0b75d06b03906886216549acda347636a2aef0e5d7e304b122b5f83cbd7ea3b",
+   "ocd_lap/rig.py": "c650c4ee1e67ab190fea52099dd887231274688f81de2de68c4f37aefe012381",
+   "ocd_lap/vertical_model.py": "ed95da469c99c52678af4fd4ee5533482b194c561be39af63bcb33c66c1394c8"
+  },
+  "ocd_native_sha256": "2b62143d42172a88344d9621ba67fcc98f9d7c58fa0e197a18bc4d4e584dbf13",
+  "scratch_runner_sha256": "188bb74eebb55f6c9f007e934bc76110e61522b70946e0460d84b21520123697",
+  "comparison_sources_sha256": {
+   "tum_pure_pursuit.py": "88b025ff07883443aefc0662cfc25921960429f210bd8d1c7cc54c5793ffbc35",
+   "common.py": "aa4fca5617b23fade79b86a45d0e8974dbfaa96b842c473612de11ba827bedea",
+   "ocd_trace.py": "8d36629a0c95607aa9099bdf6edb6eac92feb6a2c53f36fdcd3ef26b0cc247b7"
+  },
+  "module_only_overrides": {
+   "tum_pure_pursuit.ERS": false,
+   "tum_pure_pursuit.MAX_BRAKE_TORQUE_NM": 15000.0,
+   "tum_pure_pursuit.CONTROL_STEPS": 20
+  },
+  "dependency_simulation_CONTROL_STEPS_unchanged": 10
+ },
+ "python": "3.12.13 (main, Mar  3 2026, 12:39:30) [Clang 21.0.0 (clang-2100.0.123.102)]",
+ "command": [
+  "/private/tmp/run_tum_original_fullspeed.py",
+  "--out",
+  "comparison/tum_original_fullspeed_20261028_185217Z/p1_25hz",
+  "--setup",
+  "p1_TUM",
+  "--hz",
+  "25"
+ ],
+ "no_torch_loaded": true,
+ "no_source_changes": true,
+ "file": "tum_original_f1.csv",
+ "rows": 5308,
+ "sha256": "ea35c30ddb77dc11cb6eb29797a130f9c49ae6cff8483751233604c3b862dfe3",
+ "created_utc": "2026-10-28T18:57:38+00:00"
+}
