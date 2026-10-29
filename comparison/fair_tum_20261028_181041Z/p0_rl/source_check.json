@@ -1,0 +1,51 @@
+{
+  "differences": [],
+  "current": {
+    "rlsetup": {
+      "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent",
+      "commit": "604efe7b5acf40261fff7bdf637e18cd9f2aaca8",
+      "dirty": false,
+      "untracked": true,
+      "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "rlsetup_sources_sha256": {
+      "rlsetup/__init__.py": "e54c1d042ab47972bb61868a40c841a34334c935b8628225ae2029cb7799f647",
+      "rlsetup/driving/__init__.py": "e51bed95f0dfa7bb68b0353ac1d1cc13d02e66a1f6c3b5eb92b95e176eb48eb9",
+      "rlsetup/driving/agent.py": "38b9c732a83df58f96306239fb07393a3177bec002aa2b8adc36a181a364ffe5",
+      "rlsetup/driving/bc.py": "0ecc9d18a552d3f4a36a56cc173fb915ca291c88a5296cd2225fe76aae254c0e",
+      "rlsetup/driving/callbacks.py": "7e0d3387316ffec87cb768cc5c1fbd1d48569a0c068ea6ca4a396abb62ff3869",
+      "rlsetup/driving/config.py": "0dfef096f71b12c67dc4439e77285cda1cc28399161cb97715aa1e722c4f3d48",
+      "rlsetup/driving/demo_driver.py": "9ea116cb686e93931ce8c1c69b04a4d4f6290ea9e99e1c0de8fbc51848f27852",
+      "rlsetup/driving/demos.py": "522fcbee6ec7d448ec6bf8c0e2a631d472cb64359ab4224ff2f807fde7c015f9",
+      "rlsetup/driving/env.py": "736560b891122ac464e018e2bb7a2d8c0813d1749a6ee0095754435dd2665058",
+      "rlsetup/driving/evaluate.py": "2392899a5f5830f619ffc3f4aa646e633b676cc2b15a934d73d6986b4ff41727",
+      "rlsetup/driving/policy.py": "e9103392f284d121e4301d6511c9116ffd6b2994fbbbd11402486de0806e597c",
+      "rlsetup/driving/qss_profile.py": "286c785da3d040ecdc179ec04df860487b8446d9058b3bded0ae096ac853ca28",
+      "rlsetup/driving/reference.py": "ec66dfe5f49e4df687683b60f0be4ce5f19448f6d9426fe11e40ff5724bdbd84",
+      "rlsetup/driving/relabel.py": "2d38184cd0bd0386b1038d0a277bbf4d17c23550b13ca2569e2bf9245984ed6e",
+      "rlsetup/driving/setups.py": "3016e6017a7ba88288c12140316048c4fa98c00dc7efa0bdceceea28346b1f99",
+      "rlsetup/driving/train.py": "7fc9d3d6fc666e6b4705d9d002bd976b4d6170f7bbc2e08a6d3e3981ed56831f",
+      "rlsetup/driving/train_config.py": "f64dc3a8e84d3058426c10246836eef5296421c2a834f4ba2742257b7856fbb1",
+      "rlsetup/driving/vec.py": "7bcde69c55f66aa27973d48fe3c2ece69548b1893ff7ac30e40e0066899278cd",
+      "rlsetup/provenance.py": "e56d2b0227aad0141ead6aeb8efe3afe3d2019f0255abca99a90cd6921ab8a22",
+      "rlsetup/runs.py": "04907834627096f0d03e05878fe772b91b51c13dc9938184323beaf286154071"
+    },
+    "ocd_first_lap": {
+      "path": "/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap",
+      "commit": "39456345227a91128e1bed42482f63e2a4484521",
+      "dirty": false,
+      "untracked": false,
+      "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "ocd_lap_code_version": "27abf3ed0d78",
+    "ocd_lap_extra_sources_sha256": {
+      "ocd_lap/__init__.py": "ba75b38ec95145c9a24be0b23265294b16b41d202464f6f7c640fbd81353065a",
+      "ocd_lap/env.py": "ecc30665a0a37da097b68d8062434a6eff9531953aef3e2202a60fdaa2ccb654",
+      "ocd_lap/qss_lap.py": "251d38338e46ca46297c6815bbca0e3922d5535ce871096390c65ebc39640f44",
+      "ocd_lap/handling.py": "4372ecac0110536e5ef5794b303560d73fd74665739cd84a9631e976b3842195",
+      "ocd_lap/manoeuvres.py": "c0b75d06b03906886216549acda347636a2aef0e5d7e304b122b5f83cbd7ea3b",
+      "ocd_lap/rig.py": "c650c4ee1e67ab190fea52099dd887231274688f81de2de68c4f37aefe012381",
+      "ocd_lap/vertical_model.py": "ed95da469c99c52678af4fd4ee5533482b194c561be39af63bcb33c66c1394c8"
+    }
+  }
+}

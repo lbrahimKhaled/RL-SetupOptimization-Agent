@@ -1,0 +1,1772 @@
+{
+  "complete": true,
+  "predeclared_plan": [
+    {
+      "branch": "original",
+      "factor": 1.0
+    },
+    {
+      "branch": "safe",
+      "factor": 1.0
+    },
+    {
+      "branch": "safe",
+      "factor": 0.98
+    },
+    {
+      "branch": "safe",
+      "factor": 0.96
+    },
+    {
+      "branch": "safe",
+      "factor": 0.94
+    },
+    {
+      "branch": "safe",
+      "factor": 0.92
+    },
+    {
+      "branch": "safe",
+      "factor": 0.9
+    },
+    {
+      "branch": "safe",
+      "factor": 0.88
+    },
+    {
+      "branch": "safe",
+      "factor": 0.86
+    },
+    {
+      "branch": "safe",
+      "factor": 0.84
+    },
+    {
+      "branch": "safe",
+      "factor": 0.82
+    },
+    {
+      "branch": "safe",
+      "factor": 0.8
+    },
+    {
+      "branch": "safe",
+      "factor": 0.78
+    },
+    {
+      "branch": "safe",
+      "factor": 0.76
+    },
+    {
+      "branch": "safe",
+      "factor": 0.74
+    },
+    {
+      "branch": "safe",
+      "factor": 0.72
+    },
+    {
+      "branch": "safe",
+      "factor": 0.7
+    },
+    {
+      "branch": "safe",
+      "factor": 0.68
+    },
+    {
+      "branch": "safe",
+      "factor": 0.66
+    },
+    {
+      "branch": "safe",
+      "factor": 0.64
+    },
+    {
+      "branch": "safe",
+      "factor": 0.62
+    },
+    {
+      "branch": "safe",
+      "factor": 0.6
+    },
+    {
+      "branch": "safe",
+      "factor": 0.58
+    },
+    {
+      "branch": "safe",
+      "factor": 0.56
+    },
+    {
+      "branch": "safe",
+      "factor": 0.54
+    },
+    {
+      "branch": "safe",
+      "factor": 0.52
+    },
+    {
+      "branch": "safe",
+      "factor": 0.5
+    }
+  ],
+  "selection_rule": "minimum clean lap2_s across all predeclared safe-line factors tried",
+  "attempts": [
+    {
+      "branch": "original",
+      "label": "Original TUM raceline and TUM speed in OCD (strict diagnostic)",
+      "factor": 1.0,
+      "clean": false,
+      "termination": "off_track",
+      "truncation": null,
+      "lap_times_s": [],
+      "lap2_s": null,
+      "laps": [],
+      "decisions": 19,
+      "sim_time_s": 0.75,
+      "progress_m": 17.196531411275828,
+      "episode_return": -78.49620427671678,
+      "wall_s": 0.0883862089831382,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": []
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "00_original_f1.00.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 1.0,
+      "clean": false,
+      "termination": "off_track",
+      "truncation": null,
+      "lap_times_s": [],
+      "lap2_s": null,
+      "laps": [],
+      "decisions": 342,
+      "sim_time_s": 13.676,
+      "progress_m": 824.6694329321454,
+      "episode_return": 722.9080606565104,
+      "wall_s": 0.8287811249028891,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          3.734576199161372
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "01_safe_f1.00.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.98,
+      "clean": false,
+      "termination": "off_track",
+      "truncation": null,
+      "lap_times_s": [],
+      "lap2_s": null,
+      "laps": [],
+      "decisions": 581,
+      "sim_time_s": 23.204,
+      "progress_m": 1088.9961467948624,
+      "episode_return": 985.8572353717502,
+      "wall_s": 1.152112332987599,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          3.734576199161372
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "02_safe_f0.98.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.96,
+      "clean": false,
+      "termination": "off_track",
+      "truncation": null,
+      "lap_times_s": [],
+      "lap2_s": null,
+      "laps": [],
+      "decisions": 683,
+      "sim_time_s": 27.32,
+      "progress_m": 1240.6583592454667,
+      "episode_return": 1134.5427949799343,
+      "wall_s": 1.3907147500431165,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          3.734576199161372
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "03_safe_f0.96.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.94,
+      "clean": false,
+      "termination": "off_track",
+      "truncation": null,
+      "lap_times_s": [],
+      "lap2_s": null,
+      "laps": [],
+      "decisions": 688,
+      "sim_time_s": 27.506,
+      "progress_m": 1239.9982907217177,
+      "episode_return": 1133.0531222521886,
+      "wall_s": 1.3544114999240264,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          3.734576199161372
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "04_safe_f0.94.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.92,
+      "clean": false,
+      "termination": "off_track",
+      "truncation": null,
+      "lap_times_s": [],
+      "lap2_s": null,
+      "laps": [],
+      "decisions": 622,
+      "sim_time_s": 24.876,
+      "progress_m": 1119.1832842550261,
+      "episode_return": 1013.1477382883359,
+      "wall_s": 1.216264082933776,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          3.734576199161372
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "05_safe_f0.92.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.9,
+      "clean": false,
+      "termination": "off_track",
+      "truncation": null,
+      "lap_times_s": [],
+      "lap2_s": null,
+      "laps": [],
+      "decisions": 629,
+      "sim_time_s": 25.132,
+      "progress_m": 1116.8425662179625,
+      "episode_return": 1010.273483371858,
+      "wall_s": 1.2236549999797717,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          3.734576199161372
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "06_safe_f0.90.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.88,
+      "clean": false,
+      "termination": "off_track",
+      "truncation": null,
+      "lap_times_s": [],
+      "lap2_s": null,
+      "laps": [],
+      "decisions": 636,
+      "sim_time_s": 25.424,
+      "progress_m": 1114.2442745634644,
+      "episode_return": 1007.1454687628403,
+      "wall_s": 1.2420426250901073,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          3.734576199161372
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "07_safe_f0.88.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.86,
+      "clean": false,
+      "termination": "off_track",
+      "truncation": null,
+      "lap_times_s": [],
+      "lap2_s": null,
+      "laps": [],
+      "decisions": 644,
+      "sim_time_s": 25.754,
+      "progress_m": 1111.8462434286116,
+      "episode_return": 1004.2257007413098,
+      "wall_s": 1.301815417013131,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          3.734576199161372
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "08_safe_f0.86.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.84,
+      "clean": false,
+      "termination": "off_track",
+      "truncation": null,
+      "lap_times_s": [],
+      "lap2_s": null,
+      "laps": [],
+      "decisions": 655,
+      "sim_time_s": 26.168,
+      "progress_m": 1110.3868732374171,
+      "episode_return": 1002.2917706859511,
+      "wall_s": 1.3473307499662042,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          3.7348275163349074
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "09_safe_f0.84.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.82,
+      "clean": false,
+      "termination": "off_track",
+      "truncation": null,
+      "lap_times_s": [],
+      "lap2_s": null,
+      "laps": [],
+      "decisions": 665,
+      "sim_time_s": 26.574,
+      "progress_m": 1108.1277595024358,
+      "episode_return": 999.542368698883,
+      "wall_s": 1.3594594160094857,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          3.738275833361779
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "10_safe_f0.82.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.8,
+      "clean": false,
+      "termination": "off_track",
+      "truncation": null,
+      "lap_times_s": [],
+      "lap2_s": null,
+      "laps": [],
+      "decisions": 678,
+      "sim_time_s": 27.114,
+      "progress_m": 1107.9280277816383,
+      "episode_return": 998.8407674546909,
+      "wall_s": 1.4014587079873309,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          3.7492856236465837
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "11_safe_f0.80.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.78,
+      "clean": false,
+      "termination": "off_track",
+      "truncation": null,
+      "lap_times_s": [],
+      "lap2_s": null,
+      "laps": [],
+      "decisions": 693,
+      "sim_time_s": 27.708000000000002,
+      "progress_m": 1108.2675717069887,
+      "episode_return": 998.6914292070147,
+      "wall_s": 1.5228784170467407,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          3.7676362776223162
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "12_safe_f0.78.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.76,
+      "clean": false,
+      "termination": "off_track",
+      "truncation": null,
+      "lap_times_s": [],
+      "lap2_s": null,
+      "laps": [],
+      "decisions": 709,
+      "sim_time_s": 28.35,
+      "progress_m": 1108.7869265052123,
+      "episode_return": 998.7122040568946,
+      "wall_s": 1.53791783307679,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          3.7924527445656366
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "13_safe_f0.76.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.74,
+      "clean": false,
+      "termination": "off_track",
+      "truncation": null,
+      "lap_times_s": [],
+      "lap2_s": null,
+      "laps": [],
+      "decisions": 727,
+      "sim_time_s": 29.054000000000002,
+      "progress_m": 1109.686896542075,
+      "episode_return": 999.1112998354781,
+      "wall_s": 1.5062350000953302,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          3.824999931672306
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "14_safe_f0.74.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.72,
+      "clean": false,
+      "termination": "off_track",
+      "truncation": null,
+      "lap_times_s": [],
+      "lap2_s": null,
+      "laps": [],
+      "decisions": 746,
+      "sim_time_s": 29.832,
+      "progress_m": 1111.366513024337,
+      "episode_return": 1000.2395213391395,
+      "wall_s": 1.540638666949235,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          3.8651999298866655
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "15_safe_f0.72.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.7,
+      "clean": false,
+      "termination": "off_track",
+      "truncation": null,
+      "lap_times_s": [],
+      "lap2_s": null,
+      "laps": [],
+      "decisions": 768,
+      "sim_time_s": 30.692,
+      "progress_m": 1113.8646452846747,
+      "episode_return": 1002.2039977151121,
+      "wall_s": 1.6155609580455348,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          3.912652976532838
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "16_safe_f0.70.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.68,
+      "clean": true,
+      "termination": "lap_complete",
+      "truncation": null,
+      "lap_times_s": [
+        142.41797874554126,
+        142.44510634140673
+      ],
+      "lap2_s": 142.44510634140673,
+      "laps": [
+        {
+          "progress": 5388.773713834052,
+          "time": 142.41797874554032,
+          "smoothness": 0.7700573490336825,
+          "tracking": 3819.0812240064633,
+          "penalty": 0.0,
+          "lap_time_s": 142.41797874554126,
+          "cost": 3962.269260101037,
+          "cost_r1": 142.41797874554032
+        },
+        {
+          "progress": 5388.773713834052,
+          "time": 142.44510634140576,
+          "smoothness": 0.7547100155607637,
+          "tracking": 3819.8656989110386,
+          "penalty": 0.0,
+          "lap_time_s": 142.44510634140673,
+          "cost": 3963.065515268005,
+          "cost_r1": 142.44510634140576
+        }
+      ],
+      "decisions": 7221,
+      "sim_time_s": 288.84000000000003,
+      "progress_m": 10935.075698434637,
+      "episode_return": 10767.055567403957,
+      "wall_s": 14.684420665958896,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          3.9649999316723012,
+          146.38297867721357,
+          288.8280850186203
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "17_safe_f0.68.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.66,
+      "clean": true,
+      "termination": "lap_complete",
+      "truncation": null,
+      "lap_times_s": [
+        146.66057970631803,
+        146.6850724564014
+      ],
+      "lap2_s": 146.6850724564014,
+      "laps": [
+        {
+          "progress": 5388.773713834052,
+          "time": 146.66057970631923,
+          "smoothness": 0.5944777920671426,
+          "tracking": 3850.6924938173574,
+          "penalty": 0.0,
+          "lap_time_s": 146.66057970631803,
+          "cost": 3997.947551315744,
+          "cost_r1": 146.66057970631923
+        },
+        {
+          "progress": 5388.773713834052,
+          "time": 146.68507245640265,
+          "smoothness": 0.6020358146399931,
+          "tracking": 3851.400549510608,
+          "penalty": 0.0,
+          "lap_time_s": 146.6850724564014,
+          "cost": 3998.6876577816506,
+          "cost_r1": 146.68507245640265
+        }
+      ],
+      "decisions": 7435,
+      "sim_time_s": 297.38,
+      "progress_m": 10934.895732731547,
+      "episode_return": 10760.610171631211,
+      "wall_s": 14.927214666968212,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          4.026086879367766,
+          150.6866665856858,
+          297.3717390420872
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "18_safe_f0.66.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.64,
+      "clean": true,
+      "termination": "lap_complete",
+      "truncation": null,
+      "lap_times_s": [
+        151.18129294704477,
+        151.20404039816668
+      ],
+      "lap2_s": 151.20404039816668,
+      "laps": [
+        {
+          "progress": 5388.773713834052,
+          "time": 151.18129294704826,
+          "smoothness": 0.5683736793275705,
+          "tracking": 3894.9845604843135,
+          "penalty": 0.0,
+          "lap_time_s": 151.18129294704477,
+          "cost": 4046.7342271106895,
+          "cost_r1": 151.18129294704826
+        },
+        {
+          "progress": 5388.773713834052,
+          "time": 151.20404039817024,
+          "smoothness": 0.5783077315841233,
+          "tracking": 3895.8045397897754,
+          "penalty": 0.0,
+          "lap_time_s": 151.20404039816668,
+          "cost": 4047.5868879195295,
+          "cost_r1": 151.20404039817024
+        }
+      ],
+      "decisions": 7663,
+      "sim_time_s": 306.5,
+      "progress_m": 10935.315652705405,
+      "episode_return": 10754.486112208517,
+      "wall_s": 15.3168021250749,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          4.0968888410196245,
+          155.2781817880644,
+          306.48222218623107
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "19_safe_f0.64.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.62,
+      "clean": true,
+      "termination": "lap_complete",
+      "truncation": null,
+      "lap_times_s": [
+        156.00325586086092,
+        156.0251162223107
+      ],
+      "lap2_s": 156.0251162223107,
+      "laps": [
+        {
+          "progress": 5388.773713834052,
+          "time": 156.00325586086691,
+          "smoothness": 0.5284272700598428,
+          "tracking": 3952.130399324209,
+          "penalty": 0.0,
+          "lap_time_s": 156.00325586086092,
+          "cost": 4108.6620824551355,
+          "cost_r1": 156.00325586086691
+        },
+        {
+          "progress": 5388.773713834052,
+          "time": 156.0251162223167,
+          "smoothness": 0.5143570838010372,
+          "tracking": 3952.801231672471,
+          "penalty": 0.0,
+          "lap_time_s": 156.0251162223107,
+          "cost": 4109.340704978589,
+          "cost_r1": 156.0251162223167
+        }
+      ],
+      "decisions": 7906,
+      "sim_time_s": 316.22,
+      "progress_m": 10935.175679380718,
+      "episode_return": 10747.49663008133,
+      "wall_s": 14.757324042031541,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          4.176279014582432,
+          160.17953487544335,
+          316.20465109775404
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "20_safe_f0.62.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.6,
+      "clean": true,
+      "termination": "lap_complete",
+      "truncation": null,
+      "lap_times_s": [
+        161.1489198634579,
+        161.17024390677452
+      ],
+      "lap2_s": 161.17024390677452,
+      "laps": [
+        {
+          "progress": 5388.773713834052,
+          "time": 161.14891986346652,
+          "smoothness": 0.49770619812339617,
+          "tracking": 4020.783777909565,
+          "penalty": 0.0,
+          "lap_time_s": 161.1489198634579,
+          "cost": 4182.430403971155,
+          "cost_r1": 161.14891986346652
+        },
+        {
+          "progress": 5388.773713834052,
+          "time": 161.17024390678316,
+          "smoothness": 0.49859290555955493,
+          "tracking": 4021.439986071119,
+          "penalty": 0.0,
+          "lap_time_s": 161.17024390677452,
+          "cost": 4183.1088228834615,
+          "cost_r1": 161.17024390678316
+        }
+      ],
+      "decisions": 8165,
+      "sim_time_s": 326.6,
+      "progress_m": 10935.135687002392,
+      "episode_return": 10740.241991293522,
+      "wall_s": 14.192855625064112,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          4.265714211343951,
+          165.41463407480185,
+          326.58487798157637
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "21_safe_f0.60.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.58,
+      "clean": true,
+      "termination": "lap_complete",
+      "truncation": null,
+      "lap_times_s": [
+        166.65264639162285,
+        166.67499994533546
+      ],
+      "lap2_s": 166.67499994533546,
+      "laps": [
+        {
+          "progress": 5388.773713834052,
+          "time": 166.65264639163428,
+          "smoothness": 0.46855478796371053,
+          "tracking": 4101.069578345761,
+          "penalty": 0.0,
+          "lap_time_s": 166.65264639162285,
+          "cost": 4268.190779525359,
+          "cost_r1": 166.65264639163428
+        },
+        {
+          "progress": 5388.773713834052,
+          "time": 166.67499994534697,
+          "smoothness": 0.47094093751682325,
+          "tracking": 4101.82086860231,
+          "penalty": 0.0,
+          "lap_time_s": 166.67499994533546,
+          "cost": 4268.966809485174,
+          "cost_r1": 166.67499994534697
+        }
+      ],
+      "decisions": 8443,
+      "sim_time_s": 337.7,
+      "progress_m": 10934.7757555963,
+      "episode_return": 10732.282621541435,
+      "wall_s": 17.258857249980792,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          4.365853583095591,
+          171.01849997471845,
+          337.6934999200539
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "22_safe_f0.58.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.56,
+      "clean": true,
+      "termination": "lap_complete",
+      "truncation": null,
+      "lap_times_s": [
+        172.54469633369746,
+        172.57017540606915
+      ],
+      "lap2_s": 172.57017540606915,
+      "laps": [
+        {
+          "progress": 5388.773713834052,
+          "time": 172.5446963337119,
+          "smoothness": 0.45327257169321233,
+          "tracking": 4193.3165982959445,
+          "penalty": 0.0,
+          "lap_time_s": 172.54469633369746,
+          "cost": 4366.31456720135,
+          "cost_r1": 172.5446963337119
+        },
+        {
+          "progress": 5388.773713834052,
+          "time": 172.5701754060836,
+          "smoothness": 0.4580504994362977,
+          "tracking": 4194.299416104649,
+          "penalty": 0.0,
+          "lap_time_s": 172.57017540606915,
+          "cost": 4367.327642010169,
+          "cost_r1": 172.5701754060836
+        }
+      ],
+      "decisions": 8740,
+      "sim_time_s": 349.6,
+      "progress_m": 10934.7757555962,
+      "episode_return": 10724.209627183998,
+      "wall_s": 17.05470125004649,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          4.478461512585636,
+          177.02315784628308,
+          349.59333325235224
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "23_safe_f0.56.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.54,
+      "clean": true,
+      "termination": "lap_complete",
+      "truncation": null,
+      "lap_times_s": [
+        178.88162163599614,
+        178.89891890880398
+      ],
+      "lap2_s": 178.89891890880398,
+      "laps": [
+        {
+          "progress": 5388.773713834052,
+          "time": 178.88162163601388,
+          "smoothness": 0.45104177501170817,
+          "tracking": 4298.591276820856,
+          "penalty": 0.0,
+          "lap_time_s": 178.88162163599614,
+          "cost": 4477.923940231882,
+          "cost_r1": 178.88162163601388
+        },
+        {
+          "progress": 5388.773713834052,
+          "time": 178.89891890882166,
+          "smoothness": 0.4402324751395729,
+          "tracking": 4299.073137583054,
+          "penalty": 0.0,
+          "lap_time_s": 178.89891890880398,
+          "cost": 4478.412288967015,
+          "cost_r1": 178.89891890882166
+        }
+      ],
+      "decisions": 9060,
+      "sim_time_s": 362.38,
+      "progress_m": 10934.715767028509,
+      "episode_return": 10715.585762615596,
+      "wall_s": 18.41879525000695,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          4.5940539779230365,
+          183.47567561391918,
+          362.37459452272316
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "24_safe_f0.54.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.52,
+      "clean": true,
+      "termination": "lap_complete",
+      "truncation": null,
+      "lap_times_s": [
+        185.71277774544072,
+        185.7266667071564
+      ],
+      "lap2_s": 185.7266667071564,
+      "laps": [
+        {
+          "progress": 5388.773713834052,
+          "time": 185.71277774546192,
+          "smoothness": 0.43237020925466624,
+          "tracking": 4416.564348668507,
+          "penalty": 0.0,
+          "lap_time_s": 185.71277774544072,
+          "cost": 4602.7094966232235,
+          "cost_r1": 185.71277774546192
+        },
+        {
+          "progress": 5388.773713834052,
+          "time": 185.72666670717757,
+          "smoothness": 0.4296787615996959,
+          "tracking": 4416.971667575672,
+          "penalty": 0.0,
+          "lap_time_s": 185.7266667071564,
+          "cost": 4603.128013044449,
+          "cost_r1": 185.72666670717757
+        }
+      ],
+      "decisions": 9405,
+      "sim_time_s": 376.2,
+      "progress_m": 10935.17567938087,
+      "episode_return": 10706.83891657471,
+      "wall_s": 19.86441554198973,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          4.742222186230769,
+          190.4549999316715,
+          376.1816666388279
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "25_safe_f0.52.csv"
+    },
+    {
+      "branch": "safe",
+      "label": "TUM-speed-guided pure pursuit on OCD safe line",
+      "factor": 0.5,
+      "clean": true,
+      "termination": "lap_complete",
+      "truncation": null,
+      "lap_times_s": [
+        193.09927731759726,
+        193.10799997917636
+      ],
+      "lap2_s": 193.10799997917636,
+      "laps": [
+        {
+          "progress": 5388.773713834052,
+          "time": 193.09927731762224,
+          "smoothness": 0.4147675451316245,
+          "tracking": 4549.762565878276,
+          "penalty": 0.0,
+          "lap_time_s": 193.09927731759726,
+          "cost": 4743.27661074103,
+          "cost_r1": 193.09927731762224
+        },
+        {
+          "progress": 5388.773713834052,
+          "time": 193.10799997920137,
+          "smoothness": 0.4328726687835778,
+          "tracking": 4550.151177365228,
+          "penalty": 0.0,
+          "lap_time_s": 193.10799997917636,
+          "cost": 4743.692050013213,
+          "cost_r1": 193.10799997920137
+        }
+      ],
+      "decisions": 9779,
+      "sim_time_s": 391.14,
+      "progress_m": 10934.775755596182,
+      "episode_return": 10696.589194808323,
+      "wall_s": 19.33856887498405,
+      "recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          4.9252940467186415,
+          198.0245713643159,
+          391.13257134349226
+        ]
+      },
+      "handover": {
+        "state": {
+          "x": 152.89618781591116,
+          "y": 35.61981963829154,
+          "yaw": -2.911720611028151,
+          "vx": 21.549019724235723,
+          "vy": -0.0029316644448025425,
+          "yaw_rate": -0.006875346687016085,
+          "steer_actual": -0.0011367524261914166,
+          "slip_rl": 0.0039561127801451745,
+          "slip_rr": 0.004004193378296503
+        },
+        "s_path_m": 5231.805336365923,
+        "s_ref_m": 5183.875198355351,
+        "settle_integral_m": 0.14106442871882266,
+        "start": {
+          "s0": 5188.773713834052,
+          "fraction": 0.5,
+          "v0": 21.59239581070428,
+          "attempts": 1,
+          "settle_s": 2.0
+        }
+      },
+      "controller_initial_integral_m": 0.14106442871882266,
+      "trace": "26_safe_f0.50.csv"
+    }
+  ],
+  "best_safe": {
+    "branch": "safe",
+    "label": "TUM-speed-guided pure pursuit on OCD safe line",
+    "factor": 0.68,
+    "clean": true,
+    "termination": "lap_complete",
+    "truncation": null,
+    "lap_times_s": [
+      142.41797874554126,
+      142.44510634140673
+    ],
+    "lap2_s": 142.44510634140673,
+    "laps": [
+      {
+        "progress": 5388.773713834052,
+        "time": 142.41797874554032,
+        "smoothness": 0.7700573490336825,
+        "tracking": 3819.0812240064633,
+        "penalty": 0.0,
+        "lap_time_s": 142.41797874554126,
+        "cost": 3962.269260101037,
+        "cost_r1": 142.41797874554032
+      },
+      {
+        "progress": 5388.773713834052,
+        "time": 142.44510634140576,
+        "smoothness": 0.7547100155607637,
+        "tracking": 3819.8656989110386,
+        "penalty": 0.0,
+        "lap_time_s": 142.44510634140673,
+        "cost": 3963.065515268005,
+        "cost_r1": 142.44510634140576
+      }
+    ],
+    "decisions": 7221,
+    "sim_time_s": 288.84000000000003,
+    "progress_m": 10935.075698434637,
+    "episode_return": 10767.055567403957,
+    "wall_s": 14.684420665958896,
+    "recorder_check": {
+      "lap_times_match_env": true,
+      "configured_reference": "raceline",
+      "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+      "recorder_crossings_s": [
+        3.9649999316723012,
+        146.38297867721357,
+        288.8280850186203
+      ]
+    },
+    "handover": {
+      "state": {
+        "x": 152.89618781591116,
+        "y": 35.61981963829154,
+        "yaw": -2.911720611028151,
+        "vx": 21.549019724235723,
+        "vy": -0.0029316644448025425,
+        "yaw_rate": -0.006875346687016085,
+        "steer_actual": -0.0011367524261914166,
+        "slip_rl": 0.0039561127801451745,
+        "slip_rr": 0.004004193378296503
+      },
+      "s_path_m": 5231.805336365923,
+      "s_ref_m": 5183.875198355351,
+      "settle_integral_m": 0.14106442871882266,
+      "start": {
+        "s0": 5188.773713834052,
+        "fraction": 0.5,
+        "v0": 21.59239581070428,
+        "attempts": 1,
+        "settle_s": 2.0
+      }
+    },
+    "controller_initial_integral_m": 0.14106442871882266,
+    "trace": "17_safe_f0.68.csv"
+  }
+}
