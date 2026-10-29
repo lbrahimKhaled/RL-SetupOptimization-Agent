@@ -1,0 +1,10 @@
+{
+  "started_utc": "2026-10-29T09:04:20.071294+00:00",
+  "command": "MPLCONFIGDIR=/private/tmp/rl_fair_mplconfig OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 NUMEXPR_NUM_THREADS=1 /usr/bin/nice -n 19 .venv/bin/python scripts/comparison/ghost_video_p1.py --rl-csv comparison/p1_tum_ghost_20261029_081152Z/rl/rl_det_seed0.csv --tum-csv comparison/tum/tum_none.csv --pp-csv comparison/tum_original_fullspeed_20261028_185217Z/p1_25hz/tum_original_f1.csv --out comparison/p1_tum_ghost_20261029_081152Z/p1_tum_comparison.mp4 --fps 25 --speedup 1 --screenshot-times 0 20 60 103 107.4",
+  "renderer_sha256": "352799e5cb8006dd0e2b9ca93b1bae1f379cfa835a61eb26828ea64dde763b2f",
+  "expected_frames": 2685,
+  "expected_duration_s": 107.4,
+  "ffmpeg_threads": 1,
+  "native_math_threads": 1,
+  "nice": 19
+}
