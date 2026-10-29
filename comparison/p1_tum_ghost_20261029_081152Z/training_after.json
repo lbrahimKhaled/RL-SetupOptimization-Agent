@@ -1,0 +1,54 @@
+{
+  "utc": "2026-10-29T09:15:12.475045+00:00",
+  "p1_TUM": {
+    "train_stats": {
+      "step": 10320000,
+      "episodes": 9,
+      "causes": {
+        "time_limit": 8,
+        "off_track": 1
+      },
+      "failures": 1,
+      "fail_speed_mean": 13.710500354456219,
+      "fail_abs_e_mean": 8.704290263812208,
+      "fail_share_slow_or_wide": 1.0,
+      "low_v0_episodes": 0,
+      "low_v0_stalls": 0,
+      "ep_return_mean": 2746.728759765625,
+      "ep_length_mean": 1359.0,
+      "ep_shaping_mean": 12.484513547126944
+    },
+    "latest_eval": {
+      "step": 10300000,
+      "utc": "2026-10-29T09:11:50Z",
+      "det_clean": false,
+      "lap2_s": null,
+      "env_steps_per_s": 109.40940417327886
+    }
+  },
+  "p0_TUMref": {
+    "train_stats": {
+      "step": 4880000,
+      "episodes": 5,
+      "causes": {
+        "time_limit": 5
+      },
+      "failures": 0,
+      "fail_speed_mean": null,
+      "fail_abs_e_mean": null,
+      "fail_share_slow_or_wide": null,
+      "low_v0_episodes": 0,
+      "low_v0_stalls": 0,
+      "ep_return_mean": 2896.13037109375,
+      "ep_length_mean": 1500.0,
+      "ep_shaping_mean": 25.66972472533497
+    },
+    "latest_eval": {
+      "step": 4850000,
+      "utc": "2026-10-29T09:05:34Z",
+      "det_clean": false,
+      "lap2_s": null,
+      "env_steps_per_s": 68.25837889712322
+    }
+  }
+}

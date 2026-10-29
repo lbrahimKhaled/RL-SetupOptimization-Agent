@@ -1,0 +1,2 @@
+{"setup": "p0", "hz": 25, "lap_times_s": [106.32657073955178, 106.48457930856989], "termination": "lap2_complete", "on_track_fraction_lap2": 0.7295266716754321, "wall_s": 5.494351667002775}
+saved /Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/comparison/tum_original_fullspeed_20261028_185217Z/p0_25hz

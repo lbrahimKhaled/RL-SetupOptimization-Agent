@@ -1,0 +1,297 @@
+{
+  "created_utc": "2026-10-29T09:15:12.455396+00:00",
+  "checks": {
+    "h264": true,
+    "dimensions": true,
+    "pixel_format": true,
+    "frame_rate": true,
+    "frames": true,
+    "duration": true,
+    "full_render": true,
+    "renderer_unchanged": true,
+    "inputs_unchanged": true,
+    "error_only_decode": true
+  },
+  "video": {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/comparison/p1_tum_ghost_20261029_081152Z/p1_tum_comparison.mp4",
+    "sha256": "3d4265b7f9b6e6e334ebc62fe078dd1c6fcab758653a282d2da0880db9f52dba",
+    "bytes": 16200320
+  },
+  "render_command": "MPLCONFIGDIR=/private/tmp/rl_fair_mplconfig OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 NUMEXPR_NUM_THREADS=1 /usr/bin/nice -n 19 .venv/bin/python scripts/comparison/ghost_video_p1.py --rl-csv comparison/p1_tum_ghost_20261029_081152Z/rl/rl_det_seed0.csv --tum-csv comparison/tum/tum_none.csv --pp-csv comparison/tum_original_fullspeed_20261028_185217Z/p1_25hz/tum_original_f1.csv --out comparison/p1_tum_ghost_20261029_081152Z/p1_tum_comparison.mp4 --fps 25 --speedup 1 --screenshot-times 0 20 60 103 107.4",
+  "renderer_sha256": "352799e5cb8006dd0e2b9ca93b1bae1f379cfa835a61eb26828ea64dde763b2f",
+  "inputs": [
+    {
+      "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/comparison/p1_tum_ghost_20261029_081152Z/rl/rl_det_seed0.csv",
+      "sha256": "62bf31040d2712ef375c7c4ca3a1834a3d70558bab596caa46e95a924f809552"
+    },
+    {
+      "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/comparison/tum/tum_none.csv",
+      "sha256": "1370d33415589f20530f51686c7d934afca871a6e9dcf10358de6731e6e626a7"
+    },
+    {
+      "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/comparison/tum_original_fullspeed_20261028_185217Z/p1_25hz/tum_original_f1.csv",
+      "sha256": "ea35c30ddb77dc11cb6eb29797a130f9c49ae6cff8483751233604c3b862dfe3"
+    }
+  ],
+  "lap_times_s": [
+    101.26992540585894,
+    94.88618556208073,
+    104.36090224242731
+  ],
+  "rl_checkpoint_sha256": "42e14362aba596492ab345a3e9e55ad70406fe5e51201d215de5798902585f45",
+  "probe_command": [
+    "/opt/homebrew/bin/ffprobe",
+    "-v",
+    "error",
+    "-threads",
+    "1",
+    "-select_streams",
+    "v:0",
+    "-count_frames",
+    "-show_streams",
+    "-show_format",
+    "-of",
+    "json",
+    "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/comparison/p1_tum_ghost_20261029_081152Z/p1_tum_comparison.mp4"
+  ],
+  "probe_results": {
+    "streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+        "profile": "High",
+        "codec_type": "video",
+        "codec_tag_string": "avc1",
+        "codec_tag": "0x31637661",
+        "width": 1280,
+        "height": 720,
+        "coded_width": 1280,
+        "coded_height": 720,
+        "has_b_frames": 2,
+        "pix_fmt": "yuv420p",
+        "level": 31,
+        "chroma_location": "left",
+        "field_order": "progressive",
+        "refs": 4,
+        "is_avc": "true",
+        "nal_length_size": "4",
+        "id": "0x1",
+        "r_frame_rate": "25/1",
+        "avg_frame_rate": "25/1",
+        "time_base": "1/12800",
+        "start_pts": 0,
+        "start_time": "0.000000",
+        "duration_ts": 1374720,
+        "duration": "107.400000",
+        "bit_rate": "1204260",
+        "bits_per_raw_sample": "8",
+        "nb_frames": "2685",
+        "nb_read_frames": "2685",
+        "extradata_size": 45,
+        "disposition": {
+          "default": 1,
+          "dub": 0,
+          "original": 0,
+          "comment": 0,
+          "lyrics": 0,
+          "karaoke": 0,
+          "forced": 0,
+          "hearing_impaired": 0,
+          "visual_impaired": 0,
+          "clean_effects": 0,
+          "attached_pic": 0,
+          "timed_thumbnails": 0,
+          "non_diegetic": 0,
+          "captions": 0,
+          "descriptions": 0,
+          "metadata": 0,
+          "dependent": 0,
+          "still_image": 0,
+          "multilayer": 0
+        },
+        "tags": {
+          "language": "und",
+          "handler_name": "VideoHandler",
+          "vendor_id": "[0][0][0][0]",
+          "encoder": "Lavc62.11.100 libx264"
+        }
+      }
+    ],
+    "format": {
+      "filename": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/comparison/p1_tum_ghost_20261029_081152Z/p1_tum_comparison.mp4",
+      "nb_streams": 1,
+      "nb_programs": 0,
+      "nb_stream_groups": 0,
+      "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+      "format_long_name": "QuickTime / MOV",
+      "start_time": "0.000000",
+      "duration": "107.400000",
+      "size": "16200320",
+      "bit_rate": "1206727",
+      "probe_score": 100,
+      "tags": {
+        "major_brand": "isom",
+        "minor_version": "512",
+        "compatible_brands": "isomiso2avc1mp41",
+        "encoder": "Lavf62.3.100"
+      }
+    }
+  },
+  "expected_frames": 2685,
+  "expected_duration_s": 107.4,
+  "decode_command": [
+    "/opt/homebrew/bin/ffmpeg",
+    "-v",
+    "error",
+    "-nostdin",
+    "-threads",
+    "1",
+    "-filter_threads",
+    "1",
+    "-filter_complex_threads",
+    "1",
+    "-i",
+    "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/comparison/p1_tum_ghost_20261029_081152Z/p1_tum_comparison.mp4",
+    "-threads",
+    "1",
+    "-f",
+    "null",
+    "-"
+  ],
+  "decode_return_code": 0,
+  "decode_stderr": "",
+  "decode_and_frame_extract_wall_s": 4.534748583915643,
+  "encoded_frame": {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/comparison/p1_tum_ghost_20261029_081152Z/p1_tum_encoded_t0060.00.png",
+    "sha256": "c5636e6992148b148aad0079c072470cf71a8c6c99617d4e249541df3ea1ac8d",
+    "extract_command": [
+      "/opt/homebrew/bin/ffmpeg",
+      "-v",
+      "error",
+      "-nostdin",
+      "-threads",
+      "1",
+      "-ss",
+      "60",
+      "-i",
+      "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/comparison/p1_tum_ghost_20261029_081152Z/p1_tum_comparison.mp4",
+      "-frames:v",
+      "1",
+      "-threads",
+      "1",
+      "-update",
+      "1",
+      "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/comparison/p1_tum_ghost_20261029_081152Z/p1_tum_encoded_t0060.00.png"
+    ]
+  },
+  "training_before": {
+    "utc": "2026-10-29T08:13:21.578418+00:00",
+    "p1_TUM": {
+      "train_stats": {
+        "step": 9930000,
+        "episodes": 6,
+        "causes": {
+          "off_track": 2,
+          "time_limit": 4
+        },
+        "failures": 2,
+        "fail_speed_mean": 36.13449765871457,
+        "fail_abs_e_mean": 6.086796458184666,
+        "fail_share_slow_or_wide": 1.0,
+        "low_v0_episodes": 0,
+        "low_v0_stalls": 0,
+        "ep_return_mean": 2609.526123046875,
+        "ep_length_mean": 1297.0,
+        "ep_shaping_mean": 11.22554198612729
+      },
+      "latest_eval": {
+        "step": 9900000,
+        "utc": "2026-10-29T08:08:14Z",
+        "det_clean": false,
+        "lap2_s": null,
+        "env_steps_per_s": 102.95041560424183
+      }
+    },
+    "p0_TUMref": {
+      "train_stats": {
+        "step": 4670000,
+        "episodes": 7,
+        "causes": {
+          "time_limit": 6,
+          "off_track": 1
+        },
+        "failures": 1,
+        "fail_speed_mean": 19.168968410806666,
+        "fail_abs_e_mean": 5.428344139746199,
+        "fail_share_slow_or_wide": 1.0,
+        "low_v0_episodes": 0,
+        "low_v0_stalls": 0,
+        "ep_return_mean": 2715.31591796875,
+        "ep_length_mean": 1394.5714285714287,
+        "ep_shaping_mean": 25.34083310368618
+      },
+      "latest_eval": {
+        "step": 4650000,
+        "utc": "2026-10-29T08:05:58Z",
+        "det_clean": false,
+        "lap2_s": null,
+        "env_steps_per_s": 66.78410823886963
+      }
+    }
+  },
+  "training_after": {
+    "utc": "2026-10-29T09:15:12.475045+00:00",
+    "p1_TUM": {
+      "train_stats": {
+        "step": 10320000,
+        "episodes": 9,
+        "causes": {
+          "time_limit": 8,
+          "off_track": 1
+        },
+        "failures": 1,
+        "fail_speed_mean": 13.710500354456219,
+        "fail_abs_e_mean": 8.704290263812208,
+        "fail_share_slow_or_wide": 1.0,
+        "low_v0_episodes": 0,
+        "low_v0_stalls": 0,
+        "ep_return_mean": 2746.728759765625,
+        "ep_length_mean": 1359.0,
+        "ep_shaping_mean": 12.484513547126944
+      },
+      "latest_eval": {
+        "step": 10300000,
+        "utc": "2026-10-29T09:11:50Z",
+        "det_clean": false,
+        "lap2_s": null,
+        "env_steps_per_s": 109.40940417327886
+      }
+    },
+    "p0_TUMref": {
+      "train_stats": {
+        "step": 4880000,
+        "episodes": 5,
+        "causes": {
+          "time_limit": 5
+        },
+        "failures": 0,
+        "fail_speed_mean": null,
+        "fail_abs_e_mean": null,
+        "fail_share_slow_or_wide": null,
+        "low_v0_episodes": 0,
+        "low_v0_stalls": 0,
+        "ep_return_mean": 2896.13037109375,
+        "ep_length_mean": 1500.0,
+        "ep_shaping_mean": 25.66972472533497
+      },
+      "latest_eval": {
+        "step": 4850000,
+        "utc": "2026-10-29T09:05:34Z",
+        "det_clean": false,
+        "lap2_s": null,
+        "env_steps_per_s": 68.25837889712322
+      }
+    }
+  }
+}

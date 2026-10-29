@@ -1,0 +1,194 @@
+{
+  "created_utc": "2026-10-28T19:00:21.029932+00:00",
+  "cases": {
+    "p1_25hz": {
+      "lap_times_s": [
+        104.5102223547964,
+        104.36090224242731
+      ],
+      "termination": "lap2_complete",
+      "wall_s": 6.389043999952264,
+      "on_track_fraction_lap2": 0.7693486590038314,
+      "e_raceline_rms_m": 2.4289918414646303,
+      "e_raceline_max_abs_m": 11.999839583524876,
+      "lap2_offtrack_segments": 25,
+      "speed_vs_unpreviewed_TUM": {
+        "samples": 2610,
+        "mae_mps": 4.147794475430915,
+        "rmse_mps": 5.4192716657031,
+        "bias_actual_minus_target_mps": -3.888365160192495,
+        "max_lag_mps": 19.511010836554505,
+        "max_overspeed_mps": 3.3455819932833606,
+        "mean_actual_mps": 51.89425455084199,
+        "mean_reference_mps": 55.782619711034485
+      },
+      "speed_vs_preview_command": {
+        "samples": 2610,
+        "mae_mps": 4.103573610869784,
+        "rmse_mps": 5.542722398691778,
+        "bias_actual_minus_target_mps": -3.6980576715755595,
+        "max_lag_mps": 13.765038470561443,
+        "max_overspeed_mps": 2.5156621190133137,
+        "mean_actual_mps": 51.89425455084199,
+        "mean_reference_mps": 55.59231222241754
+      },
+      "initial_pose": {
+        "x_m": 193.85558594000008,
+        "y_m": 49.734719020000014,
+        "yaw_rad": -2.9299026201653295,
+        "speed_mps": 50.181552299999986,
+        "s_path_m": 5188.773713834052,
+        "s_raceline_m": 5140.75405826825,
+        "initial_on_track": false,
+        "settle_s": 0.0,
+        "initial_PI_integral_m": 0.0
+      },
+      "valid_fair_RL_comparison": false,
+      "controller_identity": "rlsetup.driving.demo_driver.DemoDriver geometric pure pursuit plus speed PI and rear-slip traction control; no learned weights",
+      "csv_sha256": "ea35c30ddb77dc11cb6eb29797a130f9c49ae6cff8483751233604c3b862dfe3",
+      "source_identity": {
+        "ocd_commit": "39456345227a91128e1bed42482f63e2a4484521",
+        "ocd_code_version": "27abf3ed0d78",
+        "RL_utilities_commit": "604efe7b5acf40261fff7bdf637e18cd9f2aaca8",
+        "scratch_runner_sha256": "188bb74eebb55f6c9f007e934bc76110e61522b70946e0460d84b21520123697",
+        "tum_csv_sha256": "1370d33415589f20530f51686c7d934afca871a6e9dcf10358de6731e6e626a7"
+      }
+    },
+    "p0_25hz": {
+      "lap_times_s": [
+        106.32657073955178,
+        106.48457930856989
+      ],
+      "termination": "lap2_complete",
+      "wall_s": 5.494351667002775,
+      "on_track_fraction_lap2": 0.7295266716754321,
+      "e_raceline_rms_m": 3.3592261664055587,
+      "e_raceline_max_abs_m": 13.315206347858252,
+      "lap2_offtrack_segments": 21,
+      "speed_vs_unpreviewed_TUM": {
+        "samples": 2662,
+        "mae_mps": 4.326418024129604,
+        "rmse_mps": 5.857323871474943,
+        "bias_actual_minus_target_mps": -4.170633851129036,
+        "max_lag_mps": 19.538943983790183,
+        "max_overspeed_mps": 2.7997060613507614,
+        "mean_actual_mps": 51.1088952094645,
+        "mean_reference_mps": 55.27952906059354
+      },
+      "speed_vs_preview_command": {
+        "samples": 2662,
+        "mae_mps": 4.410951248233751,
+        "rmse_mps": 6.267093660920815,
+        "bias_actual_minus_target_mps": -4.00114802897744,
+        "max_lag_mps": 16.928305055957175,
+        "max_overspeed_mps": 2.8044439635472784,
+        "mean_actual_mps": 51.1088952094645,
+        "mean_reference_mps": 55.11004323844193
+      },
+      "initial_pose": {
+        "x_m": 193.85558594000008,
+        "y_m": 49.734719020000014,
+        "yaw_rad": -2.9299026201653295,
+        "speed_mps": 50.181552299999986,
+        "s_path_m": 5188.773713834052,
+        "s_raceline_m": 5140.75405826825,
+        "initial_on_track": false,
+        "settle_s": 0.0,
+        "initial_PI_integral_m": 0.0
+      },
+      "valid_fair_RL_comparison": false,
+      "controller_identity": "rlsetup.driving.demo_driver.DemoDriver geometric pure pursuit plus speed PI and rear-slip traction control; no learned weights",
+      "csv_sha256": "87ac6f48a773413982459b2a9298432438a51116c2261db989d0c578923b2879",
+      "source_identity": {
+        "ocd_commit": "39456345227a91128e1bed42482f63e2a4484521",
+        "ocd_code_version": "27abf3ed0d78",
+        "RL_utilities_commit": "604efe7b5acf40261fff7bdf637e18cd9f2aaca8",
+        "scratch_runner_sha256": "188bb74eebb55f6c9f007e934bc76110e61522b70946e0460d84b21520123697",
+        "tum_csv_sha256": "1370d33415589f20530f51686c7d934afca871a6e9dcf10358de6731e6e626a7"
+      }
+    },
+    "p1_25hz_repeat": {
+      "lap_times_s": [
+        104.5102223547964,
+        104.36090224242731
+      ],
+      "termination": "lap2_complete",
+      "wall_s": 5.8402242079610005,
+      "on_track_fraction_lap2": 0.7693486590038314,
+      "e_raceline_rms_m": 2.4289918414646303,
+      "e_raceline_max_abs_m": 11.999839583524876,
+      "lap2_offtrack_segments": 25,
+      "speed_vs_unpreviewed_TUM": {
+        "samples": 2610,
+        "mae_mps": 4.147794475430915,
+        "rmse_mps": 5.4192716657031,
+        "bias_actual_minus_target_mps": -3.888365160192495,
+        "max_lag_mps": 19.511010836554505,
+        "max_overspeed_mps": 3.3455819932833606,
+        "mean_actual_mps": 51.89425455084199,
+        "mean_reference_mps": 55.782619711034485
+      },
+      "speed_vs_preview_command": {
+        "samples": 2610,
+        "mae_mps": 4.103573610869784,
+        "rmse_mps": 5.542722398691778,
+        "bias_actual_minus_target_mps": -3.6980576715755595,
+        "max_lag_mps": 13.765038470561443,
+        "max_overspeed_mps": 2.5156621190133137,
+        "mean_actual_mps": 51.89425455084199,
+        "mean_reference_mps": 55.59231222241754
+      },
+      "initial_pose": {
+        "x_m": 193.85558594000008,
+        "y_m": 49.734719020000014,
+        "yaw_rad": -2.9299026201653295,
+        "speed_mps": 50.181552299999986,
+        "s_path_m": 5188.773713834052,
+        "s_raceline_m": 5140.75405826825,
+        "initial_on_track": false,
+        "settle_s": 0.0,
+        "initial_PI_integral_m": 0.0
+      },
+      "valid_fair_RL_comparison": false,
+      "controller_identity": "rlsetup.driving.demo_driver.DemoDriver geometric pure pursuit plus speed PI and rear-slip traction control; no learned weights",
+      "csv_sha256": "ea35c30ddb77dc11cb6eb29797a130f9c49ae6cff8483751233604c3b862dfe3",
+      "source_identity": {
+        "ocd_commit": "39456345227a91128e1bed42482f63e2a4484521",
+        "ocd_code_version": "27abf3ed0d78",
+        "RL_utilities_commit": "604efe7b5acf40261fff7bdf637e18cd9f2aaca8",
+        "scratch_runner_sha256": "188bb74eebb55f6c9f007e934bc76110e61522b70946e0460d84b21520123697",
+        "tum_csv_sha256": "1370d33415589f20530f51686c7d934afca871a6e9dcf10358de6731e6e626a7"
+      }
+    }
+  },
+  "p1_repeat": {
+    "CSV_byte_identical": true,
+    "exact_lap_times": true,
+    "exact_lap2_metrics": true,
+    "no_torch_all": true,
+    "no_source_changes_all": true
+  },
+  "training_progress": {
+    "utc": "2026-10-28T19:00:21.027760+00:00",
+    "p1_TUM": {
+      "previous_recorded_step": 2310000,
+      "current_step": 2510000,
+      "advanced": true,
+      "latest_eval_utc": "2026-10-28T18:58:44Z",
+      "latest_eval_step": 2500000,
+      "latest_speed_steps_per_s": 148.25734568691303,
+      "status": "running"
+    },
+    "p0_TUMref": {
+      "previous_recorded_step": 950000,
+      "current_step": 1050000,
+      "advanced": true,
+      "latest_eval_utc": "2026-10-28T18:58:13Z",
+      "latest_eval_step": 1050000,
+      "latest_speed_steps_per_s": 76.47050800086474,
+      "status": "running"
+    }
+  },
+  "no_50hz_runs": true,
+  "no_RL_models_loaded": true
+}

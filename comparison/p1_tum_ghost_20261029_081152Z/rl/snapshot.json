@@ -1,0 +1,147 @@
+{
+  "run": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p1_TUM/seed0",
+  "created_utc": "2026-10-29T08:13:22.657887+00:00",
+  "config_sha256": "9eaec5dad161eed39272548da73294deb4837b451d40bb83263e21002effdf48",
+  "provenance_sha256": "ffdc5d13e73b37c34dff539fc63289ff12b4a2b5b4f215bf768c6313abd6da56",
+  "evals_sha256": "04b4df1d6c2173dd8585b2853e946e99c1802dff8e7e722e0fc4250a509238f5",
+  "checkpoint": {
+    "source": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p1_TUM/seed0/checkpoints/best.zip",
+    "snapshot": "checkpoint.zip",
+    "sha256": "42e14362aba596492ab345a3e9e55ad70406fe5e51201d215de5798902585f45",
+    "bytes": 7779031,
+    "num_timesteps": 9600000
+  },
+  "selected_eval": {
+    "step": 9600000,
+    "utc": "2026-10-29T07:31:47Z",
+    "det_clean": true,
+    "det_termination": "lap_complete",
+    "det_truncation": null,
+    "lap1_s": 101.85983833263197,
+    "lap2_s": 101.26992540585894,
+    "lap_diff_s": 0.5899129267730245,
+    "det_return": 10778.553796256607,
+    "det_decisions": 5170,
+    "lap2": {
+      "lap": 2,
+      "decisions": 2531,
+      "lap_time_s": 101.26992540585894,
+      "time": 101.26992540585594,
+      "smoothness": 138.1513713776041,
+      "tracking": 1834.1550210504195,
+      "cost": 2073.5763178338793,
+      "cost_r1": 101.26992540585594,
+      "smoothness_share": 0.06662468614703375,
+      "mean_abs_e": 1.2467271861868177,
+      "max_abs_e": 8.665216271668093,
+      "min_edge_margin_m": 0.14833985960768414,
+      "front_lock_fraction": 0.08099565389174239,
+      "spin_upshifts": 17,
+      "share_abs_e_gt_1m": 0.38719873567759777,
+      "share_abs_e_gt_3m": 0.0900829711576452,
+      "shaping_sum": 26.02028317689753,
+      "progress_jumps": 0
+    },
+    "reward_mode": "time_pbrs",
+    "sto_laps": [
+      {
+        "clean": true,
+        "lap_s": 103.83286636036298,
+        "termination": "lap_complete",
+        "truncation": null
+      },
+      {
+        "clean": true,
+        "lap_s": 103.38543108182881,
+        "termination": "lap_complete",
+        "truncation": null
+      },
+      {
+        "clean": true,
+        "lap_s": 103.67244559464481,
+        "termination": "lap_complete",
+        "truncation": null
+      },
+      {
+        "clean": true,
+        "lap_s": 103.21812496903877,
+        "termination": "lap_complete",
+        "truncation": null
+      },
+      {
+        "clean": true,
+        "lap_s": 103.40255701103547,
+        "termination": "lap_complete",
+        "truncation": null
+      },
+      {
+        "clean": true,
+        "lap_s": 103.25329439062368,
+        "termination": "lap_complete",
+        "truncation": null
+      },
+      {
+        "clean": true,
+        "lap_s": 103.52665775655571,
+        "termination": "lap_complete",
+        "truncation": null
+      },
+      {
+        "clean": true,
+        "lap_s": 103.32987062337341,
+        "termination": "lap_complete",
+        "truncation": null
+      },
+      {
+        "clean": true,
+        "lap_s": 103.5294641120316,
+        "termination": "lap_complete",
+        "truncation": null
+      },
+      {
+        "clean": true,
+        "lap_s": 103.48597875230263,
+        "termination": "lap_complete",
+        "truncation": null
+      }
+    ],
+    "sto_clean": 10,
+    "sto_n": 10,
+    "sto_clean_rate": 1.0,
+    "sto_lap_mean_s": 103.46366906517979,
+    "q_vs_mc": {
+      "n": 210,
+      "n_steps": 3,
+      "mc_mean": 240.61374373211189,
+      "q_min_mean": 243.1326150803339,
+      "q_mean_mean": 243.68147608439128,
+      "q_min_minus_mc": 2.5188713482220226,
+      "q_mean_minus_mc": 3.0677323522794073,
+      "q_min_ratio": 1.0104685264821216,
+      "q_mean_ratio": 1.0127496139858696,
+      "mc_nstep_mean": 251.73025688462297,
+      "q_min_minus_mc_nstep": -8.5976418042891,
+      "q_mean_minus_mc_nstep": -8.048780800231716,
+      "q_min_ratio_nstep": 0.9658458148388984,
+      "q_mean_ratio_nstep": 0.9680261685669326
+    },
+    "alpha": 0.047056544572114944,
+    "policy_entropy": -2.829487133467635,
+    "n_updates": 4819998,
+    "eval_wall_s": 28.789906749967486,
+    "env_steps_per_s": 173.78997154086989,
+    "grad_steps_per_s": 86.89498577043494,
+    "wall_train_s": 59465.12230125372,
+    "wall_eval_s": 4451.527738909703,
+    "freeze_actor": false,
+    "actor_lr": 0.0001,
+    "train_obs_clip_fraction": 0.0,
+    "train_causes_total": {
+      "off_track": 1707,
+      "stall": 66,
+      "time_limit": 5594,
+      "wrong_way": 9
+    },
+    "new_best": true
+  }
+}
