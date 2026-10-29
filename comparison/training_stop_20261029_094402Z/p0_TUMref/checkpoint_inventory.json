@@ -1,0 +1,361 @@
+[
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/best.zip",
+    "bytes": 7779024,
+    "sha256": "24ce3b2a52275e60c3a9316dc1cd9e2f14856de3ef050d6dcfebd7ec7ccb33b7",
+    "mtime_utc": "2026-10-29T09:21:02.518383+00:00",
+    "num_timesteps": 4900000,
+    "zip_crc_validated": true
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/last.zip",
+    "bytes": 7779024,
+    "sha256": "6c136a3ddfb16e82c7e939e1baabc7aece7fc9c76df891f88dffec7a5463441c",
+    "mtime_utc": "2026-10-29T09:35:51.857928+00:00",
+    "num_timesteps": 4950000,
+    "zip_crc_validated": true
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_100000.zip",
+    "bytes": 7779020,
+    "sha256": "5606df53a23287145902888e0ca76ffc51b56860c3719c8023d9d880106dd29b",
+    "mtime_utc": "2026-10-28T14:37:18.713633+00:00",
+    "num_timesteps": 100000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_1000000.zip",
+    "bytes": 7779022,
+    "sha256": "6e5ec35d43bbceb819644220c18a6ff03b4a86ea3507836114d08ff5233d61e2",
+    "mtime_utc": "2026-10-28T18:47:19.927417+00:00",
+    "num_timesteps": 1000000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_1100000.zip",
+    "bytes": 7779022,
+    "sha256": "effae7dd1c5313c28c35eecc68ad2b5db9285eb995b51f272c7a0e0091825896",
+    "mtime_utc": "2026-10-28T19:10:29.692788+00:00",
+    "num_timesteps": 1100000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_1200000.zip",
+    "bytes": 7779023,
+    "sha256": "57d122e106699d2fb72c8bfaab4477e1075f06a89ec146b5ca03eeadc19f3857",
+    "mtime_utc": "2026-10-28T19:32:30.438447+00:00",
+    "num_timesteps": 1200000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_1300000.zip",
+    "bytes": 7779023,
+    "sha256": "e4de881f93fa3ddc9f852584e80fa337b50f7db3c502f47d3f68d9ae4d79cdca",
+    "mtime_utc": "2026-10-28T19:53:39.898247+00:00",
+    "num_timesteps": 1300000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_1400000.zip",
+    "bytes": 7779023,
+    "sha256": "6f8d328d9b138e78f80271b1c4351df435312e273044b1f6093225a469bf7d8d",
+    "mtime_utc": "2026-10-28T20:15:24.892406+00:00",
+    "num_timesteps": 1400000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_1500000.zip",
+    "bytes": 7779023,
+    "sha256": "2126d5e43454e7bb8d2e7b9a96566cb1932fd370e654cee68b32140ca76b1c7a",
+    "mtime_utc": "2026-10-28T20:36:52.343476+00:00",
+    "num_timesteps": 1500000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_1600000.zip",
+    "bytes": 7779023,
+    "sha256": "ae3fffa968c5b6abad4016afb84559a2a652da1cb885680a5cd548223616aa45",
+    "mtime_utc": "2026-10-28T20:58:33.157534+00:00",
+    "num_timesteps": 1600000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_1700000.zip",
+    "bytes": 7779023,
+    "sha256": "965561776cc09dbbceb440513ec1ca31305d2a4ab5d27a0fa5fe141d99e7939d",
+    "mtime_utc": "2026-10-28T21:19:46.019792+00:00",
+    "num_timesteps": 1700000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_1800000.zip",
+    "bytes": 7779023,
+    "sha256": "c545b2c68760235b1c7d9b003e5da193236855e47ce9bf592df3789f1072d2e3",
+    "mtime_utc": "2026-10-28T21:40:35.605753+00:00",
+    "num_timesteps": 1800000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_1900000.zip",
+    "bytes": 7779023,
+    "sha256": "327b421bea2803e7d3a0bf2baec2cd894b5cd86cbee6ac8ab01f7671e1ab4da9",
+    "mtime_utc": "2026-10-28T22:01:44.614651+00:00",
+    "num_timesteps": 1900000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_200000.zip",
+    "bytes": 7779021,
+    "sha256": "478bbfc05d5f0dba6a00ca8fd73afd9ba47d6d9308e5b1cfad23671c8b644068",
+    "mtime_utc": "2026-10-28T15:15:07.574195+00:00",
+    "num_timesteps": 200000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_2000000.zip",
+    "bytes": 7779024,
+    "sha256": "00b9f39e5ce044d9e17e36faf1e93c41b5c450d76f3e8097707d71e100d540b5",
+    "mtime_utc": "2026-10-28T22:22:39.987016+00:00",
+    "num_timesteps": 2000000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_2100000.zip",
+    "bytes": 7779024,
+    "sha256": "4d1ed4eab3c3de63ef000e00833bf12a73f7f4aba7c4d5b68869a99d1d9aa673",
+    "mtime_utc": "2026-10-28T22:43:50.570868+00:00",
+    "num_timesteps": 2100000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_2200000.zip",
+    "bytes": 7779024,
+    "sha256": "a718de87220b635e1320c010e94f40aa599c65de94702eca5763ea9db57e7239",
+    "mtime_utc": "2026-10-28T23:06:07.182812+00:00",
+    "num_timesteps": 2200000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_2300000.zip",
+    "bytes": 7779024,
+    "sha256": "2dd4fbdbf71e508bb7ddb5d53cfb625ae377412609028566f8736d02a0cf2ba8",
+    "mtime_utc": "2026-10-28T23:27:25.463091+00:00",
+    "num_timesteps": 2300000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_2400000.zip",
+    "bytes": 7779024,
+    "sha256": "0c24985c51c095972072b501622e1163392134c55d42205b5b4db056ebfaaae4",
+    "mtime_utc": "2026-10-28T23:49:20.941689+00:00",
+    "num_timesteps": 2400000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_2500000.zip",
+    "bytes": 7779024,
+    "sha256": "9a8867639909f4abeecc10af6bbb29573adbd923db242b2f7e8d0b3cc1a2c7ef",
+    "mtime_utc": "2026-10-29T00:11:56.157050+00:00",
+    "num_timesteps": 2500000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_2600000.zip",
+    "bytes": 7779024,
+    "sha256": "565e699c97e3a6c628b2b959b0ab3a4d3b8170d5614642f564d14095c78855b6",
+    "mtime_utc": "2026-10-29T00:33:07.190308+00:00",
+    "num_timesteps": 2600000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_2700000.zip",
+    "bytes": 7779024,
+    "sha256": "936a49752d7ac6c6463742cb910c4e2e672cf76f4ce0ae4a9ffed24c91887514",
+    "mtime_utc": "2026-10-29T00:55:25.683228+00:00",
+    "num_timesteps": 2700000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_2800000.zip",
+    "bytes": 7779024,
+    "sha256": "d925989e13d62ce3fd96bcfb3d844f4a6af96682f4ee387cba723f949d6a0065",
+    "mtime_utc": "2026-10-29T01:17:15.500346+00:00",
+    "num_timesteps": 2800000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_2900000.zip",
+    "bytes": 7779024,
+    "sha256": "b2959aecfc76c0658414a391f7ab3b06cfa8764250e4d4961252acce85765536",
+    "mtime_utc": "2026-10-29T01:38:56.346044+00:00",
+    "num_timesteps": 2900000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_300000.zip",
+    "bytes": 7779021,
+    "sha256": "7504781d112ce50297e831568cc25ca22c2ef0ef1ba05987faaafac20ce76db1",
+    "mtime_utc": "2026-10-28T15:42:29.438197+00:00",
+    "num_timesteps": 300000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_3000000.zip",
+    "bytes": 7779024,
+    "sha256": "bffaf63b262484dd452a1fffffe69099ae7b8e45ce40085d215d35299480a6ca",
+    "mtime_utc": "2026-10-29T02:00:57.488529+00:00",
+    "num_timesteps": 3000000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_3100000.zip",
+    "bytes": 7779024,
+    "sha256": "8a86ceb11c04e9aa7a14046c32ff1d1812dfaf8ad54ba549f38a39339697acf8",
+    "mtime_utc": "2026-10-29T02:22:41.698548+00:00",
+    "num_timesteps": 3100000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_3200000.zip",
+    "bytes": 7779024,
+    "sha256": "a5c90e6457e19f5d1a64d7a110b3f7d42e840bbe28bb4a89f23b84b911890b84",
+    "mtime_utc": "2026-10-29T02:44:38.209657+00:00",
+    "num_timesteps": 3200000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_3300000.zip",
+    "bytes": 7779024,
+    "sha256": "539f79ba713b00c0c27277de46b6489883cf5c375410e83d7383b1c2b57d79d4",
+    "mtime_utc": "2026-10-29T03:07:56.687256+00:00",
+    "num_timesteps": 3300000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_3400000.zip",
+    "bytes": 7779024,
+    "sha256": "b415273401056b47628c5727734a176ea016522a92682ba36bb088dbe1230dc3",
+    "mtime_utc": "2026-10-29T03:29:43.501797+00:00",
+    "num_timesteps": 3400000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_3500000.zip",
+    "bytes": 7779024,
+    "sha256": "b5aa2db8d6b0791259aab7be7c81a4412d4540ee6aa3905593433caac28a6ae7",
+    "mtime_utc": "2026-10-29T03:51:37.280584+00:00",
+    "num_timesteps": 3500000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_3600000.zip",
+    "bytes": 7779024,
+    "sha256": "6cf71667968a6e339139c292218557fc0231d288035342ae62bc5c305c75d7a5",
+    "mtime_utc": "2026-10-29T04:13:47.046413+00:00",
+    "num_timesteps": 3600000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_3700000.zip",
+    "bytes": 7779024,
+    "sha256": "f8eb91b4ae227b4007788da6c67010ee738637c01a3eb0688a80f4d2f403f635",
+    "mtime_utc": "2026-10-29T04:35:41.799088+00:00",
+    "num_timesteps": 3700000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_3800000.zip",
+    "bytes": 7779024,
+    "sha256": "ca787b7ddaee3155b1a3bc18a25245444e8d9da8047cf1d08952ebe467547109",
+    "mtime_utc": "2026-10-29T04:57:58.027380+00:00",
+    "num_timesteps": 3800000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_3900000.zip",
+    "bytes": 7779024,
+    "sha256": "52dc7365231311ca8f02c17a3beb09c24e0acb7e588c4b3195d1d784e60c764a",
+    "mtime_utc": "2026-10-29T05:19:44.767689+00:00",
+    "num_timesteps": 3900000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_400000.zip",
+    "bytes": 7779021,
+    "sha256": "f3ad8b7b2b02b241c95c60e4dda4c7488f2cb2b881823aa22b37373288a444a8",
+    "mtime_utc": "2026-10-28T16:07:00.077516+00:00",
+    "num_timesteps": 400000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_4000000.zip",
+    "bytes": 7779024,
+    "sha256": "5e66c1a9009a1924956a21bbc23fd4c18f4c93e95c117ffa91745f7323c3e421",
+    "mtime_utc": "2026-10-29T05:41:45.877698+00:00",
+    "num_timesteps": 4000000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_4100000.zip",
+    "bytes": 7779024,
+    "sha256": "fd84eeb0e54be3418e9f04a7b3a7d49e65e07a85e9153ddfa857f727db744e44",
+    "mtime_utc": "2026-10-29T06:03:49.003390+00:00",
+    "num_timesteps": 4100000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_4200000.zip",
+    "bytes": 7779024,
+    "sha256": "b5bd5e2f7ede99ad66dfbf8204483405ea1da7ecc0a5ef09b75d3821aab47dbb",
+    "mtime_utc": "2026-10-29T06:24:59.908326+00:00",
+    "num_timesteps": 4200000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_4300000.zip",
+    "bytes": 7779024,
+    "sha256": "0fe9ec344215f0d248e2548c56855e7167cc0ff19dd675a9495ce6c7180e6e20",
+    "mtime_utc": "2026-10-29T06:46:58.753905+00:00",
+    "num_timesteps": 4300000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_4400000.zip",
+    "bytes": 7779024,
+    "sha256": "e70ca110feb25f12a4a47900bc98b4e41c83893088f4902d93c8a83888610aba",
+    "mtime_utc": "2026-10-29T07:09:11.602419+00:00",
+    "num_timesteps": 4400000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_4500000.zip",
+    "bytes": 7779024,
+    "sha256": "f46a840b30bb8626459da5944a38f2ff0641199ec917053f380c89d4201d6eeb",
+    "mtime_utc": "2026-10-29T07:31:46.199748+00:00",
+    "num_timesteps": 4500000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_4600000.zip",
+    "bytes": 7779024,
+    "sha256": "1a0bddf634fc705defe1533875b179355a19c642454da32e3b15eb0a968c4eb5",
+    "mtime_utc": "2026-10-29T07:53:33.084744+00:00",
+    "num_timesteps": 4600000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_4700000.zip",
+    "bytes": 7779024,
+    "sha256": "688376f788313d143263de03e9c6641bfd8423a9e421a60eb5f78c0c33e51307",
+    "mtime_utc": "2026-10-29T08:22:29.889197+00:00",
+    "num_timesteps": 4700000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_4800000.zip",
+    "bytes": 7779024,
+    "sha256": "7d25dae159cb2876efe63771d54bdfe59be97fa32da9d5f58de2ecbb452e9956",
+    "mtime_utc": "2026-10-29T08:53:21.060576+00:00",
+    "num_timesteps": 4800000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_4900000.zip",
+    "bytes": 7779024,
+    "sha256": "24ce3b2a52275e60c3a9316dc1cd9e2f14856de3ef050d6dcfebd7ec7ccb33b7",
+    "mtime_utc": "2026-10-29T09:21:02.574391+00:00",
+    "num_timesteps": 4900000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_500000.zip",
+    "bytes": 7779021,
+    "sha256": "5558ab2285c667dbeaef8827181a20a39aece325dc9e47ef2e72aa68e26e2b21",
+    "mtime_utc": "2026-10-28T16:51:59.591028+00:00",
+    "num_timesteps": 500000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_600000.zip",
+    "bytes": 7779021,
+    "sha256": "043d31a43d035f0b1d01d55a5a98c6f5f0132cfb94882e87b474d5d4c4f131ba",
+    "mtime_utc": "2026-10-28T17:15:21.121116+00:00",
+    "num_timesteps": 600000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_700000.zip",
+    "bytes": 7779021,
+    "sha256": "d76ab0ff03682599b28a9b910d4d284d5e8fea1ef7ca94644a333c2daef3a467",
+    "mtime_utc": "2026-10-28T17:37:09.412051+00:00",
+    "num_timesteps": 700000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_800000.zip",
+    "bytes": 7779021,
+    "sha256": "927b6e664ce45b0c46a74c23396810a2937f4e24d0f0cbf43f6896fa51cdab3c",
+    "mtime_utc": "2026-10-28T17:59:07.833674+00:00",
+    "num_timesteps": 800000
+  },
+  {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/step_900000.zip",
+    "bytes": 7779021,
+    "sha256": "c7801a32a54152993a3ff8c0186ca7977dc9731ab7c589f8ba76d190d25e996f",
+    "mtime_utc": "2026-10-28T18:22:34.087687+00:00",
+    "num_timesteps": 900000
+  }
+]

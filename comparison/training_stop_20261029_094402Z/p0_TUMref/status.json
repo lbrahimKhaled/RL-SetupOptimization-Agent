@@ -1,0 +1,227 @@
+{
+ "created_utc": "2026-10-28T13:34:28+00:00",
+ "events": [
+  {
+   "kind": "unfreeze",
+   "utc": "2026-10-28T13:58:34+00:00",
+   "step": 20000,
+   "actor_sha256": "ebc5e0c9a6bda13ebb9006e274a6b66a5f9a35be4c279ed2e35a36146c4002b3",
+   "log_ent_coef_sha256": "56114faa768482804e03b684c4d464b45bb01dbb7ab65b5626b0daeccd69c177"
+  },
+  {
+   "kind": "rollback",
+   "utc": "2026-10-28T14:07:38+00:00",
+   "step": 40000,
+   "progress_m": 386.2839755202216,
+   "baseline_m": 774.7667581275923,
+   "actor_lr": 0.0001,
+   "rollbacks": 1
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T14:12:50+00:00",
+   "step": 50000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T15:28:51+00:00",
+   "step": 250000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T16:22:36+00:00",
+   "step": 450000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T17:37:07+00:00",
+   "step": 700000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T18:58:54+00:00",
+   "step": 1050000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T19:42:56+00:00",
+   "step": 1250000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T20:26:00+00:00",
+   "step": 1450000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T20:58:31+00:00",
+   "step": 1600000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T21:30:15+00:00",
+   "step": 1750000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T21:50:27+00:00",
+   "step": 1850000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T22:12:20+00:00",
+   "step": 1950000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T23:27:23+00:00",
+   "step": 2300000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T23:49:18+00:00",
+   "step": 2400000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T00:23:03+00:00",
+   "step": 2550000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T00:55:23+00:00",
+   "step": 2700000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T02:00:53+00:00",
+   "step": 3000000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T02:56:36+00:00",
+   "step": 3250000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T04:35:39+00:00",
+   "step": 3700000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T05:19:42+00:00",
+   "step": 3900000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T05:41:43+00:00",
+   "step": 4000000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T06:14:29+00:00",
+   "step": 4150000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T07:09:09+00:00",
+   "step": 4400000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T07:42:20+00:00",
+   "step": 4550000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T08:40:12+00:00",
+   "step": 4750000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T09:06:59+00:00",
+   "step": 4850000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T09:35:47+00:00",
+   "step": 4950000,
+   "termination": "off_track"
+  }
+ ],
+ "phase": "rl",
+ "state": "running",
+ "run_name": "p0_TUMref",
+ "seed": 0,
+ "preset": "p0_TUMref",
+ "rollbacks": 1,
+ "stop_reason": null,
+ "updated_utc": "2026-10-29T09:35:51+00:00",
+ "phases": {
+  "demos": {
+   "wall_s": 122.45174407958984,
+   "env_steps": 200514,
+   "cached": false,
+   "dataset_transitions": 200514
+  },
+  "bc": {
+   "wall_s": 33.88390922546387,
+   "env_steps": 11303
+  },
+  "offline_warmup": {
+   "wall_s": 727.745041847229,
+   "env_steps": 0,
+   "grad_steps": 20000,
+   "prefill": {
+    "rows": 48538,
+    "transitions": 194152,
+    "dropped": 6362,
+    "flagged_tails": 4,
+    "columns": 4
+   }
+  },
+  "online_warmup": {
+   "wall_s": 547.1598851680756,
+   "env_steps": 20000
+  }
+ },
+ "bc_baseline_m": 774.7667581275923,
+ "bc_probe": [
+  819.1327500830989,
+  451.211625223852,
+  671.8623591130067,
+  686.5469988398513,
+  496.6206767458384,
+  1246.1236103666465,
+  905.1826460561824,
+  921.4533985922621
+ ],
+ "bc_lap2_s": 179.034399959188,
+ "replay_buffer_step": 4950000,
+ "unfrozen_at": 20000
+}

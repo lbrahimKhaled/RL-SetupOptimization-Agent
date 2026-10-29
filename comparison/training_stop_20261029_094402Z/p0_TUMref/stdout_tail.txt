@@ -1,0 +1,45 @@
+15:39:31 offline block 4: critic loss 6.194, mean Q 68.5
+15:40:12 offline block 5: critic loss 7.068, mean Q 76.8
+15:40:51 offline block 6: critic loss 6.293, mean Q 83.9
+15:41:32 offline block 7: critic loss 8.926, mean Q 90.0
+15:42:12 offline block 8: critic loss 9.524, mean Q 95.9
+15:42:52 offline block 9: critic loss 8.126, mean Q 100.9
+15:43:32 offline block 10: critic loss 8.343, mean Q 104.3
+15:44:12 offline block 11: critic loss 10.114, mean Q 108.8
+15:44:50 offline block 12: critic loss 11.095, mean Q 110.5
+15:45:28 offline block 13: critic loss 11.377, mean Q 115.5
+15:46:06 offline block 14: critic loss 12.531, mean Q 118.1
+15:46:46 offline block 15: critic loss 11.705, mean Q 120.0
+15:47:26 offline block 16: critic loss 11.353, mean Q 122.1
+15:48:04 offline block 17: critic loss 12.530, mean Q 123.0
+15:48:44 offline block 18: critic loss 12.282, mean Q 126.2
+15:49:22 offline block 19: critic loss 12.821, mean Q 125.7
+15:49:25 offline warm-up Q vs soft MC on demos: {'n': 192, 'n_steps': 3, 'mc_mean': 117.50104935479486, 'q_min_mean': 121.88391522566478, 'q_mean_mean': 122.67023674647014, 'q_min_minus_mc': 4.382865870869909, 'q_mean_minus_mc': 5.169187391675268, 'q_min_ratio': 1.0373006530149007, 'q_mean_ratio': 1.0439926912998614, 'mc_nstep_mean': 144.8456079205055, 'q_min_minus_mc_nstep': -22.961692694840735, 'q_mean_minus_mc_nstep': -22.175371174035373, 'q_min_ratio_nstep': 0.841474705208579, 'q_mean_ratio_nstep': 0.8469033925681357}
+15:58:34 event unfreeze: {'step': 20000, 'actor_sha256': 'ebc5e0c9a6bda13ebb9006e274a6b66a5f9a35be4c279ed2e35a36146c4002b3', 'log_ent_coef_sha256': '56114faa768482804e03b684c4d464b45bb01dbb7ab65b5626b0daeccd69c177'}
+16:07:38 event rollback: {'step': 40000, 'progress_m': 386.2839755202216, 'baseline_m': 774.7667581275923, 'actor_lr': 0.0001, 'rollbacks': 1}
+16:12:50 event det_regression: {'step': 50000, 'termination': 'off_track'}
+17:28:51 event det_regression: {'step': 250000, 'termination': 'off_track'}
+18:22:36 event det_regression: {'step': 450000, 'termination': 'off_track'}
+19:37:07 event det_regression: {'step': 700000, 'termination': 'off_track'}
+20:58:54 event det_regression: {'step': 1050000, 'termination': 'off_track'}
+21:42:56 event det_regression: {'step': 1250000, 'termination': 'off_track'}
+22:26:00 event det_regression: {'step': 1450000, 'termination': 'off_track'}
+22:58:31 event det_regression: {'step': 1600000, 'termination': 'off_track'}
+23:30:15 event det_regression: {'step': 1750000, 'termination': 'off_track'}
+23:50:27 event det_regression: {'step': 1850000, 'termination': 'off_track'}
+00:12:20 event det_regression: {'step': 1950000, 'termination': 'off_track'}
+01:27:23 event det_regression: {'step': 2300000, 'termination': 'off_track'}
+01:49:18 event det_regression: {'step': 2400000, 'termination': 'off_track'}
+02:23:03 event det_regression: {'step': 2550000, 'termination': 'off_track'}
+02:55:23 event det_regression: {'step': 2700000, 'termination': 'off_track'}
+04:00:53 event det_regression: {'step': 3000000, 'termination': 'off_track'}
+04:56:36 event det_regression: {'step': 3250000, 'termination': 'off_track'}
+06:35:39 event det_regression: {'step': 3700000, 'termination': 'off_track'}
+07:19:42 event det_regression: {'step': 3900000, 'termination': 'off_track'}
+07:41:43 event det_regression: {'step': 4000000, 'termination': 'off_track'}
+08:14:29 event det_regression: {'step': 4150000, 'termination': 'off_track'}
+09:09:09 event det_regression: {'step': 4400000, 'termination': 'off_track'}
+09:42:20 event det_regression: {'step': 4550000, 'termination': 'off_track'}
+10:40:12 event det_regression: {'step': 4750000, 'termination': 'off_track'}
+11:06:59 event det_regression: {'step': 4850000, 'termination': 'off_track'}
+11:35:47 event det_regression: {'step': 4950000, 'termination': 'off_track'}
