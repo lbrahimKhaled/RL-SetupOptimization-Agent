@@ -1,0 +1,169 @@
+{
+  "created_utc": "2026-10-28T18:36:37.814832+00:00",
+  "status": "comparison_checks_pass; full fast suite has two independently reproduced pre-existing failures",
+  "full_fast_suite": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 /usr/bin/nice -n 19 .venv/bin/python -m pytest -q -p no:cacheprovider -m 'not slow'",
+    "exit_code": 1,
+    "passed": 199,
+    "failed": 2,
+    "skipped": 3,
+    "deselected": 5,
+    "warnings": 1,
+    "elapsed_s": 42.0
+  },
+  "isolated_existing_failures": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 /usr/bin/nice -n 19 .venv/bin/python -m pytest -q -p no:cacheprovider tests/test_provenance.py::test_every_imported_ocd_lap_module_is_hashed tests/test_qss_profile.py::test_cached_file_matches_fresh_computation",
+    "exit_code": 1,
+    "failed": 2,
+    "warnings": 1,
+    "elapsed_s": 2.81,
+    "new_comparison_tests_not_collected": true
+  },
+  "failures": [
+    {
+      "severity": "MINOR (pre-existing, outside comparison implementation)",
+      "test": "tests/test_provenance.py::test_every_imported_ocd_lap_module_is_hashed",
+      "location": "tests/test_provenance.py:58",
+      "reason": "Loaded ocd_lap/cars.py is absent from the source hash coverage set. Both current OCD git state and recorded training OCD git state are clean at the same commit; no model mismatch found in this comparison.",
+      "fix_for_later": "Include cars.py in provenance hash coverage; source code deliberately not changed in this stage."
+    },
+    {
+      "severity": "MINOR (pre-existing, outside comparison implementation)",
+      "test": "tests/test_qss_profile.py::test_cached_file_matches_fresh_computation",
+      "location": "tests/test_qss_profile.py:26",
+      "reason": "The stale default AV21 QSS cache is recomputed only in memory; recomputed metadata has no provenance key, causing KeyError. Current p1/p0 comparison caches and exact RL replays passed.",
+      "fix_for_later": "Preserve provenance on the in-memory stale-cache recomputation path; source code deliberately not changed in this stage."
+    }
+  ],
+  "focused_comparison_tests": {
+    "new_protocol_tests": 14,
+    "new_protocol_tests_passed": 14,
+    "coder_initial_execution_elapsed_s": 2.69,
+    "coder_initial_execution_warnings": 1,
+    "also_passed_in_full_fast_suite": true,
+    "schema_command": "PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 .venv/bin/python -m pytest -q -p no:cacheprovider tests/test_comparison_schema.py",
+    "schema_passed": 6,
+    "schema_elapsed_s": 0.04,
+    "pp_import_no_torch_independently_verified": true
+  },
+  "comparison_audit": {
+    "p1": {
+      "pp_attempt_count": 27,
+      "pp_declared_attempt_count": 27,
+      "pp_complete": true,
+      "pp_selected_factor": 0.7,
+      "pp_selected_lap2_s": 138.42021258515345,
+      "rl_lap2_s": 102.29289516482564,
+      "rl_reproduction": {
+        "expected_lap2_s": 102.29289516482564,
+        "measured_lap2_s": 102.29289516482564,
+        "difference_s": 0.0,
+        "tolerance_s": 1e-06,
+        "within_tolerance": true,
+        "training_device": "cpu",
+        "inference_device": "cpu",
+        "device_changed": false,
+        "note": "CPU and MPS inference can diverge; comparison uses the measured snapshot lap."
+      },
+      "frozen_config_sha_equal": true,
+      "frozen_checkpoint_sha_equal": true,
+      "evaluation_config_equal": true,
+      "all_pp_handover_equal": true,
+      "pp_rl_handover_equal": true,
+      "all_pp_recorder_clock_match": true,
+      "max_pp_configured_reference_error_m": 0.0,
+      "rl_recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "path",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          3.7142856399148068,
+          106.70892298687579,
+          209.00181815170143
+        ]
+      },
+      "winning_pp_all_recorded_rows_on_track": true,
+      "rl_all_recorded_rows_on_track": true,
+      "winning_pp_csv_sha_valid": true,
+      "rl_csv_sha_valid": true,
+      "saved_current_source_differences_pp": [],
+      "saved_current_source_differences_rl": [],
+      "ocd_version_equal": true,
+      "snapshot_ocd_git_matches_current": true
+    },
+    "p0": {
+      "pp_attempt_count": 27,
+      "pp_declared_attempt_count": 27,
+      "pp_complete": true,
+      "pp_selected_factor": 0.68,
+      "pp_selected_lap2_s": 142.44510634140673,
+      "rl_lap2_s": 106.5562844271498,
+      "rl_reproduction": {
+        "expected_lap2_s": 106.5562844271498,
+        "measured_lap2_s": 106.5562844271498,
+        "difference_s": 0.0,
+        "tolerance_s": 1e-06,
+        "within_tolerance": true,
+        "training_device": "mps",
+        "inference_device": "mps",
+        "device_changed": false,
+        "note": "CPU and MPS inference can diverge; comparison uses the measured snapshot lap."
+      },
+      "frozen_config_sha_equal": true,
+      "frozen_checkpoint_sha_equal": true,
+      "evaluation_config_equal": true,
+      "all_pp_handover_equal": true,
+      "pp_rl_handover_equal": true,
+      "all_pp_recorder_clock_match": true,
+      "max_pp_configured_reference_error_m": 0.0,
+      "rl_recorder_check": {
+        "lap_times_match_env": true,
+        "configured_reference": "raceline",
+        "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+        "recorder_crossings_s": [
+          3.702758577358662,
+          110.46523069884906,
+          217.02151512599886
+        ]
+      },
+      "winning_pp_all_recorded_rows_on_track": true,
+      "rl_all_recorded_rows_on_track": true,
+      "winning_pp_csv_sha_valid": true,
+      "rl_csv_sha_valid": true,
+      "saved_current_source_differences_pp": [],
+      "saved_current_source_differences_rl": [],
+      "ocd_version_equal": true,
+      "snapshot_ocd_git_matches_current": true
+    }
+  },
+  "repository_status": {
+    "rl_repo": {
+      "commit": "604efe7b5acf40261fff7bdf637e18cd9f2aaca8",
+      "tracked_diff_empty": true,
+      "status_porcelain": [
+        "?? comparison/fair_tum_20261028_181041Z/",
+        "?? data/qss_profile_Shanghai_p1_TUM_sf70h_tum_brake15000.npz",
+        "?? scripts/comparison/comparison_recording.py",
+        "?? scripts/comparison/comparison_state.py",
+        "?? scripts/comparison/export_fair_rl_laps.py",
+        "?? scripts/comparison/fair_tum_baseline.py",
+        "?? tests/test_fair_tum_baseline.py"
+      ]
+    },
+    "ocd_first_lap": {
+      "commit": "39456345227a91128e1bed42482f63e2a4484521",
+      "tracked_diff_empty": true,
+      "status_porcelain": []
+    }
+  },
+  "source_review": {
+    "new_implementation_blockers": [],
+    "minor_fixed_finding": "TUM profile now uses copied immutable input bytes, not the live source CSV after hashing.",
+    "legacy_export_rl_laps_unchanged": true,
+    "no_source_edits_by_qa": true
+  },
+  "limits": [
+    "No slow test suite run.",
+    "Results apply to the fixed-gain TUM-speed-guided PP controller and declared speed-factor sweep in current OCD conditions; not TUM solver optimality."
+  ]
+}

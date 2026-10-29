@@ -1,0 +1,4 @@
+p1_TUM RL 102.29289516482564 PP 138.42021258515345 delta 36.12731742032781 checks True
+p0_TUMref RL 106.5562844271498 PP 142.44510634140673 delta 35.88882191425692 checks True
+training_progress {'p1_TUM': {'before_step': 2200000, 'after_step': 2310000, 'latest_eval_step': 2300000, 'latest_eval_utc': '2026-10-28T18:35:16Z'}, 'p0_TUMref': {'before_step': 900000, 'after_step': 950000, 'latest_eval_step': 950000, 'latest_eval_utc': '2026-10-28T18:34:25Z'}}
+figure /Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/comparison/fair_tum_20261028_181041Z/matched_lap_comparison.png json /Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/comparison/fair_tum_20261028_181041Z/combined_results.json
