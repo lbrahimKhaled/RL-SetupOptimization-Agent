@@ -1,0 +1,114 @@
+{
+  "source": "tum",
+  "variant": "none",
+  "lap_time_s": 94.88618556208073,
+  "v_max_kmh": 284.48931104900726,
+  "v_min_kmh": 56.52000000000001,
+  "raceline_length_m": 5341.425515681778,
+  "stepsize_m": 4.9966562354366495,
+  "n_points": 1069,
+  "ers_used_J": 0.0,
+  "ers_final_J": 0.0,
+  "mguk_recuperated_J": 0.0,
+  "drs_share_of_points": 0.0,
+  "settings": {
+    "drs": false,
+    "driver_changes": {
+      "em_strategy": "NONE",
+      "initial_energy": 0.0,
+      "use_recuperation": false
+    },
+    "track": {
+      "trackname": "Shanghai",
+      "flip_track": false,
+      "mu_weather": 1.0,
+      "interp_stepsize_des": 5.0,
+      "curv_filt_width": 10.0,
+      "use_drs1": false,
+      "use_drs2": false,
+      "use_pit": false
+    },
+    "solver": {
+      "vehicle": "F1_Shanghai.ini",
+      "series": "F1",
+      "limit_braking_weak_side": "FA",
+      "v_start": 27.77777777777778,
+      "find_v_start": true,
+      "max_no_em_iters": 5,
+      "es_diff_max": 1.0
+    },
+    "driver": {
+      "vel_subtr_corner": 0.5,
+      "vel_lim_glob": null,
+      "yellow_s1": false,
+      "yellow_s2": false,
+      "yellow_s3": false,
+      "yellow_throttle": 0.3,
+      "initial_energy": 0.0,
+      "em_strategy": "NONE",
+      "use_recuperation": false,
+      "use_lift_coast": false,
+      "lift_coast_dist": 10.0
+    },
+    "debug": {
+      "use_plot": false,
+      "use_debug_plots": false,
+      "use_plot_comparison_tph": false,
+      "use_print": false,
+      "use_print_result": false
+    }
+  },
+  "model": "TUM laptime-simulation quasi-steady-state forward/backward solver (FB+), point mass with per-wheel load transfer, axle-wise friction check, F1_Shanghai.ini",
+  "code": {
+    "tum_laptime_simulation": {
+      "url": "https://github.com/TUMFTM/laptime-simulation",
+      "path": "/Users/ibrahimkhaled/Documents/tum/laptime-simulation",
+      "commit": "afa0aa710adb9fdd23fa3d6fbdd6a13664253616",
+      "dirty": false,
+      "untracked": false,
+      "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "run_tum_laptimesim_py": {
+      "path": "/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap/scripts/run_tum_laptimesim.py",
+      "sha256": "9652ba62f6737673af504285ad460bcf647baec009f95e94bcc90e2a4548cad2"
+    },
+    "ocd_first_lap": {
+      "path": "/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap",
+      "commit": "7d6f2aaf4e387bc63b916769421bdcc6ae480202",
+      "dirty": false,
+      "untracked": false,
+      "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "this_repo": {
+      "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent",
+      "commit": "ef80ca5bd201993e86e9c45b3fc939afcded82c7",
+      "dirty": false,
+      "untracked": true,
+      "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "script": {
+      "path": "scripts/comparison/export_tum_lap.py",
+      "sha256": "71a9514f90bc805b590e11213f626b5aa4c125d54ad8394ec00d9380c23425a1",
+      "common_sha256": "6d1b10ba795dfe2de284b5e5b8add8853773f89d2a926932f3a0d17484a16227"
+    }
+  },
+  "inputs_sha256": {
+    "vehicle_ini": "1a34e39bad20bf747f57c7b586be98b4928694b95dba174ed450d4452af08335",
+    "track_pars_ini": "2a2ade96acf531f3c1260f01fafb6113f5bd2f7e346c3a9b4c0a65119d3b21b4",
+    "raceline_csv": "db621f25b9eb3c444fa51be52cbf96cc7dc077932b32f25b424da0ff70ce7c04",
+    "ocd_first_lap_vendored_raceline": "db621f25b9eb3c444fa51be52cbf96cc7dc077932b32f25b424da0ff70ce7c04"
+  },
+  "python": "3.12.13",
+  "packages": {
+    "numpy": "1.26.4",
+    "scipy": "1.13.1",
+    "matplotlib": "3.8.4",
+    "trajectory-planning-helpers": "0.66",
+    "quadprog": "0.1.14"
+  },
+  "command": "scripts/comparison/export_tum_lap.py /Users/ibrahimkhaled/Documents/tum/laptime-simulation",
+  "file": "tum_none.csv",
+  "rows": 1070,
+  "sha256": "1370d33415589f20530f51686c7d934afca871a6e9dcf10358de6731e6e626a7",
+  "created_utc": "2026-10-28T08:03:18+00:00"
+}

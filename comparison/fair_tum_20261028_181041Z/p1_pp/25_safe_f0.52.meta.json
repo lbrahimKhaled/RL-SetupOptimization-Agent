@@ -1,0 +1,1437 @@
+{
+ "source": "fair_tum_baseline",
+ "snapshot": {
+  "run": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/comparison/fair_tum_20261028_181041Z/p1_inputs",
+  "created_utc": "2026-10-28T18:22:43.618726+00:00",
+  "config_sha256": "9eaec5dad161eed39272548da73294deb4837b451d40bb83263e21002effdf48",
+  "provenance_sha256": "ffdc5d13e73b37c34dff539fc63289ff12b4a2b5b4f215bf768c6313abd6da56",
+  "evals_sha256": "f57d16dd571f0137818f95eea82c99e2041e0581225dd2a66689e69101bb8d6e",
+  "checkpoint": {
+   "source": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/comparison/fair_tum_20261028_181041Z/p1_inputs/checkpoints/best.zip",
+   "snapshot": "checkpoint.zip",
+   "sha256": "99dc4a2d9d7a9de71702d2b5d2a60ca0356f463f45811555e06b656ae312b679",
+   "bytes": 7779024,
+   "num_timesteps": 2150000
+  },
+  "selected_eval": {
+   "step": 2150000,
+   "utc": "2026-10-28T18:15:35Z",
+   "det_clean": true,
+   "det_termination": "lap_complete",
+   "det_truncation": null,
+   "lap1_s": 102.99463734696099,
+   "lap2_s": 102.29289516482564,
+   "lap_diff_s": 0.701742182135348,
+   "det_return": 10775.802747724001,
+   "det_decisions": 5226,
+   "lap2": {
+    "lap": 2,
+    "decisions": 2558,
+    "lap_time_s": 102.29289516482564,
+    "time": 102.29289516482241,
+    "smoothness": 52.798040839767005,
+    "tracking": 1626.4365723393141,
+    "cost": 1781.5275083439035,
+    "cost_r1": 102.29289516482241,
+    "smoothness_share": 0.02963638820758245,
+    "mean_abs_e": 1.1812390521432765,
+    "max_abs_e": 8.182182216130307,
+    "min_edge_margin_m": 0.26170573853968593,
+    "front_lock_fraction": 0.06919468334636435,
+    "spin_upshifts": 19,
+    "share_abs_e_gt_1m": 0.38780297107114936,
+    "share_abs_e_gt_3m": 0.08053166536356529,
+    "shaping_sum": 24.19361799597164,
+    "progress_jumps": 0
+   },
+   "reward_mode": "time_pbrs",
+   "sto_laps": [
+    {
+     "clean": true,
+     "lap_s": 105.60942850813949,
+     "termination": "lap_complete",
+     "truncation": null
+    },
+    {
+     "clean": false,
+     "lap_s": null,
+     "termination": "off_track",
+     "truncation": null
+    },
+    {
+     "clean": true,
+     "lap_s": 105.1808313221614,
+     "termination": "lap_complete",
+     "truncation": null
+    },
+    {
+     "clean": false,
+     "lap_s": null,
+     "termination": "off_track",
+     "truncation": null
+    },
+    {
+     "clean": false,
+     "lap_s": null,
+     "termination": "off_track",
+     "truncation": null
+    },
+    {
+     "clean": true,
+     "lap_s": 105.50684885770548,
+     "termination": "lap_complete",
+     "truncation": null
+    },
+    {
+     "clean": true,
+     "lap_s": 105.46711203908167,
+     "termination": "lap_complete",
+     "truncation": null
+    },
+    {
+     "clean": true,
+     "lap_s": 105.30644944332913,
+     "termination": "lap_complete",
+     "truncation": null
+    },
+    {
+     "clean": false,
+     "lap_s": null,
+     "termination": "off_track",
+     "truncation": null
+    },
+    {
+     "clean": true,
+     "lap_s": 105.27004381349542,
+     "termination": "lap_complete",
+     "truncation": null
+    }
+   ],
+   "sto_clean": 6,
+   "sto_n": 10,
+   "sto_clean_rate": 0.6,
+   "sto_lap_mean_s": 105.39011899731877,
+   "q_vs_mc": {
+    "n": 218,
+    "n_steps": 3,
+    "mc_mean": 228.06364651685226,
+    "q_min_mean": 237.203564705105,
+    "q_mean_mean": 237.74208145841547,
+    "q_min_minus_mc": 9.139918188252748,
+    "q_mean_minus_mc": 9.678434941563205,
+    "q_min_ratio": 1.0400761731553625,
+    "q_mean_ratio": 1.0424374295920418,
+    "mc_nstep_mean": 237.80272187812974,
+    "q_min_minus_mc_nstep": -0.5991571730247223,
+    "q_mean_minus_mc_nstep": -0.06064041971426523,
+    "q_min_ratio_nstep": 0.9974804444276639,
+    "q_mean_ratio_nstep": 0.9997449969485827
+   },
+   "alpha": 0.0430026650428772,
+   "policy_entropy": -2.860863982831291,
+   "n_updates": 1094998,
+   "eval_wall_s": 28.963609708007425,
+   "env_steps_per_s": 160.7804814719034,
+   "grad_steps_per_s": 80.3902407359517,
+   "wall_train_s": 15411.791149036959,
+   "wall_eval_s": 1046.3692544584628,
+   "freeze_actor": false,
+   "actor_lr": 0.0001,
+   "train_obs_clip_fraction": 0.0,
+   "train_causes_total": {
+    "off_track": 608,
+    "stall": 29,
+    "time_limit": 1158,
+    "wrong_way": 3
+   },
+   "new_best": true
+  }
+ },
+ "saved_run_config": {
+  "preset": "p1_TUM",
+  "seed": 0,
+  "env": {
+   "track": "Shanghai",
+   "track_vmax_mps": 12.0,
+   "max_brake_torque_Nm": 15000.0,
+   "car": "sf70h_tum",
+   "ers": false,
+   "setup": "p1_TUM",
+   "reference": "path",
+   "action_repeat": 2,
+   "pedal_deadzone": true,
+   "obs_gear": false,
+   "max_episode_s": 60.0,
+   "settle_s": 2.0,
+   "start_speed_fraction": [
+    0.3,
+    0.7
+   ],
+   "settle_window_margin_m": 50.0,
+   "max_start_attempts": 20,
+   "stall_speed_mps": 3.0,
+   "stall_time_s": 2.0,
+   "wrong_way_rad": 1.5707963267948966,
+   "evaluation": false,
+   "eval_run_in_m": 200.0,
+   "eval_speed_fraction": 0.5,
+   "eval_laps": 2,
+   "eval_max_s": 900.0,
+   "record_telemetry": false,
+   "reward": {
+    "a": 1.0,
+    "b": 1.0,
+    "w": [
+     0.01,
+     0.001,
+     0.001
+    ],
+    "c": 0.1,
+    "penalty_base": 50.0,
+    "penalty_kappa": 1.5,
+    "recovery_time_s": 1.2,
+    "gamma": 0.992,
+    "mode": "time_pbrs",
+    "shaping_k": 1.0,
+    "penalty_const": 100.0
+   },
+   "obs": {
+    "n_preview": 20,
+    "preview_horizon_m": 300.0,
+    "preview_exponent": 1.5,
+    "preview_min_scale_m": 10.0,
+    "grid_m": 1.0,
+    "history": 3,
+    "speed_scale_mps": 80.0,
+    "vy_scale_mps": 5.0,
+    "accel_scale_mps2": 30.0,
+    "yaw_rate_scale_radps": 1.0,
+    "steer_scale_rad": 0.6,
+    "heading_scale_rad": 0.5,
+    "slip_gain": 5.0,
+    "slip_clip": 5.0,
+    "e_scale_m": 5.0,
+    "gear_scale": 8.0,
+    "clip": 10.0
+   },
+   "demo": {
+    "speed_kp": 0.4,
+    "speed_ki": 0.2,
+    "integral_limit_m": 5.0,
+    "brake_cap": 0.3,
+    "lookahead_m": 3.0,
+    "lookahead_s": 0.35,
+    "speed_preview_s": 0.5,
+    "released_pedal_action": -0.8,
+    "traction_control": true,
+    "traction_slip_start": 0.08,
+    "traction_slip_span": 0.12
+   }
+  },
+  "agent": {
+   "learning_rate": 0.0003,
+   "batch_size": 512,
+   "buffer_size": 1000000,
+   "tau": 0.005,
+   "n_steps": 3,
+   "train_freq": 1,
+   "learning_starts": 0,
+   "ent_coef": "auto_0.1",
+   "target_entropy": "auto",
+   "net_arch": [
+    256,
+    256,
+    256
+   ],
+   "n_critics": 2,
+   "critic_layernorm": true,
+   "init_mode": "bc",
+   "init_action": [
+    0.0,
+    -0.275,
+    -0.8
+   ],
+   "init_log_std": -1.0,
+   "init_weight_scale": 0.01
+  },
+  "demos": {
+   "n_transitions": 200000,
+   "fraction_range": [
+    0.5,
+    0.8
+   ],
+   "noise_std": [
+    0.05,
+    0.1,
+    0.1
+   ],
+   "fallback_steer_noise": 0.025,
+   "min_clean_fraction": 0.8,
+   "seed": 12345,
+   "workers": 4
+  },
+  "bc": {
+   "learning_rate": 0.0003,
+   "batch_size": 512,
+   "max_epochs": 30,
+   "patience": 3,
+   "val_fraction": 0.1,
+   "split_seed": 0,
+   "action_clip": 0.995,
+   "gate_stochastic_laps": 3,
+   "gate_required": false,
+   "slip_bins": [
+    0.0,
+    0.04,
+    0.08,
+    0.12,
+    0.16,
+    0.2,
+    0.3,
+    0.5,
+    1.0
+   ]
+  },
+  "warmup": {
+   "offline_blocks": 20,
+   "offline_steps_per_block": 1000,
+   "q_probe_batch": 512,
+   "q_mc_max_episodes": 20,
+   "online_warmup_steps": 20000
+  },
+  "guard": {
+   "n_starts": 8,
+   "start_offset_m": 37.0,
+   "start_shift_m": 50.0,
+   "max_start_shifts": 10,
+   "seed_base": 1000,
+   "probe_s": 30.0,
+   "interval": 10000,
+   "window": 200000,
+   "threshold": 0.5,
+   "rollback_actor_lr": 0.0001,
+   "max_rollbacks": 1
+  },
+  "eval": {
+   "interval": 50000,
+   "stochastic_laps": 10,
+   "seed": 0,
+   "q_mc_stride": 100,
+   "q_mc_min_left": 600,
+   "front_lock_kappa": -0.12,
+   "spin_slip": 0.12,
+   "car_half_width_m": 1.0,
+   "stats_window": 10000,
+   "stats_slow_mps": 15.0,
+   "stats_wide_m": 3.0,
+   "stats_low_v0_mps": 5.0
+  },
+  "warm": {
+   "critic_warmup_steps": 20000,
+   "load_critics": true,
+   "load_alpha": true,
+   "load_optimizers": true,
+   "init_buffer": null,
+   "relabel": true,
+   "offline_critic_grad_steps": 25000,
+   "offline_block": 1000,
+   "actor_lr": null,
+   "min_buffer_batches": 10,
+   "critic_check_tol": 0.08
+  },
+  "stop": {
+   "plateau": false,
+   "min_steps": 1000000,
+   "window": 500000,
+   "min_improvement_s": 0.1
+  },
+  "init_from": null,
+  "strict_provenance": true,
+  "n_envs": 4,
+  "gradient_steps": 2,
+  "torch_threads": 1,
+  "device": "cpu",
+  "total_timesteps": 1000000000,
+  "max_wall_h": null,
+  "checkpoint_interval": 100000,
+  "save_replay_buffer": true,
+  "replay_buffer_save_every": null,
+  "resume_empty_buffer_min_batches": 10,
+  "demo_dir": "data/demos",
+  "runs_root": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2",
+  "vec_start_method": "forkserver"
+ },
+ "evaluation_env_config": {
+  "track": "Shanghai",
+  "track_vmax_mps": 12.0,
+  "max_brake_torque_Nm": 15000.0,
+  "car": "sf70h_tum",
+  "ers": false,
+  "setup": "p1_TUM",
+  "reference": "path",
+  "action_repeat": 2,
+  "pedal_deadzone": true,
+  "obs_gear": false,
+  "max_episode_s": 60.0,
+  "settle_s": 2.0,
+  "start_speed_fraction": [
+   0.3,
+   0.7
+  ],
+  "settle_window_margin_m": 50.0,
+  "max_start_attempts": 20,
+  "stall_speed_mps": 3.0,
+  "stall_time_s": 2.0,
+  "wrong_way_rad": 1.5707963267948966,
+  "evaluation": true,
+  "eval_run_in_m": 200.0,
+  "eval_speed_fraction": 0.5,
+  "eval_laps": 2,
+  "eval_max_s": 900.0,
+  "record_telemetry": true,
+  "reward": {
+   "a": 1.0,
+   "b": 1.0,
+   "w": [
+    0.01,
+    0.001,
+    0.001
+   ],
+   "c": 0.1,
+   "penalty_base": 50.0,
+   "penalty_kappa": 1.5,
+   "recovery_time_s": 1.2,
+   "gamma": 0.992,
+   "mode": "time_pbrs",
+   "shaping_k": 1.0,
+   "penalty_const": 100.0
+  },
+  "obs": {
+   "n_preview": 20,
+   "preview_horizon_m": 300.0,
+   "preview_exponent": 1.5,
+   "preview_min_scale_m": 10.0,
+   "grid_m": 1.0,
+   "history": 3,
+   "speed_scale_mps": 80.0,
+   "vy_scale_mps": 5.0,
+   "accel_scale_mps2": 30.0,
+   "yaw_rate_scale_radps": 1.0,
+   "steer_scale_rad": 0.6,
+   "heading_scale_rad": 0.5,
+   "slip_gain": 5.0,
+   "slip_clip": 5.0,
+   "e_scale_m": 5.0,
+   "gear_scale": 8.0,
+   "clip": 10.0
+  },
+  "demo": {
+   "speed_kp": 0.4,
+   "speed_ki": 0.2,
+   "integral_limit_m": 5.0,
+   "brake_cap": 0.3,
+   "lookahead_m": 3.0,
+   "lookahead_s": 0.35,
+   "speed_preview_s": 0.5,
+   "released_pedal_action": -0.8,
+   "traction_control": true,
+   "traction_slip_start": 0.08,
+   "traction_slip_span": 0.12
+  }
+ },
+ "env_metadata": {
+  "config": {
+   "track": "Shanghai",
+   "track_vmax_mps": 12.0,
+   "max_brake_torque_Nm": 15000.0,
+   "car": "sf70h_tum",
+   "ers": false,
+   "setup": "p1_TUM",
+   "reference": "path",
+   "action_repeat": 2,
+   "pedal_deadzone": true,
+   "obs_gear": false,
+   "max_episode_s": 60.0,
+   "settle_s": 2.0,
+   "start_speed_fraction": [
+    0.3,
+    0.7
+   ],
+   "settle_window_margin_m": 50.0,
+   "max_start_attempts": 20,
+   "stall_speed_mps": 3.0,
+   "stall_time_s": 2.0,
+   "wrong_way_rad": 1.5707963267948966,
+   "evaluation": true,
+   "eval_run_in_m": 200.0,
+   "eval_speed_fraction": 0.5,
+   "eval_laps": 2,
+   "eval_max_s": 900.0,
+   "record_telemetry": true,
+   "reward": {
+    "a": 1.0,
+    "b": 1.0,
+    "w": [
+     0.01,
+     0.001,
+     0.001
+    ],
+    "c": 0.1,
+    "penalty_base": 50.0,
+    "penalty_kappa": 1.5,
+    "recovery_time_s": 1.2,
+    "gamma": 0.992,
+    "mode": "time_pbrs",
+    "shaping_k": 1.0,
+    "penalty_const": 100.0
+   },
+   "obs": {
+    "n_preview": 20,
+    "preview_horizon_m": 300.0,
+    "preview_exponent": 1.5,
+    "preview_min_scale_m": 10.0,
+    "grid_m": 1.0,
+    "history": 3,
+    "speed_scale_mps": 80.0,
+    "vy_scale_mps": 5.0,
+    "accel_scale_mps2": 30.0,
+    "yaw_rate_scale_radps": 1.0,
+    "steer_scale_rad": 0.6,
+    "heading_scale_rad": 0.5,
+    "slip_gain": 5.0,
+    "slip_clip": 5.0,
+    "e_scale_m": 5.0,
+    "gear_scale": 8.0,
+    "clip": 10.0
+   },
+   "demo": {
+    "speed_kp": 0.4,
+    "speed_ki": 0.2,
+    "integral_limit_m": 5.0,
+    "brake_cap": 0.3,
+    "lookahead_m": 3.0,
+    "lookahead_s": 0.35,
+    "speed_preview_s": 0.5,
+    "released_pedal_action": -0.8,
+    "traction_control": true,
+    "traction_slip_start": 0.08,
+    "traction_slip_span": 0.12
+   }
+  },
+  "setup": {
+   "ride_freq_front_hz": 4.2347,
+   "ride_freq_rear_hz": 3.372,
+   "damping_ratio_front": 0.14412,
+   "damping_ratio_rear": 0.10593,
+   "rebound_bump_ratio": 1.0,
+   "fast_slow_ratio": 1.0,
+   "heave_freq_front_hz": 0.0,
+   "heave_freq_rear_hz": 0.0,
+   "heave_damping_ratio": 0.0,
+   "roll_stiffness_Nm_per_rad": 275835.0,
+   "roll_stiffness_front_share": 0.4533,
+   "ride_height_front_m": 0.035,
+   "rake_m": 0.05,
+   "aero_level": 0.5,
+   "aero_front_share": 0.4508,
+   "brake_bias_front": 0.49,
+   "final_drive_ratio": 1.0,
+   "camber_front_deg": 0.0,
+   "camber_rear_deg": 0.0,
+   "toe_front_deg": 0.0,
+   "toe_rear_deg": 0.0,
+   "lsd_preload_Nm": 0.0,
+   "lsd_lock_drive": 1.0,
+   "lsd_lock_coast": 0.0,
+   "packer_gap_front_m": 0.1,
+   "packer_gap_rear_m": 0.1
+  },
+  "track": {
+   "name": "Shanghai",
+   "length_m": 5388.773713834052,
+   "path_sha256": "d5917a27a10035e18b3293ef549fa6ab4f05af75eed2eff173c6d2c1d2f23431"
+  },
+  "reference": {
+   "name": "Shanghai:Track.path",
+   "length_m": 5388.773713834052,
+   "digest": "d5917a27a10035e1"
+  },
+  "qss": {
+   "cache_key": {
+    "car": "sf70h_tum",
+    "ers": false,
+    "brake_torque_Nm": 15000.0,
+    "schema": 1,
+    "track": "Shanghai",
+    "track_path_sha256": "d5917a27a10035e18b3293ef549fa6ab4f05af75eed2eff173c6d2c1d2f23431",
+    "setup": {
+     "ride_freq_front_hz": 4.2347,
+     "ride_freq_rear_hz": 3.372,
+     "damping_ratio_front": 0.14412,
+     "damping_ratio_rear": 0.10593,
+     "rebound_bump_ratio": 1.0,
+     "fast_slow_ratio": 1.0,
+     "heave_freq_front_hz": 0.0,
+     "heave_freq_rear_hz": 0.0,
+     "heave_damping_ratio": 0.0,
+     "roll_stiffness_Nm_per_rad": 275835.0,
+     "roll_stiffness_front_share": 0.4533,
+     "ride_height_front_m": 0.035,
+     "rake_m": 0.05,
+     "aero_level": 0.5,
+     "aero_front_share": 0.4508,
+     "brake_bias_front": 0.49,
+     "final_drive_ratio": 1.0,
+     "camber_front_deg": 0.0,
+     "camber_rear_deg": 0.0,
+     "toe_front_deg": 0.0,
+     "toe_rear_deg": 0.0,
+     "lsd_preload_Nm": 0.0,
+     "lsd_lock_drive": 1.0,
+     "lsd_lock_coast": 0.0,
+     "packer_gap_front_m": 0.1,
+     "packer_gap_rear_m": 0.1
+    },
+    "ocd_lap_sources_sha256": {
+     "qss_lap.py": "251d38338e46ca46297c6815bbca0e3922d5535ce871096390c65ebc39640f44",
+     "handling.py": "4372ecac0110536e5ef5794b303560d73fd74665739cd84a9631e976b3842195",
+     "manoeuvres.py": "c0b75d06b03906886216549acda347636a2aef0e5d7e304b122b5f83cbd7ea3b",
+     "powertrain.py": "99609a4cd76db28576021515086a7bb6fc545ff860fbffab2c6ea0ded2df1bf0",
+     "backend.py": "64d2d65c6550382d1640b8003982bb129712efcd68f6a40faaa428b5a8b378c7",
+     "translator.py": "359ce311db518623680839a0100d0a87913fae7f3b0997316a5e10d5d9eaae69",
+     "car_setup.py": "5c99f82f24db640510bf4614848a01b3906a7006a9d311881dff1fb6b9677afd",
+     "aero_map.py": "9340359d727be1b2001f4c9b73fea4cad7425808748b993448a2af3c57c16ac8",
+     "rig.py": "c650c4ee1e67ab190fea52099dd887231274688f81de2de68c4f37aefe012381",
+     "vertical_model.py": "ed95da469c99c52678af4fd4ee5533482b194c561be39af63bcb33c66c1394c8"
+    },
+    "ocd_native_sha256": "2b62143d42172a88344d9621ba67fcc98f9d7c58fa0e197a18bc4d4e584dbf13",
+    "ocd_config_sha256": "db32a1c615912faffcbfe99238ddf986ecd9f1a7f7a50f3d8e417e5fa0ddf5c4"
+   },
+   "lap_time_s": 103.5610374471088
+  },
+  "observation_size": 159,
+  "decision_dt_s": 0.04
+ },
+ "conditions": {
+  "car": "sf70h_tum",
+  "setup_name": "p1_TUM",
+  "setup": {
+   "ride_freq_front_hz": 4.2347,
+   "ride_freq_rear_hz": 3.372,
+   "damping_ratio_front": 0.14412,
+   "damping_ratio_rear": 0.10593,
+   "rebound_bump_ratio": 1.0,
+   "fast_slow_ratio": 1.0,
+   "heave_freq_front_hz": 0.0,
+   "heave_freq_rear_hz": 0.0,
+   "heave_damping_ratio": 0.0,
+   "roll_stiffness_Nm_per_rad": 275835.0,
+   "roll_stiffness_front_share": 0.4533,
+   "ride_height_front_m": 0.035,
+   "rake_m": 0.05,
+   "aero_level": 0.5,
+   "aero_front_share": 0.4508,
+   "brake_bias_front": 0.49,
+   "final_drive_ratio": 1.0,
+   "camber_front_deg": 0.0,
+   "camber_rear_deg": 0.0,
+   "toe_front_deg": 0.0,
+   "toe_rear_deg": 0.0,
+   "lsd_preload_Nm": 0.0,
+   "lsd_lock_drive": 1.0,
+   "lsd_lock_coast": 0.0,
+   "packer_gap_front_m": 0.1,
+   "packer_gap_rear_m": 0.1
+  },
+  "max_brake_torque_Nm": 15000.0,
+  "ers": false,
+  "drs": false,
+  "recuperation": false,
+  "reference": "path",
+  "footprint_m": [
+   [
+    2.468,
+    1.0
+   ],
+   [
+    2.468,
+    -1.0
+   ],
+   [
+    -2.1319999999999997,
+    -1.0
+   ],
+   [
+    -2.1319999999999997,
+    1.0
+   ]
+  ],
+  "decision_dt_s": 0.04,
+  "tick_dt_s": 0.02,
+  "seed": 0,
+  "run_in_m": 200.0,
+  "settle_s": 2.0,
+  "eval_laps": 2
+ },
+ "controller": {
+  "class": "rlsetup.driving.demo_driver.DemoDriver",
+  "settle_demo_config": {
+   "speed_kp": 0.4,
+   "speed_ki": 0.2,
+   "integral_limit_m": 5.0,
+   "brake_cap": 0.3,
+   "lookahead_m": 3.0,
+   "lookahead_s": 0.35,
+   "speed_preview_s": 0.5,
+   "released_pedal_action": -0.8,
+   "traction_control": true,
+   "traction_slip_start": 0.08,
+   "traction_slip_span": 0.12
+  },
+  "lapping_demo_config": {
+   "speed_kp": 0.4,
+   "speed_ki": 0.2,
+   "integral_limit_m": 5.0,
+   "brake_cap": 1.0,
+   "lookahead_m": 3.0,
+   "lookahead_s": 0.35,
+   "speed_preview_s": 0.5,
+   "released_pedal_action": -0.8,
+   "traction_control": true,
+   "traction_slip_start": 0.08,
+   "traction_slip_span": 0.12
+  },
+  "integral_initialization": "saved settle_driver.integral",
+  "mapping": "sequential XY matches safe-line grid onto TUM raceline, then periodic interpolation",
+  "mapping_grid_m": 1.0,
+  "target": "f * TUM_speed(spatial_match(s_safe + max(vx,0) * speed_preview_s))"
+ },
+ "tum_profile": {
+  "source": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/comparison/tum/tum_none.csv",
+  "snapshot": "tum_input.csv",
+  "sha256": "1370d33415589f20530f51686c7d934afca871a6e9dcf10358de6731e6e626a7",
+  "metadata": {
+   "source": "tum",
+   "variant": "none",
+   "lap_time_s": 94.88618556208073,
+   "v_max_kmh": 284.48931104900726,
+   "v_min_kmh": 56.52000000000001,
+   "raceline_length_m": 5341.425515681778,
+   "stepsize_m": 4.9966562354366495,
+   "n_points": 1069,
+   "ers_used_J": 0.0,
+   "ers_final_J": 0.0,
+   "mguk_recuperated_J": 0.0,
+   "drs_share_of_points": 0.0,
+   "settings": {
+    "drs": false,
+    "driver_changes": {
+     "em_strategy": "NONE",
+     "initial_energy": 0.0,
+     "use_recuperation": false
+    },
+    "track": {
+     "trackname": "Shanghai",
+     "flip_track": false,
+     "mu_weather": 1.0,
+     "interp_stepsize_des": 5.0,
+     "curv_filt_width": 10.0,
+     "use_drs1": false,
+     "use_drs2": false,
+     "use_pit": false
+    },
+    "solver": {
+     "vehicle": "F1_Shanghai.ini",
+     "series": "F1",
+     "limit_braking_weak_side": "FA",
+     "v_start": 27.77777777777778,
+     "find_v_start": true,
+     "max_no_em_iters": 5,
+     "es_diff_max": 1.0
+    },
+    "driver": {
+     "vel_subtr_corner": 0.5,
+     "vel_lim_glob": null,
+     "yellow_s1": false,
+     "yellow_s2": false,
+     "yellow_s3": false,
+     "yellow_throttle": 0.3,
+     "initial_energy": 0.0,
+     "em_strategy": "NONE",
+     "use_recuperation": false,
+     "use_lift_coast": false,
+     "lift_coast_dist": 10.0
+    },
+    "debug": {
+     "use_plot": false,
+     "use_debug_plots": false,
+     "use_plot_comparison_tph": false,
+     "use_print": false,
+     "use_print_result": false
+    }
+   },
+   "model": "TUM laptime-simulation quasi-steady-state forward/backward solver (FB+), point mass with per-wheel load transfer, axle-wise friction check, F1_Shanghai.ini",
+   "code": {
+    "tum_laptime_simulation": {
+     "url": "https://github.com/TUMFTM/laptime-simulation",
+     "path": "/Users/ibrahimkhaled/Documents/tum/laptime-simulation",
+     "commit": "afa0aa710adb9fdd23fa3d6fbdd6a13664253616",
+     "dirty": false,
+     "untracked": false,
+     "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "run_tum_laptimesim_py": {
+     "path": "/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap/scripts/run_tum_laptimesim.py",
+     "sha256": "9652ba62f6737673af504285ad460bcf647baec009f95e94bcc90e2a4548cad2"
+    },
+    "ocd_first_lap": {
+     "path": "/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap",
+     "commit": "7d6f2aaf4e387bc63b916769421bdcc6ae480202",
+     "dirty": false,
+     "untracked": false,
+     "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "this_repo": {
+     "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent",
+     "commit": "ef80ca5bd201993e86e9c45b3fc939afcded82c7",
+     "dirty": false,
+     "untracked": true,
+     "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "script": {
+     "path": "scripts/comparison/export_tum_lap.py",
+     "sha256": "71a9514f90bc805b590e11213f626b5aa4c125d54ad8394ec00d9380c23425a1",
+     "common_sha256": "6d1b10ba795dfe2de284b5e5b8add8853773f89d2a926932f3a0d17484a16227"
+    }
+   },
+   "inputs_sha256": {
+    "vehicle_ini": "1a34e39bad20bf747f57c7b586be98b4928694b95dba174ed450d4452af08335",
+    "track_pars_ini": "2a2ade96acf531f3c1260f01fafb6113f5bd2f7e346c3a9b4c0a65119d3b21b4",
+    "raceline_csv": "db621f25b9eb3c444fa51be52cbf96cc7dc077932b32f25b424da0ff70ce7c04",
+    "ocd_first_lap_vendored_raceline": "db621f25b9eb3c444fa51be52cbf96cc7dc077932b32f25b424da0ff70ce7c04"
+   },
+   "python": "3.12.13",
+   "packages": {
+    "numpy": "1.26.4",
+    "scipy": "1.13.1",
+    "matplotlib": "3.8.4",
+    "trajectory-planning-helpers": "0.66",
+    "quadprog": "0.1.14"
+   },
+   "command": "scripts/comparison/export_tum_lap.py /Users/ibrahimkhaled/Documents/tum/laptime-simulation",
+   "file": "tum_none.csv",
+   "rows": 1070,
+   "sha256": "1370d33415589f20530f51686c7d934afca871a6e9dcf10358de6731e6e626a7",
+   "created_utc": "2026-10-28T08:03:18+00:00"
+  },
+  "max_tum_point_offset_m": 9.301334885205149e-05
+ },
+ "track": {
+  "name": "Shanghai",
+  "safe_line_digest": "d5917a27a10035e1",
+  "raceline_digest": "63e383066baaf6c6",
+  "safe_length_m": 5388.773713834052,
+  "raceline_length_m": 5340.770241508524
+ },
+ "code": {
+  "rlsetup": {
+   "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent",
+   "commit": "604efe7b5acf40261fff7bdf637e18cd9f2aaca8",
+   "dirty": false,
+   "untracked": true,
+   "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "rlsetup_sources_sha256": {
+   "rlsetup/__init__.py": "e54c1d042ab47972bb61868a40c841a34334c935b8628225ae2029cb7799f647",
+   "rlsetup/driving/__init__.py": "e51bed95f0dfa7bb68b0353ac1d1cc13d02e66a1f6c3b5eb92b95e176eb48eb9",
+   "rlsetup/driving/agent.py": "38b9c732a83df58f96306239fb07393a3177bec002aa2b8adc36a181a364ffe5",
+   "rlsetup/driving/bc.py": "0ecc9d18a552d3f4a36a56cc173fb915ca291c88a5296cd2225fe76aae254c0e",
+   "rlsetup/driving/callbacks.py": "7e0d3387316ffec87cb768cc5c1fbd1d48569a0c068ea6ca4a396abb62ff3869",
+   "rlsetup/driving/config.py": "0dfef096f71b12c67dc4439e77285cda1cc28399161cb97715aa1e722c4f3d48",
+   "rlsetup/driving/demo_driver.py": "9ea116cb686e93931ce8c1c69b04a4d4f6290ea9e99e1c0de8fbc51848f27852",
+   "rlsetup/driving/demos.py": "522fcbee6ec7d448ec6bf8c0e2a631d472cb64359ab4224ff2f807fde7c015f9",
+   "rlsetup/driving/env.py": "736560b891122ac464e018e2bb7a2d8c0813d1749a6ee0095754435dd2665058",
+   "rlsetup/driving/evaluate.py": "2392899a5f5830f619ffc3f4aa646e633b676cc2b15a934d73d6986b4ff41727",
+   "rlsetup/driving/policy.py": "e9103392f284d121e4301d6511c9116ffd6b2994fbbbd11402486de0806e597c",
+   "rlsetup/driving/qss_profile.py": "286c785da3d040ecdc179ec04df860487b8446d9058b3bded0ae096ac853ca28",
+   "rlsetup/driving/reference.py": "ec66dfe5f49e4df687683b60f0be4ce5f19448f6d9426fe11e40ff5724bdbd84",
+   "rlsetup/driving/relabel.py": "2d38184cd0bd0386b1038d0a277bbf4d17c23550b13ca2569e2bf9245984ed6e",
+   "rlsetup/driving/setups.py": "3016e6017a7ba88288c12140316048c4fa98c00dc7efa0bdceceea28346b1f99",
+   "rlsetup/driving/train.py": "7fc9d3d6fc666e6b4705d9d002bd976b4d6170f7bbc2e08a6d3e3981ed56831f",
+   "rlsetup/driving/train_config.py": "f64dc3a8e84d3058426c10246836eef5296421c2a834f4ba2742257b7856fbb1",
+   "rlsetup/driving/vec.py": "7bcde69c55f66aa27973d48fe3c2ece69548b1893ff7ac30e40e0066899278cd",
+   "rlsetup/provenance.py": "e56d2b0227aad0141ead6aeb8efe3afe3d2019f0255abca99a90cd6921ab8a22",
+   "rlsetup/runs.py": "04907834627096f0d03e05878fe772b91b51c13dc9938184323beaf286154071"
+  },
+  "ocd_first_lap": {
+   "path": "/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap",
+   "commit": "39456345227a91128e1bed42482f63e2a4484521",
+   "dirty": false,
+   "untracked": false,
+   "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "ocd_lap_code_version": "27abf3ed0d78",
+  "ocd_lap_extra_sources_sha256": {
+   "ocd_lap/__init__.py": "ba75b38ec95145c9a24be0b23265294b16b41d202464f6f7c640fbd81353065a",
+   "ocd_lap/env.py": "ecc30665a0a37da097b68d8062434a6eff9531953aef3e2202a60fdaa2ccb654",
+   "ocd_lap/qss_lap.py": "251d38338e46ca46297c6815bbca0e3922d5535ce871096390c65ebc39640f44",
+   "ocd_lap/handling.py": "4372ecac0110536e5ef5794b303560d73fd74665739cd84a9631e976b3842195",
+   "ocd_lap/manoeuvres.py": "c0b75d06b03906886216549acda347636a2aef0e5d7e304b122b5f83cbd7ea3b",
+   "ocd_lap/rig.py": "c650c4ee1e67ab190fea52099dd887231274688f81de2de68c4f37aefe012381",
+   "ocd_lap/vertical_model.py": "ed95da469c99c52678af4fd4ee5533482b194c561be39af63bcb33c66c1394c8"
+  },
+  "ocd_native_sha256": "2b62143d42172a88344d9621ba67fcc98f9d7c58fa0e197a18bc4d4e584dbf13",
+  "comparison_sources_sha256": {
+   "fair_tum_baseline.py": "4da54853a18d150bf8a72c498a9dd45447971a40d29747d3c086bf6b168d5105",
+   "common.py": "aa4fca5617b23fade79b86a45d0e8974dbfaa96b842c473612de11ba827bedea",
+   "comparison_recording.py": "6e92faaf2f4cc0f01f7011b8beacd6a8e5c360d5ab5cc83e19498b813822debc",
+   "comparison_state.py": "c96baa6e8527626420a67cb260867bbfb305c6f775458dd569e4326edd8caf8e",
+   "tum_pure_pursuit.py": "88b025ff07883443aefc0662cfc25921960429f210bd8d1c7cc54c5793ffbc35"
+  }
+ },
+ "schema": [
+  [
+   "t_s",
+   "s",
+   "time since the start of the recording (car placed 200 m before the line; RL: since hand-over after the 2 s settle)"
+  ],
+  [
+   "lap",
+   "-",
+   "line crossings before this sample: 0 = run-in, 1 = lap 1, 2 = lap 2 (the flying lap), 3 = after lap 2"
+  ],
+  [
+   "t_lap_s",
+   "s",
+   "time since the last line crossing (crossing interpolated between ticks); time since start on the run-in"
+  ],
+  [
+   "progress_m",
+   "m",
+   "distance driven along Track.path since the start (unwrapped)"
+  ],
+  [
+   "s_path_m",
+   "m",
+   "arc length on Track.path (ocd_first_lap safe minimum-curvature line), [0, 5388.77)"
+  ],
+  [
+   "s_raceline_m",
+   "m",
+   "arc length on Track.reference (TUM raceline polyline), [0, 5340.77)"
+  ],
+  [
+   "x_m",
+   "m",
+   "CoG x (track frame)"
+  ],
+  [
+   "y_m",
+   "m",
+   "CoG y"
+  ],
+  [
+   "yaw_rad",
+   "rad",
+   "yaw angle (OCD psi, counter-clockwise from +x; not wrapped)"
+  ],
+  [
+   "speed_mps",
+   "m/s",
+   "hypot(vx, vy)"
+  ],
+  [
+   "vx_mps",
+   "m/s",
+   "body-frame longitudinal velocity"
+  ],
+  [
+   "vy_mps",
+   "m/s",
+   "body-frame lateral velocity, positive = left"
+  ],
+  [
+   "yaw_rate_radps",
+   "rad/s",
+   "yaw rate, positive = counter-clockwise (left)"
+  ],
+  [
+   "ax_mps2",
+   "m/s^2",
+   "body-frame acceleration dvx/dt - r vy from OCD's state derivative at the sample"
+  ],
+  [
+   "ay_mps2",
+   "m/s^2",
+   "body-frame acceleration dvy/dt + r vx from OCD's state derivative, positive = left"
+  ],
+  [
+   "steer_cmd_rad",
+   "rad",
+   "steering command (OCD steering_actuator target), positive = left"
+  ],
+  [
+   "steer_actual_rad",
+   "rad",
+   "actual steering angle after OCD's PT1 actuator (0.6 rad, 1.5 rad/s limits)"
+  ],
+  [
+   "throttle",
+   "-",
+   "throttle pedal [0, 1]"
+  ],
+  [
+   "brake",
+   "-",
+   "brake pedal [0, 1] (x 12 kN m total, split by the setup brake bias 0.5)"
+  ],
+  [
+   "drive_torque_axle_Nm",
+   "N m",
+   "rear-axle drive torque OCD received in the last 2 ms step (transmission output)"
+  ],
+  [
+   "brake_torque_FL_Nm",
+   "N m",
+   "brake torque FL OCD received in the last 2 ms step"
+  ],
+  [
+   "brake_torque_FR_Nm",
+   "N m",
+   "brake torque FR OCD received in the last 2 ms step"
+  ],
+  [
+   "brake_torque_RL_Nm",
+   "N m",
+   "brake torque RL OCD received in the last 2 ms step"
+  ],
+  [
+   "brake_torque_RR_Nm",
+   "N m",
+   "brake torque RR OCD received in the last 2 ms step"
+  ],
+  [
+   "gear",
+   "-",
+   "gear, 1-based (ocd_lap.powertrain, TUM F1 ratios)"
+  ],
+  [
+   "engine_rpm",
+   "1/min",
+   "engine speed = rear-axle speed x overall ratio of the current gear"
+  ],
+  [
+   "engine_torque_crank_Nm",
+   "N m",
+   "throttle x full-load engine torque at engine_rpm (ocd_lap.powertrain, recomputed at the sample)"
+  ],
+  [
+   "e_motor_torque_crank_Nm",
+   "N m",
+   "throttle x e-motor torque at engine_rpm and speed (0 with ERS off or empty store; recomputed at the sample)"
+  ],
+  [
+   "ers_energy_J",
+   "J",
+   "ERS energy left (refilled to 4 MJ at each line crossing); empty with ERS off"
+  ],
+  [
+   "slip_rl",
+   "-",
+   "rear-left longitudinal slip ratio (backend state)"
+  ],
+  [
+   "slip_rr",
+   "-",
+   "rear-right longitudinal slip ratio (backend state)"
+  ],
+  [
+   "kappa_FL",
+   "-",
+   "longitudinal slip ratio FL (OCD x_vec)"
+  ],
+  [
+   "kappa_FR",
+   "-",
+   "longitudinal slip ratio FR (OCD x_vec)"
+  ],
+  [
+   "kappa_RL",
+   "-",
+   "longitudinal slip ratio RL (OCD x_vec)"
+  ],
+  [
+   "kappa_RR",
+   "-",
+   "longitudinal slip ratio RR (OCD x_vec)"
+  ],
+  [
+   "alpha_FL_rad",
+   "rad",
+   "slip angle FL (OCD x_vec)"
+  ],
+  [
+   "alpha_FR_rad",
+   "rad",
+   "slip angle FR (OCD x_vec)"
+  ],
+  [
+   "alpha_RL_rad",
+   "rad",
+   "slip angle RL (OCD x_vec)"
+  ],
+  [
+   "alpha_RR_rad",
+   "rad",
+   "slip angle RR (OCD x_vec)"
+  ],
+  [
+   "Fz_FL_N",
+   "N",
+   "vertical tyre force FL (OCD)"
+  ],
+  [
+   "Fz_FR_N",
+   "N",
+   "vertical tyre force FR (OCD)"
+  ],
+  [
+   "Fz_RL_N",
+   "N",
+   "vertical tyre force RL (OCD)"
+  ],
+  [
+   "Fz_RR_N",
+   "N",
+   "vertical tyre force RR (OCD)"
+  ],
+  [
+   "e_raceline_m",
+   "m",
+   "lateral offset to TUM's raceline (Track.reference), positive = left"
+  ],
+  [
+   "heading_err_raceline_rad",
+   "rad",
+   "yaw minus raceline heading, wrapped to [-pi, pi)"
+  ],
+  [
+   "e_path_m",
+   "m",
+   "lateral offset to Track.path (the RL driver's safe line xi_ref), positive = left"
+  ],
+  [
+   "track_position",
+   "-",
+   "lateral position across the track at s_path: -1 right edge ... +1 left edge (DrivingEnv.track_position)"
+  ],
+  [
+   "on_track",
+   "0/1",
+   "car footprint (4.6 x 2.0 m box) inside the track at every 2 ms physics step of the tick ending here (Track.contains_car, the env's own check)"
+  ],
+  [
+   "decision",
+   "-",
+   "index of the 25 Hz decision this tick belongs to (0 = first decision after hand-over)"
+  ],
+  [
+   "decision_end",
+   "0/1",
+   "1 on the tick that ends a decision; the columns from `reward` on are filled only there (stochastic files hold only these rows)"
+  ],
+  [
+   "a_steer",
+   "-",
+   "raw policy action held over the decision, steering, [-1, 1] (x 0.6 rad)"
+  ],
+  [
+   "a_throttle",
+   "-",
+   "raw policy action, throttle, [-1, 1] (pedal = clip((a + 0.5) / 1.5, 0, 1))"
+  ],
+  [
+   "a_brake",
+   "-",
+   "raw policy action, brake, [-1, 1] (same deadzone mapping)"
+  ],
+  [
+   "reward",
+   "-",
+   "reward of the decision (time_pbrs: r_progress - r_time - r_penalty + r_shaping)"
+  ],
+  [
+   "r_progress",
+   "-",
+   "a ds over the decision (a = 1 per m of Track.path progress)"
+  ],
+  [
+   "r_time",
+   "-",
+   "b dt over the decision (b = 1 per s)"
+  ],
+  [
+   "r_smoothness",
+   "-",
+   "b dt du^T W du (logged only, not rewarded in time_pbrs)"
+  ],
+  [
+   "r_tracking",
+   "-",
+   "diagnostic tracking term to the SAVED RUN reference"
+  ],
+  [
+   "r_penalty",
+   "-",
+   "failure penalty P (100 for off track / non-finite / wrong way)"
+  ],
+  [
+   "r_shaping",
+   "-",
+   "potential shaping using the SAVED RUN reference"
+  ],
+  [
+   "e_ref_env_m",
+   "m",
+   "offset to the SAVED RUN reference (path or raceline), positive left"
+  ],
+  [
+   "termination",
+   "text",
+   "env termination at this decision: off_track, nonfinite, wrong_way, lap_complete (empty otherwise)"
+  ],
+  [
+   "truncation",
+   "text",
+   "env truncation at this decision: time_limit, stall (empty otherwise)"
+  ],
+  [
+   "target_speed_mps",
+   "m/s",
+   "factor times TUM speed at the spatial preview point"
+  ],
+  [
+   "s_controller_m",
+   "m",
+   "current arc length on the line followed by pure pursuit"
+  ],
+  [
+   "s_preview_controller_m",
+   "m",
+   "speed preview arc length on the controller line"
+  ],
+  [
+   "s_preview_tum_m",
+   "m",
+   "spatially matched preview arc length on TUM raceline"
+  ],
+  [
+   "speed_scale_f",
+   "-",
+   "predeclared speed factor for this attempt"
+  ]
+ ],
+ "column_semantics_overrides": {
+  "e_ref_env_m": "offset to the SAVED RUN reference (path or raceline), positive left",
+  "r_tracking": "diagnostic tracking term to the SAVED RUN reference",
+  "r_shaping": "potential shaping using the SAVED RUN reference"
+ },
+ "predeclared_plan": [
+  {
+   "branch": "original",
+   "factor": 1.0
+  },
+  {
+   "branch": "safe",
+   "factor": 1.0
+  },
+  {
+   "branch": "safe",
+   "factor": 0.98
+  },
+  {
+   "branch": "safe",
+   "factor": 0.96
+  },
+  {
+   "branch": "safe",
+   "factor": 0.94
+  },
+  {
+   "branch": "safe",
+   "factor": 0.92
+  },
+  {
+   "branch": "safe",
+   "factor": 0.9
+  },
+  {
+   "branch": "safe",
+   "factor": 0.88
+  },
+  {
+   "branch": "safe",
+   "factor": 0.86
+  },
+  {
+   "branch": "safe",
+   "factor": 0.84
+  },
+  {
+   "branch": "safe",
+   "factor": 0.82
+  },
+  {
+   "branch": "safe",
+   "factor": 0.8
+  },
+  {
+   "branch": "safe",
+   "factor": 0.78
+  },
+  {
+   "branch": "safe",
+   "factor": 0.76
+  },
+  {
+   "branch": "safe",
+   "factor": 0.74
+  },
+  {
+   "branch": "safe",
+   "factor": 0.72
+  },
+  {
+   "branch": "safe",
+   "factor": 0.7
+  },
+  {
+   "branch": "safe",
+   "factor": 0.68
+  },
+  {
+   "branch": "safe",
+   "factor": 0.66
+  },
+  {
+   "branch": "safe",
+   "factor": 0.64
+  },
+  {
+   "branch": "safe",
+   "factor": 0.62
+  },
+  {
+   "branch": "safe",
+   "factor": 0.6
+  },
+  {
+   "branch": "safe",
+   "factor": 0.58
+  },
+  {
+   "branch": "safe",
+   "factor": 0.56
+  },
+  {
+   "branch": "safe",
+   "factor": 0.54
+  },
+  {
+   "branch": "safe",
+   "factor": 0.52
+  },
+  {
+   "branch": "safe",
+   "factor": 0.5
+  }
+ ],
+ "selection_rule": "minimum clean lap2_s across all predeclared safe-line factors tried",
+ "python": "3.12.13 (main, Mar  3 2026, 12:39:30) [Clang 21.0.0 (clang-2100.0.123.102)]",
+ "command": [
+  "scripts/comparison/fair_tum_baseline.py",
+  "--run",
+  "comparison/fair_tum_20261028_181041Z/p1_inputs",
+  "--out",
+  "comparison/fair_tum_20261028_181041Z/p1_pp"
+ ],
+ "summary": {
+  "branch": "safe",
+  "label": "TUM-speed-guided pure pursuit on OCD safe line",
+  "factor": 0.52,
+  "clean": true,
+  "termination": "lap_complete",
+  "truncation": null,
+  "lap_times_s": [
+   185.7138888734241,
+   185.73333339406634
+  ],
+  "lap2_s": 185.73333339406634,
+  "laps": [
+   {
+    "progress": 5388.773713834052,
+    "time": 185.7138888734453,
+    "smoothness": 0.4472305977054477,
+    "tracking": 44.52563662342482,
+    "penalty": 0.0,
+    "lap_time_s": 185.7138888734241,
+    "cost": 230.68675609457557,
+    "cost_r1": 185.7138888734453
+   },
+   {
+    "progress": 5388.773713834052,
+    "time": 185.7333333940875,
+    "smoothness": 0.4269197919907777,
+    "tracking": 44.51681268439951,
+    "penalty": 0.0,
+    "lap_time_s": 185.73333339406634,
+    "cost": 230.6770658704778,
+    "cost_r1": 185.7333333940875
+   }
+  ],
+  "decisions": 9406,
+  "sim_time_s": 376.24,
+  "progress_m": 10935.15568346397,
+  "episode_return": 10569.862988880437,
+  "wall_s": 17.932780915987678,
+  "recorder_check": {
+   "lap_times_match_env": true,
+   "configured_reference": "path",
+   "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+   "recorder_crossings_s": [
+    4.774444371335996,
+    190.4883332447601,
+    376.22166663882643
+   ]
+  },
+  "handover": {
+   "state": {
+    "x": 152.88746405960111,
+    "y": 35.61713560080665,
+    "yaw": -2.9117481817939472,
+    "vx": 21.55763575378738,
+    "vy": -0.0032921035669443745,
+    "yaw_rate": -0.006787389098618559,
+    "steer_actual": -0.0011630977478710826,
+    "slip_rl": 0.0038678550560115,
+    "slip_rr": 0.0040996344902761985
+   },
+   "s_path_m": 5231.825332282876,
+   "s_ref_m": 5231.825332282876,
+   "settle_integral_m": 0.14099388003634203,
+   "start": {
+    "s0": 5188.773713834052,
+    "fraction": 0.5,
+    "v0": 21.600983754734596,
+    "attempts": 1,
+    "settle_s": 2.0
+   }
+  },
+  "controller_initial_integral_m": 0.14099388003634203
+ },
+ "lap_time_s": 185.73333339406634,
+ "file": "25_safe_f0.52.csv",
+ "rows": 18812,
+ "sha256": "30078acf603c08e85364511a72461c937d7bb4c924757a62504a737709081c6c",
+ "created_utc": "2026-10-28T18:26:09+00:00"
+}
