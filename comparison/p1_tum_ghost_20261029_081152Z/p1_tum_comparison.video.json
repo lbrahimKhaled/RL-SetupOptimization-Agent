@@ -1,0 +1,71 @@
+{
+  "inputs": [
+    {
+      "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/comparison/p1_tum_ghost_20261029_081152Z/rl/rl_det_seed0.csv",
+      "sha256": "62bf31040d2712ef375c7c4ca3a1834a3d70558bab596caa46e95a924f809552"
+    },
+    {
+      "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/comparison/tum/tum_none.csv",
+      "sha256": "1370d33415589f20530f51686c7d934afca871a6e9dcf10358de6731e6e626a7"
+    },
+    {
+      "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/comparison/tum_original_fullspeed_20261028_185217Z/p1_25hz/tum_original_f1.csv",
+      "sha256": "ea35c30ddb77dc11cb6eb29797a130f9c49ae6cff8483751233604c3b862dfe3"
+    }
+  ],
+  "lap_times_s": [
+    101.26992540585894,
+    94.88618556208073,
+    104.36090224242731
+  ],
+  "rl_snapshot_step": 9600000,
+  "rl_evaluation_utc": "2026-10-29T07:31:47Z",
+  "rl_checkpoint_sha256": "42e14362aba596492ab345a3e9e55ad70406fe5e51201d215de5798902585f45",
+  "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 0.0,
+    "heave_freq_rear_hz": 0.0,
+    "heave_damping_ratio": 0.0,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.49,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+  },
+  "max_brake_torque_Nm": 15000.0,
+  "pp_valid_clean_lap": false,
+  "pp_on_track_fraction": 0.7693486590038314,
+  "time_alignment": "lap 2 timing crossings, linear continuous pose interpolation; shared seconds clock",
+  "PP_clock_precision": "start recovered from rounded CSV t_s minus t_lap_s; full-precision metadata duration",
+  "discrete_commands": "zero-order interval hold; command at row applies during interval ending at row",
+  "geometry": "original XY retained; projected distance used only by speed plot and HUD",
+  "fps": 25,
+  "speedup": 1.0,
+  "frames": 2685,
+  "full_duration_sim_s": 107.36090224242731,
+  "screenshots_only": false,
+  "screenshots": [
+    "comparison/p1_tum_ghost_20261029_081152Z/p1_tum_comparison_t0000.00.png",
+    "comparison/p1_tum_ghost_20261029_081152Z/p1_tum_comparison_t0020.00.png",
+    "comparison/p1_tum_ghost_20261029_081152Z/p1_tum_comparison_t0060.00.png",
+    "comparison/p1_tum_ghost_20261029_081152Z/p1_tum_comparison_t0103.00.png",
+    "comparison/p1_tum_ghost_20261029_081152Z/p1_tum_comparison_t0107.40.png"
+  ]
+}

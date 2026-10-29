@@ -1,0 +1,9 @@
+Matplotlib is building the font cache; this may take a moment.
+Traceback (most recent call last):
+  File "/private/tmp/plot_fair_tum_comparison.py", line 116, in <module>
+    rplot = lap_for_plot(rv, rlm['episode']['recorder_check']['recorder_crossings_s'], rt)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/tmp/plot_fair_tum_comparison.py", line 48, in lap_for_plot
+    assert np.all(np.diff(distance) > 0), 'plot distance must increase'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: plot distance must increase
