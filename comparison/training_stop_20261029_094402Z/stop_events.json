@@ -1,0 +1,43 @@
+{
+  "created_utc": "2026-10-29T09:44:15.962361+00:00",
+  "events": [
+    {
+      "utc": "2026-10-29T09:44:02.306073+00:00",
+      "action": "pre_stop_saved_pair",
+      "run": "p1_TUM",
+      "last_zip_step": 10500000,
+      "replay_buffer_step": 10500000
+    },
+    {
+      "utc": "2026-10-29T09:44:02.345884+00:00",
+      "action": "SIGINT",
+      "pid": 8973,
+      "run": "p1_TUM"
+    },
+    {
+      "utc": "2026-10-29T09:44:02.347680+00:00",
+      "action": "pre_stop_saved_pair",
+      "run": "p0_TUMref",
+      "last_zip_step": 4950000,
+      "replay_buffer_step": 4950000
+    },
+    {
+      "utc": "2026-10-29T09:44:02.393579+00:00",
+      "action": "SIGINT",
+      "pid": 8974,
+      "run": "p0_TUMref"
+    },
+    {
+      "utc": "2026-10-29T09:44:14.869460+00:00",
+      "action": "SIGTERM",
+      "pid": 8973,
+      "run": "p1_TUM"
+    },
+    {
+      "utc": "2026-10-29T09:44:14.870605+00:00",
+      "action": "SIGTERM",
+      "pid": 8974,
+      "run": "p0_TUMref"
+    }
+  ]
+}
