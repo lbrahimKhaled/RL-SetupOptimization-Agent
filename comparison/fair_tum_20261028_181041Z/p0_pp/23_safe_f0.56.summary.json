@@ -1,0 +1,75 @@
+{
+  "branch": "safe",
+  "label": "TUM-speed-guided pure pursuit on OCD safe line",
+  "factor": 0.56,
+  "clean": true,
+  "termination": "lap_complete",
+  "truncation": null,
+  "lap_times_s": [
+    172.54469633369746,
+    172.57017540606915
+  ],
+  "lap2_s": 172.57017540606915,
+  "laps": [
+    {
+      "progress": 5388.773713834052,
+      "time": 172.5446963337119,
+      "smoothness": 0.45327257169321233,
+      "tracking": 4193.3165982959445,
+      "penalty": 0.0,
+      "lap_time_s": 172.54469633369746,
+      "cost": 4366.31456720135,
+      "cost_r1": 172.5446963337119
+    },
+    {
+      "progress": 5388.773713834052,
+      "time": 172.5701754060836,
+      "smoothness": 0.4580504994362977,
+      "tracking": 4194.299416104649,
+      "penalty": 0.0,
+      "lap_time_s": 172.57017540606915,
+      "cost": 4367.327642010169,
+      "cost_r1": 172.5701754060836
+    }
+  ],
+  "decisions": 8740,
+  "sim_time_s": 349.6,
+  "progress_m": 10934.7757555962,
+  "episode_return": 10724.209627183998,
+  "wall_s": 17.05470125004649,
+  "recorder_check": {
+    "lap_times_match_env": true,
+    "configured_reference": "raceline",
+    "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+    "recorder_crossings_s": [
+      4.478461512585636,
+      177.02315784628308,
+      349.59333325235224
+    ]
+  },
+  "handover": {
+    "state": {
+      "x": 152.89618781591116,
+      "y": 35.61981963829154,
+      "yaw": -2.911720611028151,
+      "vx": 21.549019724235723,
+      "vy": -0.0029316644448025425,
+      "yaw_rate": -0.006875346687016085,
+      "steer_actual": -0.0011367524261914166,
+      "slip_rl": 0.0039561127801451745,
+      "slip_rr": 0.004004193378296503
+    },
+    "s_path_m": 5231.805336365923,
+    "s_ref_m": 5183.875198355351,
+    "settle_integral_m": 0.14106442871882266,
+    "start": {
+      "s0": 5188.773713834052,
+      "fraction": 0.5,
+      "v0": 21.59239581070428,
+      "attempts": 1,
+      "settle_s": 2.0
+    }
+  },
+  "controller_initial_integral_m": 0.14106442871882266,
+  "trace": "23_safe_f0.56.csv"
+}

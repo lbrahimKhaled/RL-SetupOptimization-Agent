@@ -1,0 +1,29 @@
+/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/rlsetup/driving/qss_profile.py:164: UserWarning: qss_profile_Shanghai_p0_sf70h_tum.npz: cache key does not match the current code/track; recomputing in memory (rebuild with scripts/build_qss_profile.py)
+  return load_or_build(track, car=env_cfg.car, ers=env_cfg.ers, setup=env_cfg.setup,
+original f=1.00: clean=False off_track laps=[] wall=0.1s
+safe f=1.00: clean=False off_track laps=[] wall=0.8s
+safe f=0.98: clean=False off_track laps=[] wall=1.2s
+safe f=0.96: clean=False off_track laps=[] wall=1.4s
+safe f=0.94: clean=False off_track laps=[] wall=1.4s
+safe f=0.92: clean=False off_track laps=[] wall=1.2s
+safe f=0.90: clean=False off_track laps=[] wall=1.2s
+safe f=0.88: clean=False off_track laps=[] wall=1.2s
+safe f=0.86: clean=False off_track laps=[] wall=1.3s
+safe f=0.84: clean=False off_track laps=[] wall=1.3s
+safe f=0.82: clean=False off_track laps=[] wall=1.4s
+safe f=0.80: clean=False off_track laps=[] wall=1.4s
+safe f=0.78: clean=False off_track laps=[] wall=1.5s
+safe f=0.76: clean=False off_track laps=[] wall=1.5s
+safe f=0.74: clean=False off_track laps=[] wall=1.5s
+safe f=0.72: clean=False off_track laps=[] wall=1.5s
+safe f=0.70: clean=False off_track laps=[] wall=1.6s
+safe f=0.68: clean=True lap_complete laps=[142.41797874554126, 142.44510634140673] wall=14.7s
+safe f=0.66: clean=True lap_complete laps=[146.66057970631803, 146.6850724564014] wall=14.9s
+safe f=0.64: clean=True lap_complete laps=[151.18129294704477, 151.20404039816668] wall=15.3s
+safe f=0.62: clean=True lap_complete laps=[156.00325586086092, 156.0251162223107] wall=14.8s
+safe f=0.60: clean=True lap_complete laps=[161.1489198634579, 161.17024390677452] wall=14.2s
+safe f=0.58: clean=True lap_complete laps=[166.65264639162285, 166.67499994533546] wall=17.3s
+safe f=0.56: clean=True lap_complete laps=[172.54469633369746, 172.57017540606915] wall=17.1s
+safe f=0.54: clean=True lap_complete laps=[178.88162163599614, 178.89891890880398] wall=18.4s
+safe f=0.52: clean=True lap_complete laps=[185.71277774544072, 185.7266667071564] wall=19.9s
+safe f=0.50: clean=True lap_complete laps=[193.09927731759726, 193.10799997917636] wall=19.3s
