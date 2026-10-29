@@ -1,0 +1,86 @@
+{
+  "created_utc": "2026-10-29T09:52:23.733732+00:00",
+  "test_date_client": "2026-10-29",
+  "client_timezone": "Asia/Beirut",
+  "verdict": "No new comparison/video blockers found; full suite retains two independently established baseline failures.",
+  "focused": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 .venv/bin/python -m pytest -q -p no:cacheprovider tests/test_fair_tum_baseline.py tests/test_ghost_video_p1.py tests/test_comparison_schema.py",
+    "exit_code": 0,
+    "passed": 29,
+    "failed": 0,
+    "warnings": 1,
+    "elapsed_s": 1.28
+  },
+  "full_suite": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 /usr/bin/nice -n 19 .venv/bin/python -m pytest -q -p no:cacheprovider",
+    "exit_code": 1,
+    "passed": 213,
+    "failed": 2,
+    "skipped": 3,
+    "warnings": 1,
+    "elapsed_s": 147.65,
+    "all_five_slow_tests_passed": true
+  },
+  "known_preexisting_failures": [
+    {
+      "test": "tests/test_provenance.py::test_every_imported_ocd_lap_module_is_hashed",
+      "location": "tests/test_provenance.py:58",
+      "observed_error": "AssertionError: loaded - covered == {'ocd_lap/cars.py'} instead of set()",
+      "scope": "Existing source-provenance coverage omits cars.py; not introduced by the added comparison scripts/tests."
+    },
+    {
+      "test": "tests/test_qss_profile.py::test_cached_file_matches_fresh_computation",
+      "location": "tests/test_qss_profile.py:26",
+      "observed_error": "KeyError: 'provenance'",
+      "scope": "Existing stale default AV21 QSS cache recomputes in memory without a metadata provenance key; no cache rebuilt or source fixed."
+    }
+  ],
+  "warning": "qss_profile_Shanghai_p0.npz cache key differs from current code/track; existing fixture recomputes in memory.",
+  "review_scope": [
+    "scripts/comparison/comparison_state.py",
+    "scripts/comparison/comparison_recording.py",
+    "scripts/comparison/fair_tum_baseline.py",
+    "scripts/comparison/export_fair_rl_laps.py",
+    "scripts/comparison/ghost_video_p1.py",
+    "tests/test_fair_tum_baseline.py",
+    "tests/test_ghost_video_p1.py"
+  ],
+  "source_sha256": {
+    "scripts/comparison/comparison_state.py": "c96baa6e8527626420a67cb260867bbfb305c6f775458dd569e4326edd8caf8e",
+    "scripts/comparison/comparison_recording.py": "6e92faaf2f4cc0f01f7011b8beacd6a8e5c360d5ab5cc83e19498b813822debc",
+    "scripts/comparison/fair_tum_baseline.py": "4da54853a18d150bf8a72c498a9dd45447971a40d29747d3c086bf6b168d5105",
+    "scripts/comparison/export_fair_rl_laps.py": "9528c5cd066dae28c16fe0cc0eaa692bcdf883f710587e6b0468e5af4b3cca17",
+    "scripts/comparison/ghost_video_p1.py": "352799e5cb8006dd0e2b9ca93b1bae1f379cfa835a61eb26828ea64dde763b2f",
+    "tests/test_fair_tum_baseline.py": "00d35201d1dc063dee73306cab0074933a159a2469880c1be6e4e5efc7917302",
+    "tests/test_ghost_video_p1.py": "7b34ab56b76355e07da17af708def55cf0a713856070e16c55499803f361af93"
+  },
+  "checks": {
+    "immutable_requested_run_snapshots_and_eval_pairing": true,
+    "real_DrivingEnv_settle_and_25Hz_actions_preserved": true,
+    "p0_raceline_reference_handled": true,
+    "fastest_clean_among_declared_safe_PP_factors_only": true,
+    "original_TUM_f1_diagnostic_distinct_from_scaled_safe_PP": true,
+    "PP_invalid_clean_lap_status_explicit": true,
+    "video_input_hashes_setup_brakes_physics_match": true,
+    "video_shared_seconds_crossing_interpolation_finish_freeze": true,
+    "video_discrete_command_and_offtrack_interval_holds": true,
+    "PP_rounded_CSV_clock_precision_disclosed": true,
+    "video_no_torch_in_independent_actual_input_load": true,
+    "ffmpeg_single_thread_configured": true,
+    "no_new_training_or_OCD_source_changes": true
+  },
+  "artifact_review": {
+    "handoff": "comparison/SESSION_20261029.md",
+    "labels": "TUM QSS94.886185562s uses a different model; latest clean frozen p1 RL101.269925406s; original fullspeed PP104.360902242s is explicitly nonclean with76.9349% on-track intervals. Earlier safe-line speed-scaled PP is documented as an alternate baseline.",
+    "stop_record": "comparison/training_stop_20261029_094402Z/README.md",
+    "resume_state": "Local p1 model/replay matched10.50M andp0 matched4.95M; weights/replay remain ignored local artifacts. README explicitly discloses that committed records alone cannot resume elsewhere and that some later logged steps were not checkpointed.",
+    "video_validation": "comparison/p1_tum_ghost_20261029_081152Z/video_validation.json"
+  },
+  "qa_source_edits": false,
+  "qa_rendering": false,
+  "qa_training_stop_or_restart": false,
+  "limits": [
+    "Not a fully green repository suite: the two named baseline failures remain.",
+    "No claims of RL superiority over TUM solver or an optimized tracking controller."
+  ]
+}

@@ -1,0 +1,287 @@
+{
+ "created_utc": "2026-10-28T13:34:29+00:00",
+ "events": [
+  {
+   "kind": "unfreeze",
+   "utc": "2026-10-28T13:41:16+00:00",
+   "step": 20000,
+   "actor_sha256": "a5df436d7270cc04fc2bdd9241ffdb1b69fc581d403d50bc4a36b1796c657407",
+   "log_ent_coef_sha256": "56114faa768482804e03b684c4d464b45bb01dbb7ab65b5626b0daeccd69c177"
+  },
+  {
+   "kind": "rollback",
+   "utc": "2026-10-28T13:42:04+00:00",
+   "step": 30000,
+   "progress_m": 357.18151609687015,
+   "baseline_m": 751.701049670886,
+   "actor_lr": 0.0001,
+   "rollbacks": 1
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T13:58:35+00:00",
+   "step": 200000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T14:48:31+00:00",
+   "step": 650000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T15:47:54+00:00",
+   "step": 1100000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T17:09:06+00:00",
+   "step": 1550000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T17:36:29+00:00",
+   "step": 1800000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T18:04:10+00:00",
+   "step": 2050000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T18:29:08+00:00",
+   "step": 2250000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T19:31:52+00:00",
+   "step": 2800000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T20:08:21+00:00",
+   "step": 3150000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T20:28:51+00:00",
+   "step": 3350000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T20:38:58+00:00",
+   "step": 3450000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T21:35:12+00:00",
+   "step": 4000000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T21:45:29+00:00",
+   "step": 4100000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T21:56:22+00:00",
+   "step": 4200000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T22:37:58+00:00",
+   "step": 4600000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T22:48:39+00:00",
+   "step": 4700000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T23:04:47+00:00",
+   "step": 4850000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-28T23:31:19+00:00",
+   "step": 5100000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T00:03:22+00:00",
+   "step": 5400000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T00:19:33+00:00",
+   "step": 5550000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T00:56:58+00:00",
+   "step": 5900000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T01:28:13+00:00",
+   "step": 6200000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T02:15:28+00:00",
+   "step": 6650000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T03:00:10+00:00",
+   "step": 7050000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T04:15:14+00:00",
+   "step": 7750000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T04:25:47+00:00",
+   "step": 7850000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T04:53:13+00:00",
+   "step": 8100000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T05:25:01+00:00",
+   "step": 8400000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T06:07:29+00:00",
+   "step": 8800000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T06:28:13+00:00",
+   "step": 9000000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T07:10:51+00:00",
+   "step": 9400000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T07:37:41+00:00",
+   "step": 9650000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T07:48:38+00:00",
+   "step": 9750000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T08:25:21+00:00",
+   "step": 10000000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T09:12:15+00:00",
+   "step": 10300000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-10-29T09:33:22+00:00",
+   "step": 10450000,
+   "termination": "off_track"
+  }
+ ],
+ "phase": "rl",
+ "state": "running",
+ "run_name": "p1_TUM",
+ "seed": 0,
+ "preset": "p1_TUM",
+ "rollbacks": 1,
+ "stop_reason": "BC deterministic lap: off_track",
+ "updated_utc": "2026-10-29T09:41:28+00:00",
+ "phases": {
+  "demos": {
+   "wall_s": 126.5388171672821,
+   "env_steps": 201426,
+   "cached": false,
+   "dataset_transitions": 201426
+  },
+  "bc": {
+   "wall_s": 13.877373933792114,
+   "env_steps": 3939
+  },
+  "offline_warmup": {
+   "wall_s": 167.06202101707458,
+   "env_steps": 0,
+   "grad_steps": 20000,
+   "prefill": {
+    "rows": 49721,
+    "transitions": 198884,
+    "dropped": 2542,
+    "flagged_tails": 4,
+    "columns": 4
+   }
+  },
+  "online_warmup": {
+   "wall_s": 91.68515300750732,
+   "env_steps": 20000
+  }
+ },
+ "bc_baseline_m": 751.701049670886,
+ "bc_probe": [
+  822.0497923532948,
+  360.01008402376374,
+  612.7158814333288,
+  573.3503834454109,
+  792.3161234361219,
+  1266.2459548589723,
+  574.4109867435309,
+  1012.5091910726646
+ ],
+ "bc_lap2_s": null,
+ "replay_buffer_step": 10500000,
+ "unfrozen_at": 20000
+}

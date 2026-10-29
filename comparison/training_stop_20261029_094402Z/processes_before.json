@@ -1,0 +1,125 @@
+{
+  "utc": "2026-10-29T09:44:02.303623+00:00",
+  "trees": {
+    "p1_TUM": {
+      "learner": {
+        "pid": 8973,
+        "ppid": 1,
+        "pgid": 8969,
+        "state": "RN",
+        "command": "/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/Resources/Python.app/Contents/MacOS/Python -m rlsetup.driving.train --set runs_root=/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2 --set device=cpu --set vec_start_method=forkserver --set n_envs=4 --set gradient_steps=2 --set torch_threads=1 --preset p1_TUM --seed 0 --run-name p1_TUM"
+      },
+      "descendants": [
+        {
+          "pid": 8976,
+          "ppid": 8973,
+          "pgid": 8969,
+          "state": "SN",
+          "command": "caffeinate -dimsu nohup platforms/mac/train.sh --preset p1_TUM --seed 0 --run-name p1_TUM"
+        },
+        {
+          "pid": 9456,
+          "ppid": 8973,
+          "pgid": 8969,
+          "state": "SN",
+          "command": "/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/Resources/Python.app/Contents/MacOS/Python -c from multiprocessing.resource_tracker import main;main(12)"
+        },
+        {
+          "pid": 9457,
+          "ppid": 8973,
+          "pgid": 8969,
+          "state": "SN",
+          "command": "/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/Resources/Python.app/Contents/MacOS/Python -c from multiprocessing.forkserver import main; main(12, 14, ['__main__'], **{'sys_path': ['/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python312.zip', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python3.12', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python3.12/lib-dynload', '/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/.venv/lib/python3.12/site-packages', '/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap']})"
+        },
+        {
+          "pid": 9458,
+          "ppid": 9457,
+          "pgid": 8969,
+          "state": "SN",
+          "command": "/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/Resources/Python.app/Contents/MacOS/Python -c from multiprocessing.forkserver import main; main(12, 14, ['__main__'], **{'sys_path': ['/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python312.zip', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python3.12', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python3.12/lib-dynload', '/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/.venv/lib/python3.12/site-packages', '/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap']})"
+        },
+        {
+          "pid": 9459,
+          "ppid": 9457,
+          "pgid": 8969,
+          "state": "SN",
+          "command": "/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/Resources/Python.app/Contents/MacOS/Python -c from multiprocessing.forkserver import main; main(12, 14, ['__main__'], **{'sys_path': ['/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python312.zip', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python3.12', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python3.12/lib-dynload', '/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/.venv/lib/python3.12/site-packages', '/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap']})"
+        },
+        {
+          "pid": 9460,
+          "ppid": 9457,
+          "pgid": 8969,
+          "state": "SN",
+          "command": "/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/Resources/Python.app/Contents/MacOS/Python -c from multiprocessing.forkserver import main; main(12, 14, ['__main__'], **{'sys_path': ['/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python312.zip', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python3.12', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python3.12/lib-dynload', '/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/.venv/lib/python3.12/site-packages', '/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap']})"
+        },
+        {
+          "pid": 9461,
+          "ppid": 9457,
+          "pgid": 8969,
+          "state": "SN",
+          "command": "/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/Resources/Python.app/Contents/MacOS/Python -c from multiprocessing.forkserver import main; main(12, 14, ['__main__'], **{'sys_path': ['/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python312.zip', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python3.12', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python3.12/lib-dynload', '/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/.venv/lib/python3.12/site-packages', '/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap']})"
+        }
+      ]
+    },
+    "p0_TUMref": {
+      "learner": {
+        "pid": 8974,
+        "ppid": 1,
+        "pgid": 8969,
+        "state": "RN",
+        "command": "/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/Resources/Python.app/Contents/MacOS/Python -m rlsetup.driving.train --set runs_root=/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2 --set device=cpu --set vec_start_method=forkserver --set n_envs=4 --set gradient_steps=2 --set torch_threads=1 --preset p0_TUMref --seed 0 --run-name p0_TUMref --set device=mps"
+      },
+      "descendants": [
+        {
+          "pid": 8977,
+          "ppid": 8974,
+          "pgid": 8969,
+          "state": "SN",
+          "command": "caffeinate -dimsu nohup platforms/mac/train.sh --preset p0_TUMref --seed 0 --run-name p0_TUMref --set device=mps"
+        },
+        {
+          "pid": 9324,
+          "ppid": 8974,
+          "pgid": 8969,
+          "state": "SN",
+          "command": "/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/Resources/Python.app/Contents/MacOS/Python -c from multiprocessing.resource_tracker import main;main(12)"
+        },
+        {
+          "pid": 9325,
+          "ppid": 8974,
+          "pgid": 8969,
+          "state": "SN",
+          "command": "/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/Resources/Python.app/Contents/MacOS/Python -c from multiprocessing.forkserver import main; main(12, 14, ['__main__'], **{'sys_path': ['/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python312.zip', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python3.12', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python3.12/lib-dynload', '/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/.venv/lib/python3.12/site-packages', '/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap']})"
+        },
+        {
+          "pid": 9326,
+          "ppid": 9325,
+          "pgid": 8969,
+          "state": "SN",
+          "command": "/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/Resources/Python.app/Contents/MacOS/Python -c from multiprocessing.forkserver import main; main(12, 14, ['__main__'], **{'sys_path': ['/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python312.zip', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python3.12', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python3.12/lib-dynload', '/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/.venv/lib/python3.12/site-packages', '/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap']})"
+        },
+        {
+          "pid": 9327,
+          "ppid": 9325,
+          "pgid": 8969,
+          "state": "SN",
+          "command": "/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/Resources/Python.app/Contents/MacOS/Python -c from multiprocessing.forkserver import main; main(12, 14, ['__main__'], **{'sys_path': ['/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python312.zip', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python3.12', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python3.12/lib-dynload', '/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/.venv/lib/python3.12/site-packages', '/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap']})"
+        },
+        {
+          "pid": 9328,
+          "ppid": 9325,
+          "pgid": 8969,
+          "state": "SN",
+          "command": "/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/Resources/Python.app/Contents/MacOS/Python -c from multiprocessing.forkserver import main; main(12, 14, ['__main__'], **{'sys_path': ['/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python312.zip', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python3.12', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python3.12/lib-dynload', '/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/.venv/lib/python3.12/site-packages', '/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap']})"
+        },
+        {
+          "pid": 9329,
+          "ppid": 9325,
+          "pgid": 8969,
+          "state": "SN",
+          "command": "/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/Resources/Python.app/Contents/MacOS/Python -c from multiprocessing.forkserver import main; main(12, 14, ['__main__'], **{'sys_path': ['/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python312.zip', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python3.12', '/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/lib/python3.12/lib-dynload', '/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/.venv/lib/python3.12/site-packages', '/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap']})"
+        }
+      ]
+    }
+  }
+}

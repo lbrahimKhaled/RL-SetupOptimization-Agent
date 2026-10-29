@@ -1,0 +1,406 @@
+{
+  "created_utc": "2026-10-28T18:37:11.758719+00:00",
+  "comparison": "Matched-condition RL versus TUM-speed-guided pure pursuit on the safe line in OCD",
+  "interpretation": "Controller comparison in OCD; not a comparison against TUM solver optimality. RL chooses its line; pure pursuit follows the safe line.",
+  "selection": "Minimum clean lap 2 among all 26 predeclared safe-line factors 1.00,0.98,...,0.50; all DNFs retained.",
+  "plot_interpolation": "Plot only: interpolate 50 Hz traces at exact recorder crossing times, with exact summary lap-2 endpoints; benchmark times come from full-precision metadata.",
+  "pairs": [
+    {
+      "label": "p1_TUM",
+      "original_run": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p1_TUM/seed0",
+      "frozen_input_directory": "comparison/fair_tum_20261028_181041Z/p1_inputs",
+      "conditions": {
+        "car": "sf70h_tum",
+        "setup_name": "p1_TUM",
+        "setup": {
+          "ride_freq_front_hz": 4.2347,
+          "ride_freq_rear_hz": 3.372,
+          "damping_ratio_front": 0.14412,
+          "damping_ratio_rear": 0.10593,
+          "rebound_bump_ratio": 1.0,
+          "fast_slow_ratio": 1.0,
+          "heave_freq_front_hz": 0.0,
+          "heave_freq_rear_hz": 0.0,
+          "heave_damping_ratio": 0.0,
+          "roll_stiffness_Nm_per_rad": 275835.0,
+          "roll_stiffness_front_share": 0.4533,
+          "ride_height_front_m": 0.035,
+          "rake_m": 0.05,
+          "aero_level": 0.5,
+          "aero_front_share": 0.4508,
+          "brake_bias_front": 0.49,
+          "final_drive_ratio": 1.0,
+          "camber_front_deg": 0.0,
+          "camber_rear_deg": 0.0,
+          "toe_front_deg": 0.0,
+          "toe_rear_deg": 0.0,
+          "lsd_preload_Nm": 0.0,
+          "lsd_lock_drive": 1.0,
+          "lsd_lock_coast": 0.0,
+          "packer_gap_front_m": 0.1,
+          "packer_gap_rear_m": 0.1
+        },
+        "max_brake_torque_Nm": 15000.0,
+        "ers": false,
+        "drs": false,
+        "recuperation": false,
+        "reference": "path",
+        "footprint_m": [
+          [
+            2.468,
+            1.0
+          ],
+          [
+            2.468,
+            -1.0
+          ],
+          [
+            -2.1319999999999997,
+            -1.0
+          ],
+          [
+            -2.1319999999999997,
+            1.0
+          ]
+        ],
+        "decision_dt_s": 0.04,
+        "tick_dt_s": 0.02,
+        "seed": 0,
+        "run_in_m": 200.0,
+        "settle_s": 2.0,
+        "eval_laps": 2
+      },
+      "rl": {
+        "step": 2150000,
+        "checkpoint_sha256": "99dc4a2d9d7a9de71702d2b5d2a60ca0356f463f45811555e06b656ae312b679",
+        "lap2_s": 102.29289516482564,
+        "clean": true,
+        "training_device": "cpu",
+        "inference_device": "cpu",
+        "training_difference_s": 0.0,
+        "trace": "comparison/fair_tum_20261028_181041Z/p1_rl/rl_det_seed0.csv",
+        "trace_sha256": "f36d225bf393702050552e7fab29112a90cfe0c946a63115eda6980b78b80f09"
+      },
+      "pure_pursuit": {
+        "selected_factor": 0.7,
+        "lap2_s": 138.42021258515345,
+        "clean": true,
+        "safe_attempts": 26,
+        "clean_attempts": 11,
+        "dnf_attempts": 15,
+        "trace": "comparison/fair_tum_20261028_181041Z/p1_pp/16_safe_f0.70.csv",
+        "trace_sha256": "bccc71e5150cb8b90fe2c97ee20c2ac12180fb57df48aa0ace014a580e050aec",
+        "all_attempts_summary": "comparison/fair_tum_20261028_181041Z/p1_pp/summary.json",
+        "total_trial_wall_s": 204.59189095918555
+      },
+      "raw_tum_trajectory_diagnostic": {
+        "factor": 1.0,
+        "clean": false,
+        "termination": "off_track",
+        "truncation": null,
+        "sim_time_s": 0.724,
+        "progress_m": 16.556669123395295,
+        "lap_times_s": []
+      },
+      "pp_minus_rl_s": 36.12731742032781,
+      "rl_lap_time_reduction_percent": 26.099741320728707,
+      "input_config_sha256": "9eaec5dad161eed39272548da73294deb4837b451d40bb83263e21002effdf48",
+      "input_provenance_sha256": "ffdc5d13e73b37c34dff539fc63289ff12b4a2b5b4f215bf768c6313abd6da56",
+      "source_checks": {
+        "complete_predeclared_sweep": true,
+        "same_saved_config": true,
+        "same_eval_config": true,
+        "same_environment_geometry_qss": true,
+        "same_checkpoint_sha256": true,
+        "same_config_hash": true,
+        "same_provenance_hash": true,
+        "all_pp_handovers_identical": true,
+        "same_pp_rl_handover": true,
+        "all_pp_clocks_match": true,
+        "all_pp_reference_errors_zero": true,
+        "rl_clock_matches": true,
+        "rl_reference_error_zero": true,
+        "rl_exactly_reproduces_training": true,
+        "same_source_code": true,
+        "selected_trace_hashes_and_all_rows_on_track": true
+      },
+      "simulator_code_version": "27abf3ed0d78",
+      "track": {
+        "name": "Shanghai",
+        "safe_line_digest": "d5917a27a10035e1",
+        "raceline_digest": "63e383066baaf6c6",
+        "safe_length_m": 5388.773713834052,
+        "raceline_length_m": 5340.770241508524
+      },
+      "qss_reset_profile": {
+        "cache_key": {
+          "car": "sf70h_tum",
+          "ers": false,
+          "brake_torque_Nm": 15000.0,
+          "schema": 1,
+          "track": "Shanghai",
+          "track_path_sha256": "d5917a27a10035e18b3293ef549fa6ab4f05af75eed2eff173c6d2c1d2f23431",
+          "setup": {
+            "ride_freq_front_hz": 4.2347,
+            "ride_freq_rear_hz": 3.372,
+            "damping_ratio_front": 0.14412,
+            "damping_ratio_rear": 0.10593,
+            "rebound_bump_ratio": 1.0,
+            "fast_slow_ratio": 1.0,
+            "heave_freq_front_hz": 0.0,
+            "heave_freq_rear_hz": 0.0,
+            "heave_damping_ratio": 0.0,
+            "roll_stiffness_Nm_per_rad": 275835.0,
+            "roll_stiffness_front_share": 0.4533,
+            "ride_height_front_m": 0.035,
+            "rake_m": 0.05,
+            "aero_level": 0.5,
+            "aero_front_share": 0.4508,
+            "brake_bias_front": 0.49,
+            "final_drive_ratio": 1.0,
+            "camber_front_deg": 0.0,
+            "camber_rear_deg": 0.0,
+            "toe_front_deg": 0.0,
+            "toe_rear_deg": 0.0,
+            "lsd_preload_Nm": 0.0,
+            "lsd_lock_drive": 1.0,
+            "lsd_lock_coast": 0.0,
+            "packer_gap_front_m": 0.1,
+            "packer_gap_rear_m": 0.1
+          },
+          "ocd_lap_sources_sha256": {
+            "qss_lap.py": "251d38338e46ca46297c6815bbca0e3922d5535ce871096390c65ebc39640f44",
+            "handling.py": "4372ecac0110536e5ef5794b303560d73fd74665739cd84a9631e976b3842195",
+            "manoeuvres.py": "c0b75d06b03906886216549acda347636a2aef0e5d7e304b122b5f83cbd7ea3b",
+            "powertrain.py": "99609a4cd76db28576021515086a7bb6fc545ff860fbffab2c6ea0ded2df1bf0",
+            "backend.py": "64d2d65c6550382d1640b8003982bb129712efcd68f6a40faaa428b5a8b378c7",
+            "translator.py": "359ce311db518623680839a0100d0a87913fae7f3b0997316a5e10d5d9eaae69",
+            "car_setup.py": "5c99f82f24db640510bf4614848a01b3906a7006a9d311881dff1fb6b9677afd",
+            "aero_map.py": "9340359d727be1b2001f4c9b73fea4cad7425808748b993448a2af3c57c16ac8",
+            "rig.py": "c650c4ee1e67ab190fea52099dd887231274688f81de2de68c4f37aefe012381",
+            "vertical_model.py": "ed95da469c99c52678af4fd4ee5533482b194c561be39af63bcb33c66c1394c8"
+          },
+          "ocd_native_sha256": "2b62143d42172a88344d9621ba67fcc98f9d7c58fa0e197a18bc4d4e584dbf13",
+          "ocd_config_sha256": "db32a1c615912faffcbfe99238ddf986ecd9f1a7f7a50f3d8e417e5fa0ddf5c4"
+        },
+        "lap_time_s": 103.5610374471088
+      },
+      "tum_speed_input_sha256": "1370d33415589f20530f51686c7d934afca871a6e9dcf10358de6731e6e626a7",
+      "plot_only_duplicate_progress_stations_collapsed": {
+        "rl": 0,
+        "pure_pursuit": 0
+      }
+    },
+    {
+      "label": "p0_TUMref",
+      "original_run": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0",
+      "frozen_input_directory": "comparison/fair_tum_20261028_181041Z/p0_inputs",
+      "conditions": {
+        "car": "sf70h_tum",
+        "setup_name": "p0",
+        "setup": {
+          "ride_freq_front_hz": 4.2347,
+          "ride_freq_rear_hz": 3.372,
+          "damping_ratio_front": 0.14412,
+          "damping_ratio_rear": 0.10593,
+          "rebound_bump_ratio": 1.0,
+          "fast_slow_ratio": 1.0,
+          "heave_freq_front_hz": 0.0,
+          "heave_freq_rear_hz": 0.0,
+          "heave_damping_ratio": 0.0,
+          "roll_stiffness_Nm_per_rad": 275835.0,
+          "roll_stiffness_front_share": 0.61254,
+          "ride_height_front_m": 0.035,
+          "rake_m": 0.05,
+          "aero_level": 0.5,
+          "aero_front_share": 0.45,
+          "brake_bias_front": 0.5,
+          "final_drive_ratio": 1.0,
+          "camber_front_deg": 0.0,
+          "camber_rear_deg": 0.0,
+          "toe_front_deg": 0.0,
+          "toe_rear_deg": 0.0,
+          "lsd_preload_Nm": 0.0,
+          "lsd_lock_drive": 0.0,
+          "lsd_lock_coast": 0.0,
+          "packer_gap_front_m": 0.1,
+          "packer_gap_rear_m": 0.1
+        },
+        "max_brake_torque_Nm": 12000.0,
+        "ers": false,
+        "drs": false,
+        "recuperation": false,
+        "reference": "raceline",
+        "footprint_m": [
+          [
+            2.468,
+            1.0
+          ],
+          [
+            2.468,
+            -1.0
+          ],
+          [
+            -2.1319999999999997,
+            -1.0
+          ],
+          [
+            -2.1319999999999997,
+            1.0
+          ]
+        ],
+        "decision_dt_s": 0.04,
+        "tick_dt_s": 0.02,
+        "seed": 0,
+        "run_in_m": 200.0,
+        "settle_s": 2.0,
+        "eval_laps": 2
+      },
+      "rl": {
+        "step": 650000,
+        "checkpoint_sha256": "0117ec8f5fdf7aed141431288fd1d6d819babc5b769a9485050a3921e5203d9e",
+        "lap2_s": 106.5562844271498,
+        "clean": true,
+        "training_device": "mps",
+        "inference_device": "mps",
+        "training_difference_s": 0.0,
+        "trace": "comparison/fair_tum_20261028_181041Z/p0_rl/rl_det_seed0.csv",
+        "trace_sha256": "769b610b62602f4ec33069cbc111b9c5ca13ca5e4ac04820306e539cfc9a07f0"
+      },
+      "pure_pursuit": {
+        "selected_factor": 0.68,
+        "lap2_s": 142.44510634140673,
+        "clean": true,
+        "safe_attempts": 26,
+        "clean_attempts": 10,
+        "dnf_attempts": 16,
+        "trace": "comparison/fair_tum_20261028_181041Z/p0_pp/17_safe_f0.68.csv",
+        "trace_sha256": "ad1c6c1fcbfc5f63a305bbf3867e57ad7287d3acc2ac7e8f533bf2969bcafccf",
+        "all_attempts_summary": "comparison/fair_tum_20261028_181041Z/p0_pp/summary.json",
+        "total_trial_wall_s": 187.44361808313988
+      },
+      "raw_tum_trajectory_diagnostic": {
+        "factor": 1.0,
+        "clean": false,
+        "termination": "off_track",
+        "truncation": null,
+        "sim_time_s": 0.75,
+        "progress_m": 17.196531411275828,
+        "lap_times_s": []
+      },
+      "pp_minus_rl_s": 35.88882191425692,
+      "rl_lap_time_reduction_percent": 25.194843709295306,
+      "input_config_sha256": "ef59e120e3ca79da9ce7912641b64e86f109055c83828a108aaa09d0dfd3a3c1",
+      "input_provenance_sha256": "3f39c79725b329cb956ed3e799ab00986c0a11b60032ac05f4cf330d86469fca",
+      "source_checks": {
+        "complete_predeclared_sweep": true,
+        "same_saved_config": true,
+        "same_eval_config": true,
+        "same_environment_geometry_qss": true,
+        "same_checkpoint_sha256": true,
+        "same_config_hash": true,
+        "same_provenance_hash": true,
+        "all_pp_handovers_identical": true,
+        "same_pp_rl_handover": true,
+        "all_pp_clocks_match": true,
+        "all_pp_reference_errors_zero": true,
+        "rl_clock_matches": true,
+        "rl_reference_error_zero": true,
+        "rl_exactly_reproduces_training": true,
+        "same_source_code": true,
+        "selected_trace_hashes_and_all_rows_on_track": true
+      },
+      "simulator_code_version": "27abf3ed0d78",
+      "track": {
+        "name": "Shanghai",
+        "safe_line_digest": "d5917a27a10035e1",
+        "raceline_digest": "63e383066baaf6c6",
+        "safe_length_m": 5388.773713834052,
+        "raceline_length_m": 5340.770241508524
+      },
+      "qss_reset_profile": {
+        "cache_key": {
+          "car": "sf70h_tum",
+          "ers": false,
+          "schema": 1,
+          "track": "Shanghai",
+          "track_path_sha256": "d5917a27a10035e18b3293ef549fa6ab4f05af75eed2eff173c6d2c1d2f23431",
+          "setup": {
+            "ride_freq_front_hz": 4.2347,
+            "ride_freq_rear_hz": 3.372,
+            "damping_ratio_front": 0.14412,
+            "damping_ratio_rear": 0.10593,
+            "rebound_bump_ratio": 1.0,
+            "fast_slow_ratio": 1.0,
+            "heave_freq_front_hz": 0.0,
+            "heave_freq_rear_hz": 0.0,
+            "heave_damping_ratio": 0.0,
+            "roll_stiffness_Nm_per_rad": 275835.0,
+            "roll_stiffness_front_share": 0.61254,
+            "ride_height_front_m": 0.035,
+            "rake_m": 0.05,
+            "aero_level": 0.5,
+            "aero_front_share": 0.45,
+            "brake_bias_front": 0.5,
+            "final_drive_ratio": 1.0,
+            "camber_front_deg": 0.0,
+            "camber_rear_deg": 0.0,
+            "toe_front_deg": 0.0,
+            "toe_rear_deg": 0.0,
+            "lsd_preload_Nm": 0.0,
+            "lsd_lock_drive": 0.0,
+            "lsd_lock_coast": 0.0,
+            "packer_gap_front_m": 0.1,
+            "packer_gap_rear_m": 0.1
+          },
+          "ocd_lap_sources_sha256": {
+            "qss_lap.py": "251d38338e46ca46297c6815bbca0e3922d5535ce871096390c65ebc39640f44",
+            "handling.py": "4372ecac0110536e5ef5794b303560d73fd74665739cd84a9631e976b3842195",
+            "manoeuvres.py": "c0b75d06b03906886216549acda347636a2aef0e5d7e304b122b5f83cbd7ea3b",
+            "powertrain.py": "99609a4cd76db28576021515086a7bb6fc545ff860fbffab2c6ea0ded2df1bf0",
+            "backend.py": "64d2d65c6550382d1640b8003982bb129712efcd68f6a40faaa428b5a8b378c7",
+            "translator.py": "359ce311db518623680839a0100d0a87913fae7f3b0997316a5e10d5d9eaae69",
+            "car_setup.py": "5c99f82f24db640510bf4614848a01b3906a7006a9d311881dff1fb6b9677afd",
+            "aero_map.py": "9340359d727be1b2001f4c9b73fea4cad7425808748b993448a2af3c57c16ac8",
+            "rig.py": "c650c4ee1e67ab190fea52099dd887231274688f81de2de68c4f37aefe012381",
+            "vertical_model.py": "ed95da469c99c52678af4fd4ee5533482b194c561be39af63bcb33c66c1394c8"
+          },
+          "ocd_native_sha256": "2b62143d42172a88344d9621ba67fcc98f9d7c58fa0e197a18bc4d4e584dbf13",
+          "ocd_config_sha256": "db32a1c615912faffcbfe99238ddf986ecd9f1a7f7a50f3d8e417e5fa0ddf5c4"
+        },
+        "lap_time_s": 104.77743959789855
+      },
+      "tum_speed_input_sha256": "1370d33415589f20530f51686c7d934afca871a6e9dcf10358de6731e6e626a7",
+      "plot_only_duplicate_progress_stations_collapsed": {
+        "rl": 1,
+        "pure_pursuit": 0
+      }
+    }
+  ],
+  "no_ocd_change": {
+    "clean": true,
+    "commit": "39456345227a91128e1bed42482f63e2a4484521"
+  },
+  "rl_tracked_diff_empty": true,
+  "torch_loaded_for_plot": false,
+  "training_progress": {
+    "p1_TUM": {
+      "before_step": 2200000,
+      "after_step": 2310000,
+      "latest_eval_step": 2300000,
+      "latest_eval_utc": "2026-10-28T18:35:16Z"
+    },
+    "p0_TUMref": {
+      "before_step": 900000,
+      "after_step": 950000,
+      "latest_eval_step": 950000,
+      "latest_eval_utc": "2026-10-28T18:34:25Z"
+    }
+  },
+  "plot_script_sha256": "3ff1725e075fa47f876252329210732fad2fd3505b83b79ef0c0df3aa455a749",
+  "plot": {
+    "file": "matched_lap_comparison.png",
+    "sha256": "3b10f4376e8b944809ffe5b847a4a9ebe7cfb8fe8513d6e8e463922b58c94ec6",
+    "data": "Selected clean lap-2 traces only; no TUM QSS overlay."
+  }
+}

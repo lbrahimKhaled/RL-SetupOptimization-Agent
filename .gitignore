@@ -8,3 +8,19 @@ runs/
 .pytest_cache/
 data/demos/
 comparison/figures/*.mp4
+
+# Historical comparison sweep CSVs stay local; retain all metadata in Git.
+/comparison/fair_tum_20261028_181041Z/p0_pp/*.csv
+/comparison/fair_tum_20261028_181041Z/p1_pp/*.csv
+
+# Final video stays local after repeated Git HTTPS upload timeouts.
+/comparison/p1_tum_ghost_20261029_081152Z/p1_tum_comparison.mp4
+
+# Large session telemetry stays local after repeated Git HTTPS upload timeouts.
+/comparison/fair_tum_20261028_181041Z/p0_rl/rl_det_seed0.csv
+/comparison/fair_tum_20261028_181041Z/p1_rl/rl_det_seed0.csv
+/comparison/fair_tum_20261028_181041Z/p1_smoke/01_safe_f0.80.csv
+/comparison/p1_tum_ghost_20261029_081152Z/rl/rl_det_seed0.csv
+/comparison/tum_original_fullspeed_20261028_185217Z/p0_25hz/tum_original_f1.csv
+/comparison/tum_original_fullspeed_20261028_185217Z/p1_25hz/tum_original_f1.csv
+/comparison/tum_original_fullspeed_20261028_185217Z/p1_25hz_repeat/tum_original_f1.csv

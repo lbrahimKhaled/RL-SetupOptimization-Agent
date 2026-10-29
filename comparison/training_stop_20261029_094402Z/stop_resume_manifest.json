@@ -1,0 +1,350 @@
+{
+  "created_utc": "2026-10-29T09:50:36.422316+00:00",
+  "purpose": "User-requested stop of both live runs; no restart",
+  "manual_stop": true,
+  "runs": {
+    "p1_TUM": {
+      "run_directory": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p1_TUM/seed0",
+      "metadata_copies": {
+        "config.json": {
+          "copied_to": "p1_TUM/config.json",
+          "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p1_TUM/seed0/config.json",
+          "bytes": 4240,
+          "sha256": "9eaec5dad161eed39272548da73294deb4837b451d40bb83263e21002effdf48",
+          "mtime_utc": "2026-10-28T13:34:27.988486+00:00"
+        },
+        "provenance.json": {
+          "copied_to": "p1_TUM/provenance.json",
+          "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p1_TUM/seed0/provenance.json",
+          "bytes": 4597,
+          "sha256": "ffdc5d13e73b37c34dff539fc63289ff12b4a2b5b4f215bf768c6313abd6da56",
+          "mtime_utc": "2026-10-28T13:36:51.955794+00:00"
+        },
+        "status.json": {
+          "copied_to": "p1_TUM/status.json",
+          "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p1_TUM/seed0/status.json",
+          "bytes": 6138,
+          "sha256": "01fb543614d0ece13facf97fee146714d542dfb21c3715c23b69f86a767a682a",
+          "mtime_utc": "2026-10-29T09:41:28.480741+00:00"
+        },
+        "evals.jsonl": {
+          "copied_to": "p1_TUM/evals.jsonl",
+          "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p1_TUM/seed0/evals.jsonl",
+          "bytes": 506696,
+          "sha256": "9555155dbc3ccded9d70c119ac76f9ea7ab3f47673f6e70fcb078a48212a58a3",
+          "mtime_utc": "2026-10-29T09:41:28.645362+00:00"
+        },
+        "train_stats.jsonl": {
+          "copied_to": "p1_TUM/train_stats.jsonl",
+          "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p1_TUM/seed0/train_stats.jsonl",
+          "bytes": 359021,
+          "sha256": "4bea00411a1c11237835c1f0597db59b0fb985c8a4a6850a6054e10310dc8360",
+          "mtime_utc": "2026-10-29T09:43:14.701696+00:00"
+        },
+        "sb3/progress.csv": {
+          "copied_to": "p1_TUM/sb3/progress.csv",
+          "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p1_TUM/seed0/sb3/progress.csv",
+          "bytes": 325338,
+          "sha256": "07fe14e17ed607b982baf1e2cb7ae16fcae6adca8ce783c1bd7b116bde45956c",
+          "mtime_utc": "2026-10-29T09:44:05.998900+00:00"
+        },
+        "probe_starts.json": {
+          "copied_to": "p1_TUM/probe_starts.json",
+          "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p1_TUM/seed0/probe_starts.json",
+          "bytes": 576,
+          "sha256": "3ece14f7249a012c10551f01bf660fc52b1e566769059fbfcecb4542e21c7306",
+          "mtime_utc": "2026-10-28T13:34:31.518218+00:00"
+        },
+        "demos.json": {
+          "copied_to": "p1_TUM/demos.json",
+          "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p1_TUM/seed0/demos.json",
+          "bytes": 953,
+          "sha256": "7e6ce66a772ed54619222e497191066283b931d28e3d48eb9f52b8f40599bc26",
+          "mtime_utc": "2026-10-28T13:36:38.057339+00:00"
+        },
+        "warmup.jsonl": {
+          "copied_to": "p1_TUM/warmup.jsonl",
+          "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p1_TUM/seed0/warmup.jsonl",
+          "bytes": 2768,
+          "sha256": "b526e6ceeed79e0ee4c97069072a8ab2956ba58f294230bf8eb143c4cc070abb",
+          "mtime_utc": "2026-10-28T13:39:42.918682+00:00"
+        },
+        "bc/report.json": {
+          "copied_to": "p1_TUM/bc/report.json",
+          "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p1_TUM/seed0/bc/report.json",
+          "bytes": 5449,
+          "sha256": "d73896205a344837fa3afcb6f12bbe046ef2e99955b270eaff2b8031e90c4f94",
+          "mtime_utc": "2026-10-28T13:36:51.530225+00:00"
+        }
+      },
+      "device": "cpu",
+      "n_envs": 4,
+      "original_launch_command": "/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/Resources/Python.app/Contents/MacOS/Python -m rlsetup.driving.train --set runs_root=/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2 --set device=cpu --set vec_start_method=forkserver --set n_envs=4 --set gradient_steps=2 --set torch_threads=1 --preset p1_TUM --seed 0 --run-name p1_TUM",
+      "learner_pid": 8973,
+      "prior_nice": 10,
+      "resume_command": "platforms/mac/train.sh --resume --preset p1_TUM --seed 0 --run-name p1_TUM --allow-code-change",
+      "resumable_model_step": 10500000,
+      "replay_buffer_step": 10500000,
+      "checkpoint_replay_steps_match": true,
+      "replay_step_basis": "status.json replay_buffer_step; replay pickle deliberately not deserialized",
+      "last_checkpoint": {
+        "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p1_TUM/seed0/checkpoints/last.zip",
+        "bytes": 7779025,
+        "sha256": "f9ca7a572d9f54f7fc33b32f40f7d61e69c6979c42b01784d494bc45c0e46bf4",
+        "mtime_utc": "2026-10-29T09:41:28.686913+00:00",
+        "num_timesteps": 10500000,
+        "zip_crc_validated": true
+      },
+      "best_checkpoint": {
+        "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p1_TUM/seed0/checkpoints/best.zip",
+        "bytes": 7779031,
+        "sha256": "42e14362aba596492ab345a3e9e55ad70406fe5e51201d215de5798902585f45",
+        "mtime_utc": "2026-10-29T07:32:17.875170+00:00",
+        "num_timesteps": 9600000,
+        "zip_crc_validated": true
+      },
+      "replay_buffer": {
+        "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p1_TUM/seed0/replay_buffer.pkl",
+        "bytes": 1296003190,
+        "sha256": "f629080f03432755bf71089757ce10a896018964e5fd40ac99bbdd1dffb17f6f",
+        "mtime_utc": "2026-10-29T09:41:26.271001+00:00"
+      },
+      "all_checkpoint_inventory": "p1_TUM/checkpoint_inventory.json",
+      "best_clean_lap2_s": 101.26992540585894,
+      "best_clean_eval_step": 9600000,
+      "last_observed_logged_step": 10516952,
+      "minimum_unsaved_logged_tail_steps": 16952,
+      "additional_unlogged_steps": "unknown; SIGINT has no final-save hook, so do not assume persisted",
+      "status_after_signal": {
+        "state": "running",
+        "stop_reason": "BC deterministic lap: off_track",
+        "interpretation": "Preserved historical status file is stale: it still says running, but exact learner/descendant/keeper process verification shows the run stopped. Do not use this status field alone to infer a live process."
+      },
+      "log_tail": "p1_TUM/stdout_tail.txt",
+      "original_stdout_log": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p1_TUM/seed0/stdout.log",
+      "original_logs_preserved": true,
+      "temporary_files_preserved": [],
+      "prior_nice_basis": "Read from ps during pre-stop verified learner identity inspection.",
+      "observed_stop_tail": "The preserved stdout tail ends with normal training metrics; no successful final-save message or KeyboardInterrupt traceback was observed. SIGINT did not complete shutdown in the short window; exact-PID SIGTERM finished stopping."
+    },
+    "p0_TUMref": {
+      "run_directory": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0",
+      "metadata_copies": {
+        "config.json": {
+          "copied_to": "p0_TUMref/config.json",
+          "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/config.json",
+          "bytes": 4243,
+          "sha256": "ef59e120e3ca79da9ce7912641b64e86f109055c83828a108aaa09d0dfd3a3c1",
+          "mtime_utc": "2026-10-28T13:34:27.218689+00:00"
+        },
+        "provenance.json": {
+          "copied_to": "p0_TUMref/provenance.json",
+          "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/provenance.json",
+          "bytes": 4632,
+          "sha256": "3f39c79725b329cb956ed3e799ab00986c0a11b60032ac05f4cf330d86469fca",
+          "mtime_utc": "2026-10-28T13:37:07.804324+00:00"
+        },
+        "status.json": {
+          "copied_to": "p0_TUMref/status.json",
+          "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/status.json",
+          "bytes": 4847,
+          "sha256": "a9f7f010203ea3a38c580ee5a006940fc294d687256b3cb6e6e931856cabd3c5",
+          "mtime_utc": "2026-10-29T09:35:51.732482+00:00"
+        },
+        "evals.jsonl": {
+          "copied_to": "p0_TUMref/evals.jsonl",
+          "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/evals.jsonl",
+          "bytes": 239019,
+          "sha256": "dde0f333f467d605dea0557d2f85c71e8cf08f6ed19ec65985350d4e81edc0d2",
+          "mtime_utc": "2026-10-29T09:35:51.866795+00:00"
+        },
+        "train_stats.jsonl": {
+          "copied_to": "p0_TUMref/train_stats.jsonl",
+          "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/train_stats.jsonl",
+          "bytes": 170889,
+          "sha256": "c7fc2312e36529e6dc5bc3c285c045284a85d27d20eac5234c1d2a90967d53ef",
+          "mtime_utc": "2026-10-29T09:41:51.714412+00:00"
+        },
+        "sb3/progress.csv": {
+          "copied_to": "p0_TUMref/sb3/progress.csv",
+          "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/sb3/progress.csv",
+          "bytes": 159187,
+          "sha256": "64b4dfc5157ff1aaf220ca3b91d381f5d3f5fbdccaf8bccb5c1f0d5c0bf95820",
+          "mtime_utc": "2026-10-29T09:43:10.334614+00:00"
+        },
+        "probe_starts.json": {
+          "copied_to": "p0_TUMref/probe_starts.json",
+          "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/probe_starts.json",
+          "bytes": 576,
+          "sha256": "3ece14f7249a012c10551f01bf660fc52b1e566769059fbfcecb4542e21c7306",
+          "mtime_utc": "2026-10-28T13:34:31.442330+00:00"
+        },
+        "demos.json": {
+          "copied_to": "p0_TUMref/demos.json",
+          "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/demos.json",
+          "bytes": 951,
+          "sha256": "83b674ec5688b94dbc395051b94ef53ea8edc6230f23b1b2cc921fac64d79b4b",
+          "mtime_utc": "2026-10-28T13:36:33.894381+00:00"
+        },
+        "warmup.jsonl": {
+          "copied_to": "p0_TUMref/warmup.jsonl",
+          "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/warmup.jsonl",
+          "bytes": 2774,
+          "sha256": "5994179fa9072e1ea19f94bb37566be35d11834eb9bd3a51e4a22a7870bd7de8",
+          "mtime_utc": "2026-10-28T13:49:25.451102+00:00"
+        },
+        "bc/report.json": {
+          "copied_to": "p0_TUMref/bc/report.json",
+          "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/bc/report.json",
+          "bytes": 6882,
+          "sha256": "3b9f73100ea79958427aa15a1c7b5e43bd52924567c5411a4d26e99c14879f8b",
+          "mtime_utc": "2026-10-28T13:37:07.426294+00:00"
+        }
+      },
+      "device": "mps",
+      "n_envs": 4,
+      "original_launch_command": "/opt/homebrew/Cellar/python@3.12/3.12.13_4/Frameworks/Python.framework/Versions/3.12/Resources/Python.app/Contents/MacOS/Python -m rlsetup.driving.train --set runs_root=/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2 --set device=cpu --set vec_start_method=forkserver --set n_envs=4 --set gradient_steps=2 --set torch_threads=1 --preset p0_TUMref --seed 0 --run-name p0_TUMref --set device=mps",
+      "learner_pid": 8974,
+      "prior_nice": 20,
+      "resume_command": "platforms/mac/train.sh --resume --preset p0_TUMref --seed 0 --run-name p0_TUMref --allow-code-change",
+      "resumable_model_step": 4950000,
+      "replay_buffer_step": 4950000,
+      "checkpoint_replay_steps_match": true,
+      "replay_step_basis": "status.json replay_buffer_step; replay pickle deliberately not deserialized",
+      "last_checkpoint": {
+        "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/last.zip",
+        "bytes": 7779024,
+        "sha256": "6c136a3ddfb16e82c7e939e1baabc7aece7fc9c76df891f88dffec7a5463441c",
+        "mtime_utc": "2026-10-29T09:35:51.857928+00:00",
+        "num_timesteps": 4950000,
+        "zip_crc_validated": true
+      },
+      "best_checkpoint": {
+        "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/checkpoints/best.zip",
+        "bytes": 7779024,
+        "sha256": "24ce3b2a52275e60c3a9316dc1cd9e2f14856de3ef050d6dcfebd7ec7ccb33b7",
+        "mtime_utc": "2026-10-29T09:21:02.518383+00:00",
+        "num_timesteps": 4900000,
+        "zip_crc_validated": true
+      },
+      "replay_buffer": {
+        "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/replay_buffer.pkl",
+        "bytes": 1296003188,
+        "sha256": "b174a6268a698025d278f45e79a2f04a0d7a3e8e941ac49713508e747f6a01a1",
+        "mtime_utc": "2026-10-29T09:35:51.368631+00:00"
+      },
+      "all_checkpoint_inventory": "p0_TUMref/checkpoint_inventory.json",
+      "best_clean_lap2_s": 103.36863855472009,
+      "best_clean_eval_step": 4900000,
+      "last_observed_logged_step": 4973784,
+      "minimum_unsaved_logged_tail_steps": 23784,
+      "additional_unlogged_steps": "unknown; SIGINT has no final-save hook, so do not assume persisted",
+      "status_after_signal": {
+        "state": "running",
+        "stop_reason": null,
+        "interpretation": "Preserved historical status file is stale: it still says running, but exact learner/descendant/keeper process verification shows the run stopped. Do not use this status field alone to infer a live process."
+      },
+      "log_tail": "p0_TUMref/stdout_tail.txt",
+      "original_stdout_log": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p0_TUMref/seed0/stdout.log",
+      "original_logs_preserved": true,
+      "temporary_files_preserved": [],
+      "prior_nice_basis": "Read from ps during pre-stop verified learner identity inspection.",
+      "observed_stop_tail": "The preserved stdout tail ends with normal training metrics; no successful final-save message or KeyboardInterrupt traceback was observed. SIGINT did not complete shutdown in the short window; exact-PID SIGTERM finished stopping."
+    }
+  },
+  "code": {
+    "rlsetup": {
+      "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent",
+      "commit": "604efe7b5acf40261fff7bdf637e18cd9f2aaca8",
+      "dirty": true,
+      "untracked": true,
+      "diff_sha256": "9f642aeabf45dcf1fa1bc37028d0e6de339def0fa7bdf5ab6775419c7ca33a03"
+    },
+    "rlsetup_sources_sha256": {
+      "rlsetup/__init__.py": "e54c1d042ab47972bb61868a40c841a34334c935b8628225ae2029cb7799f647",
+      "rlsetup/driving/__init__.py": "e51bed95f0dfa7bb68b0353ac1d1cc13d02e66a1f6c3b5eb92b95e176eb48eb9",
+      "rlsetup/driving/agent.py": "38b9c732a83df58f96306239fb07393a3177bec002aa2b8adc36a181a364ffe5",
+      "rlsetup/driving/bc.py": "0ecc9d18a552d3f4a36a56cc173fb915ca291c88a5296cd2225fe76aae254c0e",
+      "rlsetup/driving/callbacks.py": "7e0d3387316ffec87cb768cc5c1fbd1d48569a0c068ea6ca4a396abb62ff3869",
+      "rlsetup/driving/config.py": "0dfef096f71b12c67dc4439e77285cda1cc28399161cb97715aa1e722c4f3d48",
+      "rlsetup/driving/demo_driver.py": "9ea116cb686e93931ce8c1c69b04a4d4f6290ea9e99e1c0de8fbc51848f27852",
+      "rlsetup/driving/demos.py": "522fcbee6ec7d448ec6bf8c0e2a631d472cb64359ab4224ff2f807fde7c015f9",
+      "rlsetup/driving/env.py": "736560b891122ac464e018e2bb7a2d8c0813d1749a6ee0095754435dd2665058",
+      "rlsetup/driving/evaluate.py": "2392899a5f5830f619ffc3f4aa646e633b676cc2b15a934d73d6986b4ff41727",
+      "rlsetup/driving/policy.py": "e9103392f284d121e4301d6511c9116ffd6b2994fbbbd11402486de0806e597c",
+      "rlsetup/driving/qss_profile.py": "286c785da3d040ecdc179ec04df860487b8446d9058b3bded0ae096ac853ca28",
+      "rlsetup/driving/reference.py": "ec66dfe5f49e4df687683b60f0be4ce5f19448f6d9426fe11e40ff5724bdbd84",
+      "rlsetup/driving/relabel.py": "2d38184cd0bd0386b1038d0a277bbf4d17c23550b13ca2569e2bf9245984ed6e",
+      "rlsetup/driving/setups.py": "3016e6017a7ba88288c12140316048c4fa98c00dc7efa0bdceceea28346b1f99",
+      "rlsetup/driving/train.py": "7fc9d3d6fc666e6b4705d9d002bd976b4d6170f7bbc2e08a6d3e3981ed56831f",
+      "rlsetup/driving/train_config.py": "f64dc3a8e84d3058426c10246836eef5296421c2a834f4ba2742257b7856fbb1",
+      "rlsetup/driving/vec.py": "7bcde69c55f66aa27973d48fe3c2ece69548b1893ff7ac30e40e0066899278cd",
+      "rlsetup/provenance.py": "e56d2b0227aad0141ead6aeb8efe3afe3d2019f0255abca99a90cd6921ab8a22",
+      "rlsetup/runs.py": "04907834627096f0d03e05878fe772b91b51c13dc9938184323beaf286154071"
+    },
+    "ocd_first_lap": {
+      "path": "/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap",
+      "commit": "39456345227a91128e1bed42482f63e2a4484521",
+      "dirty": false,
+      "untracked": false,
+      "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "ocd_lap_code_version": "27abf3ed0d78",
+    "ocd_lap_extra_sources_sha256": {
+      "ocd_lap/__init__.py": "ba75b38ec95145c9a24be0b23265294b16b41d202464f6f7c640fbd81353065a",
+      "ocd_lap/env.py": "ecc30665a0a37da097b68d8062434a6eff9531953aef3e2202a60fdaa2ccb654",
+      "ocd_lap/qss_lap.py": "251d38338e46ca46297c6815bbca0e3922d5535ce871096390c65ebc39640f44",
+      "ocd_lap/handling.py": "4372ecac0110536e5ef5794b303560d73fd74665739cd84a9631e976b3842195",
+      "ocd_lap/manoeuvres.py": "c0b75d06b03906886216549acda347636a2aef0e5d7e304b122b5f83cbd7ea3b",
+      "ocd_lap/rig.py": "c650c4ee1e67ab190fea52099dd887231274688f81de2de68c4f37aefe012381",
+      "ocd_lap/vertical_model.py": "ed95da469c99c52678af4fd4ee5533482b194c561be39af63bcb33c66c1394c8"
+    }
+  },
+  "stop_events_file": "stop_events.json",
+  "processes_before_file": "processes_before.json",
+  "processes_after_file": "processes_after.json",
+  "watchers": {
+    "p1_TUM": {
+      "pid": 9215,
+      "action": "SIGTERM before learner signals",
+      "verified_command": "/bin/bash runs/mac/keeper.sh p1_TUM"
+    },
+    "p0_TUMref": {
+      "pid": 9216,
+      "action": "SIGTERM before learner signals",
+      "verified_command": "/bin/bash runs/mac/keeper.sh p0_TUMref"
+    }
+  },
+  "shared_pgid": 8969,
+  "process_group_signalled": false,
+  "source_edits": false,
+  "runtime_files": {
+    "runs/mac/keeper.sh": {
+      "copied_to": "runtime/runs__mac__keeper.sh",
+      "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/keeper.sh",
+      "bytes": 1571,
+      "sha256": "ba329ca3d72a6d4488f24933fc359b7b81222e1c663f51e258a7885a475d02fe",
+      "mtime_utc": "2026-10-28T13:34:22.770650+00:00"
+    },
+    "platforms/mac/train.sh": {
+      "copied_to": "runtime/platforms__mac__train.sh",
+      "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/platforms/mac/train.sh",
+      "bytes": 1102,
+      "sha256": "445a92771d1056d6d6d73c660412916d3afd115bb53accc2144b5869b3d8ec11",
+      "mtime_utc": "2026-10-28T07:31:38.622873+00:00"
+    },
+    "platforms/mac/train.overrides": {
+      "copied_to": "runtime/platforms__mac__train.overrides",
+      "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/platforms/mac/train.overrides",
+      "bytes": 682,
+      "sha256": "3a60e7437e9a2839144c9fa8bdbf960cd8cff8205c1d81b15c3c63090ed06074",
+      "mtime_utc": "2026-10-28T07:31:38.622774+00:00"
+    }
+  },
+  "final_target_process_search": {
+    "utc": "2026-10-29T09:50:38.795876+00:00",
+    "remaining": []
+  },
+  "ocd_git_status": "",
+  "rl_tracked_diff": ""
+}
