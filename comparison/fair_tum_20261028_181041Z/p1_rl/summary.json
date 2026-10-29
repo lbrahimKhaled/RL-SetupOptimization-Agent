@@ -1,0 +1,41 @@
+{
+  "checkpoint": {
+    "source": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/comparison/fair_tum_20261028_181041Z/p1_inputs/checkpoints/best.zip",
+    "snapshot": "checkpoint.zip",
+    "sha256": "99dc4a2d9d7a9de71702d2b5d2a60ca0356f463f45811555e06b656ae312b679",
+    "bytes": 7779024,
+    "num_timesteps": 2150000,
+    "training_eval_step_of_best": 2150000
+  },
+  "deterministic_clean": true,
+  "deterministic_lap_times_s": [
+    102.99463734696099,
+    102.29289516482564
+  ],
+  "reproduction": {
+    "expected_lap2_s": 102.29289516482564,
+    "measured_lap2_s": 102.29289516482564,
+    "difference_s": 0.0,
+    "tolerance_s": 1e-06,
+    "within_tolerance": true,
+    "training_device": "cpu",
+    "inference_device": "cpu",
+    "device_changed": false,
+    "note": "CPU and MPS inference can diverge; comparison uses the measured snapshot lap."
+  },
+  "recorder_check": {
+    "lap_times_match_env": true,
+    "configured_reference": "path",
+    "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+    "recorder_crossings_s": [
+      3.7142856399148068,
+      106.70892298687579,
+      209.00181815170143
+    ]
+  },
+  "stochastic_requested": 0,
+  "stochastic": [],
+  "complete": true,
+  "stochastic_clean": 0,
+  "stochastic_lap_mean_s": null
+}
