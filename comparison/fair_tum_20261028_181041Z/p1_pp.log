@@ -1,0 +1,27 @@
+original f=1.00: clean=False off_track laps=[] wall=0.1s
+safe f=1.00: clean=False off_track laps=[] wall=1.2s
+safe f=0.98: clean=False off_track laps=[] wall=1.2s
+safe f=0.96: clean=False off_track laps=[] wall=1.3s
+safe f=0.94: clean=False off_track laps=[] wall=1.2s
+safe f=0.92: clean=False off_track laps=[] wall=1.3s
+safe f=0.90: clean=False off_track laps=[] wall=1.5s
+safe f=0.88: clean=False off_track laps=[] wall=1.3s
+safe f=0.86: clean=False off_track laps=[] wall=1.3s
+safe f=0.84: clean=False off_track laps=[] wall=1.3s
+safe f=0.82: clean=False off_track laps=[] wall=1.4s
+safe f=0.80: clean=False off_track laps=[] wall=1.4s
+safe f=0.78: clean=False off_track laps=[] wall=1.3s
+safe f=0.76: clean=False off_track laps=[] wall=1.4s
+safe f=0.74: clean=False off_track laps=[] wall=1.4s
+safe f=0.72: clean=False off_track laps=[] wall=1.5s
+safe f=0.70: clean=True lap_complete laps=[138.38740403444183, 138.42021258515345] wall=17.5s
+safe f=0.68: clean=True lap_complete laps=[142.38448584074638, 142.42723406729948] wall=14.4s
+safe f=0.66: clean=True lap_complete laps=[146.6413043431758, 146.6784154649912] wall=15.5s
+safe f=0.64: clean=True lap_complete laps=[151.1635252966774, 151.19825250053634] wall=15.2s
+safe f=0.62: clean=True lap_complete laps=[155.99069770201172, 156.01906977887242] wall=15.5s
+safe f=0.60: clean=True lap_complete laps=[161.13957027326535, 161.1687804292717] wall=16.9s
+safe f=0.58: clean=True lap_complete laps=[166.6470731251521, 166.67650001116138] wall=16.4s
+safe f=0.56: clean=True lap_complete laps=[172.54346158091414, 172.57364366350802] wall=17.4s
+safe f=0.54: clean=True lap_complete laps=[178.8809388424766, 178.90378383595544] wall=19.1s
+safe f=0.52: clean=True lap_complete laps=[185.7138888734241, 185.73333339406634] wall=17.9s
+safe f=0.50: clean=True lap_complete laps=[193.10171429820878, 193.11573107125926] wall=18.5s

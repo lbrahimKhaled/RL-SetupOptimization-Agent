@@ -1,0 +1,3 @@
+/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/rlsetup/driving/qss_profile.py:164: UserWarning: qss_profile_Shanghai_p0_sf70h_tum.npz: cache key does not match the current code/track; recomputing in memory (rebuild with scripts/build_qss_profile.py)
+  return load_or_build(track, car=env_cfg.car, ers=env_cfg.ers, setup=env_cfg.setup,
+det: clean=True laps=[106.76247212149039, 106.5562844271498] reproduction={'expected_lap2_s': 106.5562844271498, 'measured_lap2_s': 106.5562844271498, 'difference_s': 0.0, 'tolerance_s': 1e-06, 'within_tolerance': True, 'training_device': 'mps', 'inference_device': 'mps', 'device_changed': False, 'note': 'CPU and MPS inference can diverge; comparison uses the measured snapshot lap.'}
