@@ -1,0 +1,15 @@
+{
+  "cwd": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent",
+  "command": "env PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 NUMEXPR_NUM_THREADS=1 /usr/bin/nice -n 19 /Users/ibrahimkhaled/Documents/tum/tumenv/bin/python -u /private/tmp/check_tum_kinematics_20261031.py",
+  "exit_code": 0,
+  "analytic_only_forced_reference_speed": true,
+  "OCD_physics_steps": 0,
+  "artifact_sha256": {
+    "unfiltered_spline_CoG_corrected.csv": "fccbd76dbeb81125d80f9c94e8e051509a3b9742d3c1897cd7cf9333fc3d3ceb",
+    "result.json": "0d2511efdb0f161baba09c8206bebd4c67ac357a72008203c9e23c4948824f3b",
+    "check_tum_kinematics_20261031.py": "b83448c23efd9d9d310931bf184e0300a5470db9c1096731342f299986d82fcc",
+    "filtered10m_simple_atan_Lkappa.csv": "1bff54f0300ba1edbd4cb3b5c3325793fbd73e50024d5602b607b17009b82134",
+    "filtered10m_CoG_corrected.csv": "784ff4fdee544660560623d6cc52d926fd2286c065df5f809d1f64205f8b2818",
+    "unfiltered_spline_simple_atan_Lkappa.csv": "e1ea7250e207cd67505bd030a953354595bd1402684a6cea53cc14916630ef39"
+  }
+}

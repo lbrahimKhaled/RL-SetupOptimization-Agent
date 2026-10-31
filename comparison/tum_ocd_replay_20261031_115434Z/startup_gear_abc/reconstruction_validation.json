@@ -1,0 +1,14 @@
+{
+  "positive_force_samples": 912,
+  "positive_force_residual_rms_N": 0.0008508341853551075,
+  "positive_force_residual_max_abs_N": 0.004428582260516123,
+  "positive_force_formula": "733ax+.5rho*cWA*v^2+.03sumFz vs eta_g*m_eng/(i_trans*r(v)*e_i)",
+  "throttle_raw_min": 0.0,
+  "throttle_raw_max": 1.0000007227777459,
+  "throttle_rounding_clipped_rows": 413,
+  "brake_raw_max": 0.8809510054607462,
+  "brake_clipped_rows": 0,
+  "steering_max_abs_rad": 0.2654956388846322,
+  "requested_torque_used_for_throttle": false,
+  "inertia_mass_factor_divided_from_throttle": false
+}

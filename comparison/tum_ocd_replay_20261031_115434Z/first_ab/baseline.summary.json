@@ -1,0 +1,66 @@
+{
+  "variant": "baseline",
+  "termination": "spin",
+  "reference_horizon_s": 94.88618556208073,
+  "actual_sim_time_s": 17.04,
+  "physics_step_quantization_overshoot_s": 0.0,
+  "reference_horizon_reached": false,
+  "actual_progress_path_m": 826.4728497660558,
+  "actual_line_crossings_s": [
+    0.000882340225302706
+  ],
+  "actual_lap_times_s": [],
+  "actual_completed_full_laps": 0,
+  "initial_pose": {
+    "x": -0.52484,
+    "y": 2.609798,
+    "yaw": -2.9007358138740367,
+    "speed": 68.02365
+  },
+  "initial_vy_mps": 0.0,
+  "initial_yaw_rate_radps": 0.0,
+  "initial_pose_on_track": true,
+  "no_initial_steady_turn_state": "public StartPose cannot set vy/yaw_rate",
+  "trajectory_time_aligned": {
+    "samples": 8521,
+    "time_start_s": 0.0,
+    "time_end_s": 17.04,
+    "position_RMSE_m": 35.45816215737361,
+    "position_max_m": 63.51171783077946,
+    "speed_RMSE_mps": 3.9148066225364526,
+    "speed_bias_mps": -3.030656249327721,
+    "terminal_position_error_m": 56.06546100250409
+  },
+  "first_2s": {
+    "samples": 1001,
+    "time_start_s": 0.0,
+    "time_end_s": 2.0,
+    "position_RMSE_m": 2.8327897195064597,
+    "position_max_m": 4.819760212730477,
+    "speed_RMSE_mps": 2.428392794962299,
+    "speed_bias_mps": -2.3376941810988523,
+    "terminal_position_error_m": 4.819760212730477
+  },
+  "first_reference_meter": {
+    "samples": 8,
+    "time_start_s": 0.0,
+    "time_end_s": 0.014,
+    "position_RMSE_m": 0.001618737339029194,
+    "position_max_m": 0.002847050401749126,
+    "speed_RMSE_mps": 0.13283438881598847,
+    "speed_bias_mps": -0.06680148705673261,
+    "terminal_position_error_m": 0.002847050401749126
+  },
+  "station_matched_CoG_error_m": {
+    "RMS": 16.948405807697128,
+    "max_abs": 30.764163157707575,
+    "sample_rate_hz": 25
+  },
+  "on_track_control_interval_fraction": 0.3192488262910798,
+  "initial_pose_and_every_2ms_footprint_checked": true,
+  "footprint_exit_terminates": false,
+  "valid_clean_lap_claim": false,
+  "wall_s": 0.3238638329785317,
+  "state_trace_numeric_sha256": "fd851e9f024b32dbeeb18ac092abfb2a9b9e0df58cb9f3020a14a24606526970",
+  "transient_numeric_sha256": "b185531efb41071b0378b095583e7275fc2c30b810e1f55a5fdecb489a4ba3a0"
+}

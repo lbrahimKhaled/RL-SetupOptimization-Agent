@@ -1,0 +1,550 @@
+{
+  "created_utc": "2026-10-31T11:57:06.034859+00:00",
+  "read_only_source_audit": true,
+  "physics_steps_executed": 0,
+  "reset_only": true,
+  "training_state": "No learner/keeper/search jobs found in initial read-only process inventory; no signals sent.",
+  "reference": {
+    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/comparison/tum_ocd_replay_20261031_115434Z/reference/tum_none.csv",
+    "sha256": "1370d33415589f20530f51686c7d934afca871a6e9dcf10358de6731e6e626a7",
+    "lap_s": 94.88618556208073,
+    "settings": {
+      "drs": false,
+      "driver_changes": {
+        "em_strategy": "NONE",
+        "initial_energy": 0.0,
+        "use_recuperation": false
+      },
+      "track": {
+        "trackname": "Shanghai",
+        "flip_track": false,
+        "mu_weather": 1.0,
+        "interp_stepsize_des": 5.0,
+        "curv_filt_width": 10.0,
+        "use_drs1": false,
+        "use_drs2": false,
+        "use_pit": false
+      },
+      "solver": {
+        "vehicle": "F1_Shanghai.ini",
+        "series": "F1",
+        "limit_braking_weak_side": "FA",
+        "v_start": 27.77777777777778,
+        "find_v_start": true,
+        "max_no_em_iters": 5,
+        "es_diff_max": 1.0
+      },
+      "driver": {
+        "vel_subtr_corner": 0.5,
+        "vel_lim_glob": null,
+        "yellow_s1": false,
+        "yellow_s2": false,
+        "yellow_s3": false,
+        "yellow_throttle": 0.3,
+        "initial_energy": 0.0,
+        "em_strategy": "NONE",
+        "use_recuperation": false,
+        "use_lift_coast": false,
+        "lift_coast_dist": 10.0
+      },
+      "debug": {
+        "use_plot": false,
+        "use_debug_plots": false,
+        "use_plot_comparison_tph": false,
+        "use_print": false,
+        "use_print_result": false
+      }
+    },
+    "input_hashes": {
+      "vehicle_ini": "1a34e39bad20bf747f57c7b586be98b4928694b95dba174ed450d4452af08335",
+      "track_pars_ini": "2a2ade96acf531f3c1260f01fafb6113f5bd2f7e346c3a9b4c0a65119d3b21b4",
+      "raceline_csv": "db621f25b9eb3c444fa51be52cbf96cc7dc077932b32f25b424da0ff70ce7c04",
+      "ocd_first_lap_vendored_raceline": "db621f25b9eb3c444fa51be52cbf96cc7dc077932b32f25b424da0ff70ce7c04"
+    }
+  },
+  "current_p1_setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 0.0,
+    "heave_freq_rear_hz": 0.0,
+    "heave_damping_ratio": 0.0,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.49,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+  },
+  "controls": {
+    "ERS": false,
+    "DRS": false,
+    "brake_cap_Nm": 15000,
+    "brake_bias_front": 0.49,
+    "steer_PT1_s": 0.06,
+    "steer_rate_radps": 1.5,
+    "steer_cap_rad": 0.6
+  },
+  "comparison": [
+    {
+      "name": "mass",
+      "OCD": 733.0,
+      "TUM": 733.0,
+      "delta": 0.0,
+      "units": "kg",
+      "definition": "vehicle_dynamics_double_track.mass_vehicle_kg"
+    },
+    {
+      "name": "wheelbase",
+      "OCD": 3.5999999999999996,
+      "TUM": 3.5999999999999996,
+      "delta": 0.0,
+      "units": "m",
+      "definition": "vehicle_dynamics_double_track.wheelbase_m"
+    },
+    {
+      "name": "CG to front",
+      "OCD": 1.968,
+      "TUM": 1.968,
+      "delta": 0.0,
+      "units": "m",
+      "definition": "vehicle_dynamics_double_track.cog.distance_from_front_axle_m"
+    },
+    {
+      "name": "CG height",
+      "OCD": 0.335,
+      "TUM": 0.335,
+      "delta": 0.0,
+      "units": "m",
+      "definition": "vehicle_dynamics_double_track.cog.height_m"
+    },
+    {
+      "name": "front track",
+      "OCD": 1.6,
+      "TUM": 1.6,
+      "delta": 0.0,
+      "units": "m",
+      "definition": "vehicle_dynamics_double_track.track_width_m.front"
+    },
+    {
+      "name": "rear track",
+      "OCD": 1.6,
+      "TUM": 1.6,
+      "delta": 0.0,
+      "units": "m",
+      "definition": "vehicle_dynamics_double_track.track_width_m.rear"
+    },
+    {
+      "name": "rho_air",
+      "OCD": 1.18,
+      "TUM": 1.18,
+      "delta": 0.0,
+      "units": "kg/m^3",
+      "definition": "vehicle_dynamics_double_track.aerodynamics.air_density_kgpm3"
+    },
+    {
+      "name": "rolling resistance",
+      "OCD": 0.03,
+      "TUM": 0.03,
+      "delta": 0.0,
+      "units": "1",
+      "definition": "vehicle_dynamics_double_track.tire.rolling_resistance_coefficient"
+    },
+    {
+      "name": "CG to rear",
+      "OCD": 1.6319999999999997,
+      "TUM": 1.632,
+      "delta": -2.220446049250313e-16,
+      "units": "m",
+      "definition": "wheelbase minus CG-to-front distance"
+    },
+    {
+      "name": "drag CwA",
+      "OCD": 1.56,
+      "TUM": 1.56,
+      "delta": 0.0,
+      "units": "m^2",
+      "definition": "A*c_d, DRS off"
+    },
+    {
+      "name": "reference front CzA",
+      "OCD": 2.1999040000000005,
+      "TUM": 2.2,
+      "delta": -9.599999999965192e-05,
+      "units": "m^2",
+      "definition": "front polynomial at reference physical rideheight .035m, not dynamic lift"
+    },
+    {
+      "name": "reference rear CzA",
+      "OCD": 2.6800960000000003,
+      "TUM": 2.68,
+      "delta": 9.600000000009601e-05,
+      "units": "m^2",
+      "definition": "rear polynomial at reference physical rideheight .085m, not dynamic lift"
+    },
+    {
+      "name": "front loaded radius (60km/h reference)",
+      "OCD": 0.32992819702949905,
+      "TUM": 0.32992819702949905,
+      "delta": 0.0,
+      "units": "m",
+      "definition": "TUM radius expands with speed; OCD current velocity-scaling factors stay1"
+    },
+    {
+      "name": "front tyre nominal Fz",
+      "OCD": 3000.0,
+      "TUM": 3000.0,
+      "delta": 0.0,
+      "units": "N",
+      "definition": "MF FNOMIN*LFZO"
+    },
+    {
+      "name": "front mux nominal",
+      "OCD": 1.65,
+      "TUM": 1.65,
+      "delta": 0.0,
+      "units": "1",
+      "definition": "zero-camber pure-slip peak coefficient PD1*LMU; not full combined-slip force"
+    },
+    {
+      "name": "front dmux/dFz",
+      "OCD": -4.9999999999999996e-05,
+      "TUM": -5e-05,
+      "delta": 6.776263578034403e-21,
+      "units": "1/N",
+      "definition": "PD2*LMU/(FNOMIN*LFZO)"
+    },
+    {
+      "name": "front muy nominal",
+      "OCD": 1.85,
+      "TUM": 1.85,
+      "delta": 0.0,
+      "units": "1",
+      "definition": "zero-camber pure-slip peak coefficient PD1*LMU; not full combined-slip force"
+    },
+    {
+      "name": "front dmuy/dFz",
+      "OCD": -4.9999999999999996e-05,
+      "TUM": -5e-05,
+      "delta": 6.776263578034403e-21,
+      "units": "1/N",
+      "definition": "PD2*LMU/(FNOMIN*LFZO)"
+    },
+    {
+      "name": "rear loaded radius (60km/h reference)",
+      "OCD": 0.32992819702949905,
+      "TUM": 0.32992819702949905,
+      "delta": 0.0,
+      "units": "m",
+      "definition": "TUM radius expands with speed; OCD current velocity-scaling factors stay1"
+    },
+    {
+      "name": "rear tyre nominal Fz",
+      "OCD": 3000.0,
+      "TUM": 3000.0,
+      "delta": 0.0,
+      "units": "N",
+      "definition": "MF FNOMIN*LFZO"
+    },
+    {
+      "name": "rear mux nominal",
+      "OCD": 1.95,
+      "TUM": 1.95,
+      "delta": 0.0,
+      "units": "1",
+      "definition": "zero-camber pure-slip peak coefficient PD1*LMU; not full combined-slip force"
+    },
+    {
+      "name": "rear dmux/dFz",
+      "OCD": -4.9999999999999996e-05,
+      "TUM": -5e-05,
+      "delta": 6.776263578034403e-21,
+      "units": "1/N",
+      "definition": "PD2*LMU/(FNOMIN*LFZO)"
+    },
+    {
+      "name": "rear muy nominal",
+      "OCD": 2.15,
+      "TUM": 2.15,
+      "delta": 0.0,
+      "units": "1",
+      "definition": "zero-camber pure-slip peak coefficient PD1*LMU; not full combined-slip force"
+    },
+    {
+      "name": "rear dmuy/dFz",
+      "OCD": -4.9999999999999996e-05,
+      "TUM": -5e-05,
+      "delta": 6.776263578034403e-21,
+      "units": "1/N",
+      "definition": "PD2*LMU/(FNOMIN*LFZO)"
+    }
+  ],
+  "structural_mismatches": [
+    "TUM FB+ solves speed on prescribed raceline, algebraic load transfer with per-wheel minimum30N, axle-wise exponent2 friction ellipse; it does not integrate x/y/yaw from steer/throttle/brake.",
+    "OCD is double-track MF5.2 with combined-slip/shape/stiffness, wheel inertia and transient suspension; matching peak mu(Fz) does not match these omitted TUM dynamics.",
+    "OCD reference-height aero is almost identical (front share rounding), but placeholder rideheight sensitivity is2 per metre and dynamic suspension changes lift; TUM fixed CzA has no rideheight dynamics.",
+    "OCD inertias are scaled AV21 placeholders, Ix97.6316337149,Iy579.814453125,Iz1159.62890625kgm2; TUM QSS has no matching pitch/roll/yaw inertias.",
+    "OCD steering actuator PT1 .06s, rate cap1.5rad/s, angle cap.6rad; TUM QSS does not solve steering actuator states.",
+    "TUM expands tyre circumference with speed, current OCD radius scaling fixed1. Gear selection in TUM uses vehicle speed; OCD uses wheel rpm plus1000rpm hysteresis and.1s shift dwell.",
+    "TUM gear torsional factors e_i act algebraically in required force/torque; OCD reflects approximate additional rotating inertia through drivetrain.",
+    "TUM all-wheel braking uses tyre force potential and front weak-side FA rule; it has no original fixed15kNm hardware cap/bias. Current p1 OCD brake hardware15kNm, front bias.49.",
+    "TUM reference has weather friction1; current OCD car coefficient mapping preserves nominal tyre peaks. Exact force matching additionally depends on dynamic load/camber/slip.",
+    "Original TUM CSV is QSS geometry/speed/force demand, not an original three-pedal/steering command trace. Any derived open-loop steer/brake command must be labeled reconstructed."
+  ],
+  "powertrain": {
+    "OCD_ratios": [
+      25.0,
+      14.285714285714285,
+      10.526315789473685,
+      8.547008547008547,
+      6.993006993006993,
+      5.813953488372094,
+      5.2631578947368425,
+      4.8543689320388355
+    ],
+    "OCD_data": {
+      "pow_max": 575000.0,
+      "pow_diff": 41000.0,
+      "n_begin": 10500.0,
+      "n_max": 11400.0,
+      "n_end": 12200.0,
+      "i_trans": [
+        0.04,
+        0.07,
+        0.095,
+        0.117,
+        0.143,
+        0.172,
+        0.19,
+        0.206
+      ],
+      "n_shift": [
+        10000.0,
+        11800.0,
+        11800.0,
+        11800.0,
+        11800.0,
+        11800.0,
+        11800.0,
+        13000.0
+      ],
+      "e_i": [
+        1.16,
+        1.11,
+        1.09,
+        1.08,
+        1.08,
+        1.08,
+        1.07,
+        1.07
+      ],
+      "eta_g": 0.96
+    },
+    "TUM_engine": {
+      "topology": "RWD",
+      "pow_max": 575000.0,
+      "pow_diff": 41000.0,
+      "n_begin": 10500.0,
+      "n_max": 11400.0,
+      "n_end": 12200.0,
+      "be_max": 100.0,
+      "pow_e_motor": 120000.0,
+      "eta_e_motor": 0.9,
+      "eta_e_motor_re": 0.15,
+      "eta_etc_re": 0.1,
+      "vel_min_e_motor": 27.777,
+      "torque_e_motor_max": 200.0
+    },
+    "TUM_gearbox": {
+      "i_trans": [
+        0.04,
+        0.07,
+        0.095,
+        0.117,
+        0.143,
+        0.172,
+        0.19,
+        0.206
+      ],
+      "n_shift": [
+        10000.0,
+        11800.0,
+        11800.0,
+        11800.0,
+        11800.0,
+        11800.0,
+        11800.0,
+        13000.0
+      ],
+      "e_i": [
+        1.16,
+        1.11,
+        1.09,
+        1.08,
+        1.08,
+        1.08,
+        1.07,
+        1.07
+      ],
+      "eta_g": 0.96
+    },
+    "TUM_radius_m_at_v": {
+      "0": 0.32547416636960086,
+      "12": 0.3286810684447275,
+      "30": 0.33349142155741757,
+      "60": 0.34150867674523444,
+      "80": 0.3468535135371123
+    },
+    "OCD_fixed_radius_m": 0.32992819702949905
+  },
+  "TUM_public_signatures": {
+    "car.py": [
+      {
+        "name": "tire_force_pots",
+        "signature": "def tire_force_pots(self, vel: float, a_x: float, a_y: float, mu: float) -> tuple:",
+        "line": 110
+      },
+      {
+        "name": "plot_tire_characteristics",
+        "signature": "def plot_tire_characteristics(self) -> None:",
+        "line": 191
+      },
+      {
+        "name": "r_driven_tire",
+        "signature": "def r_driven_tire(self, vel: float) -> float:",
+        "line": 238
+      },
+      {
+        "name": "air_res",
+        "signature": "def air_res(self, vel: float, drs: bool) -> float:",
+        "line": 243
+      },
+      {
+        "name": "roll_res",
+        "signature": "def roll_res(self, f_z_tot: float) -> float:",
+        "line": 255
+      },
+      {
+        "name": "calc_lat_forces",
+        "signature": "def calc_lat_forces(self, a_y: float) -> tuple:",
+        "line": 259
+      },
+      {
+        "name": "v_max_cornering",
+        "signature": "def v_max_cornering(self, kappa: float, mu: float, vel_subtr_corner: float=0.5) -> float:",
+        "line": 268
+      },
+      {
+        "name": "calc_f_x_pot",
+        "signature": "def calc_f_x_pot(self, f_x_pot_fl: float, f_x_pot_fr: float, f_x_pot_rl: float, f_x_pot_rr: float, f_y_pot_f: float, f_y_pot_r: float, f_y_f: float, f_y_r: float, force_use_all_wheels: bool=False, limit_braking_weak_side: None or str=None) -> float:",
+        "line": 348
+      },
+      {
+        "name": "calc_max_ax",
+        "signature": "def calc_max_ax(self, vel: float, a_y: float, mu: float, f_y_f: float, f_y_r: float) -> float:",
+        "line": 411
+      },
+      {
+        "name": "find_gear",
+        "signature": "def find_gear(self, vel: float) -> tuple:",
+        "line": 450
+      },
+      {
+        "name": "calc_m_requ",
+        "signature": "def calc_m_requ(self, f_x: float, vel: float) -> float:",
+        "line": 469
+      }
+    ],
+    "car_hybrid.py": [
+      {
+        "name": "plot_power_engine",
+        "signature": "def plot_power_engine(self) -> None:",
+        "line": 112
+      },
+      {
+        "name": "torque",
+        "signature": "def torque(self, n: float) -> float:",
+        "line": 124
+      },
+      {
+        "name": "torque_e_motor",
+        "signature": "def torque_e_motor(self, n: float) -> float:",
+        "line": 129
+      },
+      {
+        "name": "fuel_cons",
+        "signature": "def fuel_cons(self, t_cl: np.ndarray, n_cl: np.ndarray, m_eng: np.ndarray) -> np.ndarray:",
+        "line": 139
+      },
+      {
+        "name": "e_cons",
+        "signature": "def e_cons(self, t_cl: np.ndarray, n_cl: np.ndarray, m_e_motor: np.ndarray) -> np.ndarray:",
+        "line": 161
+      },
+      {
+        "name": "power_demand_e_motor_drive",
+        "signature": "def power_demand_e_motor_drive(self, n: np.ndarray, m_e_motor: np.ndarray) -> np.ndarray:",
+        "line": 174
+      },
+      {
+        "name": "calc_torque_distr",
+        "signature": "def calc_torque_distr(self, n: float, m_requ: float, throttle_pos: float, es: float, em_boost_use: bool, vel: float) -> tuple:",
+        "line": 179
+      },
+      {
+        "name": "calc_torque_distr_f_x",
+        "signature": "def calc_torque_distr_f_x(self, f_x: float, n: float, throttle_pos: float, es: float, em_boost_use: bool, vel: float) -> tuple:",
+        "line": 210
+      }
+    ]
+  },
+  "source_sha256": {
+    "/private/tmp/audit_tum_ocd_params_20261031.py": "5c9b1ae3130fac23774597484048ae122d8eebaa2a46aff4e16c6ee49a229bb1",
+    "/private/tmp/export_tum_none_replay_20261031.py": "d6acb5d412e147ea5eba6841cb2026b50fe67c4f3320a52630c6538be1089447",
+    "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/scripts/comparison/export_tum_lap.py": "71a9514f90bc805b590e11213f626b5aa4c125d54ad8394ec00d9380c23425a1",
+    "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/scripts/comparison/common.py": "aa4fca5617b23fade79b86a45d0e8974dbfaa96b842c473612de11ba827bedea",
+    "/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap/ocd_lap/backend.py": "64d2d65c6550382d1640b8003982bb129712efcd68f6a40faaa428b5a8b378c7",
+    "/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap/ocd_lap/cars.py": "f4217f9a2b5e42a1d40287fe013b8c3a1f2d0284c232055477b80f595dfcf36b",
+    "/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap/ocd_lap/translator.py": "359ce311db518623680839a0100d0a87913fae7f3b0997316a5e10d5d9eaae69",
+    "/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap/ocd_lap/aero_map.py": "9340359d727be1b2001f4c9b73fea4cad7425808748b993448a2af3c57c16ac8",
+    "/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap/ocd_lap/powertrain.py": "99609a4cd76db28576021515086a7bb6fc545ff860fbffab2c6ea0ded2df1bf0",
+    "/Users/ibrahimkhaled/Documents/tum/laptime-simulation/laptimesim/src/car.py": "7bb344fc3cccd9224316913c57910425701892806d832398ab0f259e2c7fea15",
+    "/Users/ibrahimkhaled/Documents/tum/laptime-simulation/laptimesim/src/car_hybrid.py": "74ff5e9f273804acf0da9efdface58c3453b8a8456caea98b032b023b177e6f4",
+    "/Users/ibrahimkhaled/Documents/tum/laptime-simulation/laptimesim/src/lap.py": "4f92338a91f939a4f0572964f9d91ec0a8cbf7bc94d7063a9694db73967c9aee",
+    "/Users/ibrahimkhaled/Documents/tum/laptime-simulation/laptimesim/input/vehicles/F1_Shanghai.ini": "1a34e39bad20bf747f57c7b586be98b4928694b95dba174ed450d4452af08335",
+    "/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap/vendor/Open-Car-Dynamics/python3/ocd_vehicle_models_py/config/OCD_Vehicle_RWD_LSD__PT1__DOUBLE_TRACK__MF52__RIDE_HEIGHT.json": "db32a1c615912faffcbfe99238ddf986ecd9f1a7f7a50f3d8e417e5fa0ddf5c4",
+    "/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap/ocd_native.cpython-312-darwin.so": "2b62143d42172a88344d9621ba67fcc98f9d7c58fa0e197a18bc4d4e584dbf13",
+    "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/runs/mac/D2/p1_TUM/seed0/config.json": "9eaec5dad161eed39272548da73294deb4837b451d40bb83263e21002effdf48"
+  },
+  "git": {
+    "RL": {
+      "HEAD": "032f30b363baec4324ff40e1a44fa6619d2ac135",
+      "status": "?? comparison/tum_ocd_fast_20261029_122428Z/\n?? comparison/tum_ocd_replay_20261031_115434Z/\n?? scripts/comparison/tune_pp_tracking.py\n?? scripts/comparison/tune_tum_actions.py\n?? scripts/comparison/tune_tum_ocd.py\n?? scripts/comparison/tune_tum_ocd_enhanced.py\n?? tests/test_tune_pp_tracking.py\n?? tests/test_tune_tum_actions.py\n?? tests/test_tune_tum_ocd.py\n?? tests/test_tune_tum_ocd_enhanced.py\n"
+    },
+    "OCD": {
+      "HEAD": "39456345227a91128e1bed42482f63e2a4484521",
+      "status": ""
+    },
+    "TUM": {
+      "HEAD": "afa0aa710adb9fdd23fa3d6fbdd6a13664253616",
+      "status": ""
+    }
+  },
+  "command": [
+    "/private/tmp/audit_tum_ocd_params_20261031.py"
+  ]
+}

@@ -1,0 +1,1622 @@
+{
+ "1.00": {
+  "lap2_s": 103.6763,
+  "dt_end_s": 8.793749880146564,
+  "loss_by_limit_s": {
+   "braking": 2.4022036020765944,
+   "traction": 4.399977778109613,
+   "power": 0.9952092411007949,
+   "lateral_grip": 0.5284189219173454,
+   "controller": 0.47045668983813244
+  },
+  "segments": [
+   {
+    "s_from_m": 2987.6334189403638,
+    "s_to_m": 4606.420079117488,
+    "dt_s": 2.5221504651116007,
+    "v_tum_min_mps": 22.0638163095473,
+    "v_ocd_min_mps": 19.221114666970628,
+    "s_apex_tum_m": 3075.0,
+    "v_tum_entry_mps": 74.29435,
+    "v_ocd_entry_mps": 72.72826229222282,
+    "max_abs_e_m": 12.73716,
+    "cog_off_track_share": 0.04629629629629628,
+    "loss_by_limit_s": {
+     "braking": 0.4278330570116813,
+     "traction": 1.2877089752419337,
+     "power": 0.20986669594685722,
+     "lateral_grip": 0.1176894339186065,
+     "controller": 0.4790523029925221
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 4606.420079117488,
+    "s_to_m": 5011.0081119558,
+    "dt_s": 2.4252738056108356,
+    "v_tum_min_mps": 15.960966016484099,
+    "v_ocd_min_mps": 10.24628592209298,
+    "s_apex_tum_m": 4700.0,
+    "v_tum_entry_mps": 79.02481,
+    "v_ocd_entry_mps": 77.86446477966489,
+    "max_abs_e_m": 15.97178,
+    "cog_off_track_share": 0.0864197530864198,
+    "loss_by_limit_s": {
+     "braking": 1.2273753718842342,
+     "traction": 1.0345892821980993,
+     "power": 0.0315774408470416,
+     "lateral_grip": 0.13173171068146064,
+     "controller": 0.0
+    },
+    "binding": "braking"
+   },
+   {
+    "s_from_m": 1463.8225816387658,
+    "s_to_m": 2218.2264236413907,
+    "dt_s": 1.4714650168739958,
+    "v_tum_min_mps": 22.602970224855422,
+    "v_ocd_min_mps": 17.54454517036584,
+    "s_apex_tum_m": 1565.0,
+    "v_tum_entry_mps": 75.51216,
+    "v_ocd_entry_mps": 74.16094188192831,
+    "max_abs_e_m": 7.723938,
+    "cog_off_track_share": 0.039735099337748325,
+    "loss_by_limit_s": {
+     "braking": 0.5930445875283913,
+     "traction": 0.43512135979805244,
+     "power": 0.3805626648915127,
+     "lateral_grip": 0.06273640465603958,
+     "controller": 0.0
+    },
+    "binding": "braking"
+   },
+   {
+    "s_from_m": 834.3484934289376,
+    "s_to_m": 1463.8225816387658,
+    "dt_s": 0.839063403523987,
+    "v_tum_min_mps": 22.127983824873006,
+    "v_ocd_min_mps": 21.89866336759141,
+    "s_apex_tum_m": 865.0,
+    "v_tum_entry_mps": 37.52504,
+    "v_ocd_entry_mps": 32.725867628397445,
+    "max_abs_e_m": 1.370654,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.0,
+     "traction": 0.583217509948643,
+     "power": 0.2343350654245194,
+     "lateral_grip": 0.021510828150824605,
+     "controller": 0.0
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 2423.0635202123253,
+    "s_to_m": 2987.6334189403638,
+    "dt_s": 0.6918631075716739,
+    "v_tum_min_mps": 30.41994114348113,
+    "v_ocd_min_mps": 30.267812026276257,
+    "s_apex_tum_m": 2495.0,
+    "v_tum_entry_mps": 60.48244,
+    "v_ocd_entry_mps": 55.25910767980762,
+    "max_abs_e_m": 1.851694,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.016453415359369783,
+     "traction": 0.552544235660781,
+     "power": 0.09078379327224423,
+     "lateral_grip": 0.03208166327927889,
+     "controller": 0.0
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 534.6403854413293,
+    "s_to_m": 834.3484934289376,
+    "dt_s": 0.441295699873022,
+    "v_tum_min_mps": 25.259831252920463,
+    "v_ocd_min_mps": 24.58818609782899,
+    "s_apex_tum_m": 800.0,
+    "v_tum_entry_mps": 77.86804,
+    "v_ocd_entry_mps": 76.70672406946939,
+    "max_abs_e_m": 3.885455,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.12728281968552208,
+     "traction": 0.1951644941218928,
+     "power": 0.0326576996302495,
+     "lateral_grip": 0.08619068643535759,
+     "controller": 0.0
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 5011.0081119558,
+    "s_to_m": 5340.770241508524,
+    "dt_s": 0.24086337813733394,
+    "v_tum_min_mps": 36.74196916373386,
+    "v_ocd_min_mps": 36.68073169489551,
+    "s_apex_tum_m": 5085.0,
+    "v_tum_entry_mps": 68.48529,
+    "v_ocd_entry_mps": 63.899434627954065,
+    "max_abs_e_m": 1.505491,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.0,
+     "traction": 0.16049931883555044,
+     "power": 0.023010723610202104,
+     "lateral_grip": 0.057353335691581395,
+     "controller": 0.0
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 2218.2264236413907,
+    "s_to_m": 2423.0635202123253,
+    "dt_s": 0.18235556085485172,
+    "v_tum_min_mps": 47.22578526630193,
+    "v_ocd_min_mps": 46.076908137500425,
+    "s_apex_tum_m": 2320.0,
+    "v_tum_entry_mps": 76.55202,
+    "v_ocd_entry_mps": 72.75746358293647,
+    "max_abs_e_m": 1.880004,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.010214350607395653,
+     "traction": 0.1511326023046604,
+     "power": 0.0018837488385994355,
+     "lateral_grip": 0.019124859104196198,
+     "controller": 0.0
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 0.0,
+    "s_to_m": 534.6403854413293,
+    "dt_s": -0.018064204514820978,
+    "v_tum_min_mps": 68.02365,
+    "v_ocd_min_mps": 67.45487061346645,
+    "s_apex_tum_m": 0.0,
+    "v_tum_entry_mps": 68.02365,
+    "v_ocd_entry_mps": 67.45487061346645,
+    "max_abs_e_m": 0.133024,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": -0.0,
+     "traction": -0.0,
+     "power": -0.009468591360431324,
+     "lateral_grip": -0.0,
+     "controller": -0.008595613154389656
+    },
+    "binding": "braking"
+   }
+  ],
+  "cuts_m": [
+   534.6403854413293,
+   834.3484934289376,
+   1463.8225816387658,
+   2218.2264236413907,
+   2423.0635202123253,
+   2987.6334189403638,
+   4606.420079117488,
+   5011.0081119558
+  ],
+  "share_of_lap_by_class": {
+   "braking": 0.13096351730589337,
+   "traction": 0.1412535079513564,
+   "power": 0.5257249766136576,
+   "lateral_grip": 0.029934518241347054,
+   "controller": 0.17212347988774557
+  },
+  "straight_line": [
+   {
+    "v_from_mps": 10.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": null
+   },
+   {
+    "v_from_mps": 15.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": -9.521569
+   },
+   {
+    "v_from_mps": 20.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": -11.88088
+   },
+   {
+    "v_from_mps": 25.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": -14.8009
+   },
+   {
+    "v_from_mps": 30.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": 15.96681,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": -23.72425
+   },
+   {
+    "v_from_mps": 35.0,
+    "ocd_ax_full_throttle": 11.825625000001992,
+    "tum_ax_accelerating": 12.32722,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": -28.14045
+   },
+   {
+    "v_from_mps": 40.0,
+    "ocd_ax_full_throttle": 12.457875000002105,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": -27.233500000006643,
+    "tum_ax_brake_min": -31.52275
+   },
+   {
+    "v_from_mps": 45.0,
+    "ocd_ax_full_throttle": 8.276500000001988,
+    "tum_ax_accelerating": 10.81351,
+    "ocd_ax_brake_min": -32.95099999998297,
+    "tum_ax_brake_min": -36.77714
+   },
+   {
+    "v_from_mps": 50.0,
+    "ocd_ax_full_throttle": 8.448500000001559,
+    "tum_ax_accelerating": 7.839995,
+    "ocd_ax_brake_min": -35.673000000006596,
+    "tum_ax_brake_min": -39.64546
+   },
+   {
+    "v_from_mps": 55.0,
+    "ocd_ax_full_throttle": 7.060499999998797,
+    "tum_ax_accelerating": 6.9771754999999995,
+    "ocd_ax_brake_min": -42.45274999997832,
+    "tum_ax_brake_min": -44.67069
+   },
+   {
+    "v_from_mps": 60.0,
+    "ocd_ax_full_throttle": 4.6690000000007785,
+    "tum_ax_accelerating": 4.0086695,
+    "ocd_ax_brake_min": -44.665000000009286,
+    "tum_ax_brake_min": -48.02323
+   },
+   {
+    "v_from_mps": 65.0,
+    "ocd_ax_full_throttle": 3.961000000000695,
+    "tum_ax_accelerating": 3.5975645,
+    "ocd_ax_brake_min": -49.92074999997453,
+    "tum_ax_brake_min": -52.90956
+   },
+   {
+    "v_from_mps": 70.0,
+    "ocd_ax_full_throttle": 2.1196250000004966,
+    "tum_ax_accelerating": 1.717511,
+    "ocd_ax_brake_min": -56.9414999999708,
+    "tum_ax_brake_min": -56.66016
+   },
+   {
+    "v_from_mps": 75.0,
+    "ocd_ax_full_throttle": 1.3446249999998372,
+    "tum_ax_accelerating": 0.3590538,
+    "ocd_ax_brake_min": -51.653000000002976,
+    "tum_ax_brake_min": -60.55893
+   },
+   {
+    "v_from_mps": 80.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": null
+   },
+   {
+    "v_from_mps": 85.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": null
+   }
+  ]
+ },
+ "0.98": {
+  "lap2_s": 103.4874,
+  "dt_end_s": 8.608544479712776,
+  "loss_by_limit_s": {
+   "braking": 2.3012848134509514,
+   "traction": 4.246715167618231,
+   "power": 0.6714496953938206,
+   "lateral_grip": 0.40219313996387146,
+   "controller": 0.9894857606485581
+  },
+  "segments": [
+   {
+    "s_from_m": 2987.6334189403638,
+    "s_to_m": 4606.420079117488,
+    "dt_s": 2.492322268651897,
+    "v_tum_min_mps": 22.0638163095473,
+    "v_ocd_min_mps": 19.273695054945005,
+    "s_apex_tum_m": 3075.0,
+    "v_tum_entry_mps": 74.29435,
+    "v_ocd_entry_mps": 72.00320018696789,
+    "max_abs_e_m": 9.863271,
+    "cog_off_track_share": 0.01851851851851849,
+    "loss_by_limit_s": {
+     "braking": 0.44773899180523097,
+     "traction": 1.2878341268382045,
+     "power": 0.10985011138752888,
+     "lateral_grip": 0.11791783979418931,
+     "controller": 0.5289811988267433
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 4606.420079117488,
+    "s_to_m": 5011.0081119558,
+    "dt_s": 2.211731758088952,
+    "v_tum_min_mps": 15.960966016484099,
+    "v_ocd_min_mps": 10.645742752010408,
+    "s_apex_tum_m": 4700.0,
+    "v_tum_entry_mps": 79.02481,
+    "v_ocd_entry_mps": 76.45920875314094,
+    "max_abs_e_m": 12.83273,
+    "cog_off_track_share": 0.0864197530864198,
+    "loss_by_limit_s": {
+     "braking": 1.1450407310644921,
+     "traction": 1.0299044038775758,
+     "power": 0.03678662314688435,
+     "lateral_grip": 0.0,
+     "controller": 0.0
+    },
+    "binding": "braking"
+   },
+   {
+    "s_from_m": 1463.8225816387658,
+    "s_to_m": 2218.2264236413907,
+    "dt_s": 1.354572194302765,
+    "v_tum_min_mps": 22.602970224855422,
+    "v_ocd_min_mps": 17.543174181448766,
+    "s_apex_tum_m": 1565.0,
+    "v_tum_entry_mps": 75.51216,
+    "v_ocd_entry_mps": 73.18463906358856,
+    "max_abs_e_m": 6.464897,
+    "cog_off_track_share": 0.026490066225165587,
+    "loss_by_limit_s": {
+     "braking": 0.5517921404428748,
+     "traction": 0.34486167530590733,
+     "power": 0.39952056056017177,
+     "lateral_grip": 0.05839781799381123,
+     "controller": 0.0
+    },
+    "binding": "braking"
+   },
+   {
+    "s_from_m": 834.3484934289376,
+    "s_to_m": 1463.8225816387658,
+    "dt_s": 0.8543838170490528,
+    "v_tum_min_mps": 22.127983824873006,
+    "v_ocd_min_mps": 21.59013383385641,
+    "s_apex_tum_m": 865.0,
+    "v_tum_entry_mps": 37.52504,
+    "v_ocd_entry_mps": 32.123499156786025,
+    "max_abs_e_m": 0.7232796,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.0,
+     "traction": 0.5460820942957441,
+     "power": 0.049089321175471656,
+     "lateral_grip": 0.023286582855236344,
+     "controller": 0.23592581872260052
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 2423.0635202123253,
+    "s_to_m": 2987.6334189403638,
+    "dt_s": 0.7230551245028742,
+    "v_tum_min_mps": 30.41994114348113,
+    "v_ocd_min_mps": 29.716457944917835,
+    "s_apex_tum_m": 2495.0,
+    "v_tum_entry_mps": 60.48244,
+    "v_ocd_entry_mps": 55.75830001089024,
+    "max_abs_e_m": 1.768259,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.031176651765489356,
+     "traction": 0.526119006300967,
+     "power": 0.02378975341656541,
+     "lateral_grip": 0.03778485488735655,
+     "controller": 0.10418485813249591
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 534.6403854413293,
+    "s_to_m": 834.3484934289376,
+    "dt_s": 0.3937241451554918,
+    "v_tum_min_mps": 25.259831252920463,
+    "v_ocd_min_mps": 24.46472687345603,
+    "s_apex_tum_m": 800.0,
+    "v_tum_entry_mps": 77.86804,
+    "v_ocd_entry_mps": 75.37620591495194,
+    "max_abs_e_m": 1.540921,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.0795084011395624,
+     "traction": 0.23586849390658635,
+     "power": 0.02536328569753783,
+     "lateral_grip": 0.05298396441180527,
+     "controller": 0.0
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 5011.0081119558,
+    "s_to_m": 5340.770241508524,
+    "dt_s": 0.2654692375426535,
+    "v_tum_min_mps": 36.74196916373386,
+    "v_ocd_min_mps": 35.68901515275353,
+    "s_apex_tum_m": 5085.0,
+    "v_tum_entry_mps": 68.48529,
+    "v_ocd_entry_mps": 64.39070492799308,
+    "max_abs_e_m": 1.286023,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.032278863004810386,
+     "traction": 0.11721844662702686,
+     "power": 0.01919221374278648,
+     "lateral_grip": 0.08838647144601944,
+     "controller": 0.008393242722010303
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 2218.2264236413907,
+    "s_to_m": 2423.0635202123253,
+    "dt_s": 0.2070475755657739,
+    "v_tum_min_mps": 47.22578526630193,
+    "v_ocd_min_mps": 45.416345124258086,
+    "s_apex_tum_m": 2320.0,
+    "v_tum_entry_mps": 76.55202,
+    "v_ocd_entry_mps": 72.70958708521485,
+    "max_abs_e_m": 0.967349,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.01374903422849126,
+     "traction": 0.15882692046621982,
+     "power": 0.0,
+     "lateral_grip": 0.02343560857545334,
+     "controller": 0.01103601229560948
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 0.0,
+    "s_to_m": 534.6403854413293,
+    "dt_s": 0.10882245621597272,
+    "v_tum_min_mps": 68.02365,
+    "v_ocd_min_mps": 66.7874466463281,
+    "s_apex_tum_m": 0.0,
+    "v_tum_entry_mps": 68.02365,
+    "v_ocd_entry_mps": 66.7874466463281,
+    "max_abs_e_m": 0.1138972,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.0,
+     "traction": 0.0,
+     "power": 0.007857826266874193,
+     "lateral_grip": 0.0,
+     "controller": 0.10096462994909852
+    },
+    "binding": "controller"
+   }
+  ],
+  "cuts_m": [
+   534.6403854413293,
+   834.3484934289376,
+   1463.8225816387658,
+   2218.2264236413907,
+   2423.0635202123253,
+   2987.6334189403638,
+   4606.420079117488,
+   5011.0081119558
+  ],
+  "share_of_lap_by_class": {
+   "braking": 0.13376987839101964,
+   "traction": 0.13283442469597756,
+   "power": 0.37511693171188026,
+   "lateral_grip": 0.023386342376052385,
+   "controller": 0.33489242282507015
+  },
+  "straight_line": [
+   {
+    "v_from_mps": 10.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": null
+   },
+   {
+    "v_from_mps": 15.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": -9.521569
+   },
+   {
+    "v_from_mps": 20.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": -11.88088
+   },
+   {
+    "v_from_mps": 25.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": -14.8009
+   },
+   {
+    "v_from_mps": 30.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": 15.96681,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": -23.72425
+   },
+   {
+    "v_from_mps": 35.0,
+    "ocd_ax_full_throttle": 12.06550000000243,
+    "tum_ax_accelerating": 12.32722,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": -28.14045
+   },
+   {
+    "v_from_mps": 40.0,
+    "ocd_ax_full_throttle": 12.496624999998403,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": -29.409000000005335,
+    "tum_ax_brake_min": -31.52275
+   },
+   {
+    "v_from_mps": 45.0,
+    "ocd_ax_full_throttle": 8.197250000001304,
+    "tum_ax_accelerating": 10.81351,
+    "ocd_ax_brake_min": -33.86675000000673,
+    "tum_ax_brake_min": -36.77714
+   },
+   {
+    "v_from_mps": 50.0,
+    "ocd_ax_full_throttle": 8.425750000001244,
+    "tum_ax_accelerating": 7.839995,
+    "ocd_ax_brake_min": -36.92950000000769,
+    "tum_ax_brake_min": -39.64546
+   },
+   {
+    "v_from_mps": 55.0,
+    "ocd_ax_full_throttle": 6.997250000001486,
+    "tum_ax_accelerating": 6.9771754999999995,
+    "ocd_ax_brake_min": -41.63000000000761,
+    "tum_ax_brake_min": -44.67069
+   },
+   {
+    "v_from_mps": 60.0,
+    "ocd_ax_full_throttle": 4.666249999999195,
+    "tum_ax_accelerating": 4.0086695,
+    "ocd_ax_brake_min": -44.84050000000934,
+    "tum_ax_brake_min": -48.02323
+   },
+   {
+    "v_from_mps": 65.0,
+    "ocd_ax_full_throttle": 4.030875000000151,
+    "tum_ax_accelerating": 3.5975645,
+    "ocd_ax_brake_min": -50.32124999997427,
+    "tum_ax_brake_min": -52.90956
+   },
+   {
+    "v_from_mps": 70.0,
+    "ocd_ax_full_throttle": 2.5224999999996953,
+    "tum_ax_accelerating": 1.717511,
+    "ocd_ax_brake_min": -54.4880000000112,
+    "tum_ax_brake_min": -56.66016
+   },
+   {
+    "v_from_mps": 75.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": 0.3590538,
+    "ocd_ax_brake_min": -49.70525000001703,
+    "tum_ax_brake_min": -60.55893
+   },
+   {
+    "v_from_mps": 80.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": null
+   },
+   {
+    "v_from_mps": 85.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": null
+   }
+  ]
+ },
+ "0.96": {
+  "lap2_s": 102.9777,
+  "dt_end_s": 8.098690063758369,
+  "loss_by_limit_s": {
+   "braking": 1.924748032405369,
+   "traction": 3.610398909494717,
+   "power": 0.47985725033802507,
+   "lateral_grip": 0.45850135221844385,
+   "controller": 1.6288640532092473
+  },
+  "segments": [
+   {
+    "s_from_m": 2987.6334189403638,
+    "s_to_m": 4606.420079117488,
+    "dt_s": 2.00256747488498,
+    "v_tum_min_mps": 22.0638163095473,
+    "v_ocd_min_mps": 19.525161339419327,
+    "s_apex_tum_m": 3075.0,
+    "v_tum_entry_mps": 74.29435,
+    "v_ocd_entry_mps": 70.36636264590639,
+    "max_abs_e_m": 5.342716,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.2829900356799031,
+     "traction": 0.7707194737012055,
+     "power": 0.08704314701512281,
+     "lateral_grip": 0.19915750199008614,
+     "controller": 0.6626573164986626
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 4606.420079117488,
+    "s_to_m": 5011.0081119558,
+    "dt_s": 1.8738959283093806,
+    "v_tum_min_mps": 15.960966016484099,
+    "v_ocd_min_mps": 11.218488486365112,
+    "s_apex_tum_m": 4700.0,
+    "v_tum_entry_mps": 79.02481,
+    "v_ocd_entry_mps": 74.91695501455848,
+    "max_abs_e_m": 10.29126,
+    "cog_off_track_share": 0.06172839506172845,
+    "loss_by_limit_s": {
+     "braking": 0.9905558117422864,
+     "traction": 0.8307765523362403,
+     "power": 0.0219828420279837,
+     "lateral_grip": 0.0,
+     "controller": 0.03058072220287008
+    },
+    "binding": "braking"
+   },
+   {
+    "s_from_m": 1463.8225816387658,
+    "s_to_m": 2218.2264236413907,
+    "dt_s": 1.2209525097776677,
+    "v_tum_min_mps": 22.602970224855422,
+    "v_ocd_min_mps": 18.331019841593836,
+    "s_apex_tum_m": 1565.0,
+    "v_tum_entry_mps": 75.51216,
+    "v_ocd_entry_mps": 71.43015377127522,
+    "max_abs_e_m": 3.885657,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.4481486404111068,
+     "traction": 0.301719322785699,
+     "power": 0.29976470731863136,
+     "lateral_grip": 0.04692080676399319,
+     "controller": 0.12439903249823743
+    },
+    "binding": "braking"
+   },
+   {
+    "s_from_m": 834.3484934289376,
+    "s_to_m": 1463.8225816387658,
+    "dt_s": 0.9591921091703384,
+    "v_tum_min_mps": 22.127983824873006,
+    "v_ocd_min_mps": 21.410586494104333,
+    "s_apex_tum_m": 865.0,
+    "v_tum_entry_mps": 37.52504,
+    "v_ocd_entry_mps": 31.53268709047903,
+    "max_abs_e_m": 0.5165884,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.0,
+     "traction": 0.60811262385185,
+     "power": 0.019319808643598335,
+     "lateral_grip": 0.01008708819819121,
+     "controller": 0.3216725884766987
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 2423.0635202123253,
+    "s_to_m": 2987.6334189403638,
+    "dt_s": 0.7516563633966307,
+    "v_tum_min_mps": 30.41994114348113,
+    "v_ocd_min_mps": 29.23377257198694,
+    "s_apex_tum_m": 2495.0,
+    "v_tum_entry_mps": 60.48244,
+    "v_ocd_entry_mps": 55.735710955836296,
+    "max_abs_e_m": 1.341459,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.03958831024162671,
+     "traction": 0.49761101801627405,
+     "power": 0.01908427947568189,
+     "lateral_grip": 0.03724297185839091,
+     "controller": 0.15812978380465711
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 534.6403854413293,
+    "s_to_m": 834.3484934289376,
+    "dt_s": 0.46830419142304924,
+    "v_tum_min_mps": 25.259831252920463,
+    "v_ocd_min_mps": 24.2307372609348,
+    "s_apex_tum_m": 800.0,
+    "v_tum_entry_mps": 77.86804,
+    "v_ocd_entry_mps": 73.68857116360708,
+    "max_abs_e_m": 0.5978612,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.05965511989945309,
+     "traction": 0.3226573504269177,
+     "power": 0.012597880865021614,
+     "lateral_grip": 0.07219182720473727,
+     "controller": 0.0012020130269196436
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 5011.0081119558,
+    "s_to_m": 5340.770241508524,
+    "dt_s": 0.32787772491386846,
+    "v_tum_min_mps": 36.74196916373386,
+    "v_ocd_min_mps": 34.71591093700036,
+    "s_apex_tum_m": 5085.0,
+    "v_tum_entry_mps": 68.48529,
+    "v_ocd_entry_mps": 65.05973865713324,
+    "max_abs_e_m": 1.446471,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.08123945447775881,
+     "traction": 0.15099491433842166,
+     "power": 0.0034101132500833184,
+     "lateral_grip": 0.04125745319874019,
+     "controller": 0.05097578964886446
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 0.0,
+    "s_to_m": 534.6403854413293,
+    "dt_s": 0.26842949110936437,
+    "v_tum_min_mps": 68.02365,
+    "v_ocd_min_mps": 66.17048661721472,
+    "s_apex_tum_m": 0.0,
+    "v_tum_entry_mps": 68.02365,
+    "v_ocd_entry_mps": 66.20794105260754,
+    "max_abs_e_m": 0.1103757,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.0,
+     "traction": 0.0,
+     "power": 0.0,
+     "lateral_grip": 0.0,
+     "controller": 0.26842949110936437
+    },
+    "binding": "controller"
+   },
+   {
+    "s_from_m": 2218.2264236413907,
+    "s_to_m": 2423.0635202123253,
+    "dt_s": 0.22949380468052283,
+    "v_tum_min_mps": 47.22578526630193,
+    "v_ocd_min_mps": 44.54839783649034,
+    "s_apex_tum_m": 2320.0,
+    "v_tum_entry_mps": 76.55202,
+    "v_ocd_entry_mps": 72.34654987811038,
+    "max_abs_e_m": 0.7088812,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.02257065995323413,
+     "traction": 0.1278076540381088,
+     "power": 0.01665447174190204,
+     "lateral_grip": 0.051643703004304924,
+     "controller": 0.010817315942972945
+    },
+    "binding": "traction"
+   }
+  ],
+  "cuts_m": [
+   534.6403854413293,
+   834.3484934289376,
+   1463.8225816387658,
+   2218.2264236413907,
+   2423.0635202123253,
+   2987.6334189403638,
+   4606.420079117488,
+   5011.0081119558
+  ],
+  "share_of_lap_by_class": {
+   "braking": 0.13564078578110383,
+   "traction": 0.12909260991580918,
+   "power": 0.255378858746492,
+   "lateral_grip": 0.023386342376052385,
+   "controller": 0.45650140318054255
+  },
+  "straight_line": [
+   {
+    "v_from_mps": 10.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": null
+   },
+   {
+    "v_from_mps": 15.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": -9.521569
+   },
+   {
+    "v_from_mps": 20.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": -11.88088
+   },
+   {
+    "v_from_mps": 25.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": -14.8009
+   },
+   {
+    "v_from_mps": 30.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": 15.96681,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": -23.72425
+   },
+   {
+    "v_from_mps": 35.0,
+    "ocd_ax_full_throttle": 12.003250000002481,
+    "tum_ax_accelerating": 12.32722,
+    "ocd_ax_brake_min": -26.316250000004402,
+    "tum_ax_brake_min": -28.14045
+   },
+   {
+    "v_from_mps": 40.0,
+    "ocd_ax_full_throttle": 12.610375000002023,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": -29.51200000000722,
+    "tum_ax_brake_min": -31.52275
+   },
+   {
+    "v_from_mps": 45.0,
+    "ocd_ax_full_throttle": 8.180999999995947,
+    "tum_ax_accelerating": 10.81351,
+    "ocd_ax_brake_min": -32.27000000000612,
+    "tum_ax_brake_min": -36.77714
+   },
+   {
+    "v_from_mps": 50.0,
+    "ocd_ax_full_throttle": 8.43312499999854,
+    "tum_ax_accelerating": 7.839995,
+    "ocd_ax_brake_min": -37.06000000000745,
+    "tum_ax_brake_min": -39.64546
+   },
+   {
+    "v_from_mps": 55.0,
+    "ocd_ax_full_throttle": 7.086500000001479,
+    "tum_ax_accelerating": 6.9771754999999995,
+    "ocd_ax_brake_min": -40.96025000000827,
+    "tum_ax_brake_min": -44.67069
+   },
+   {
+    "v_from_mps": 60.0,
+    "ocd_ax_full_throttle": 4.670375000000945,
+    "tum_ax_accelerating": 4.0086695,
+    "ocd_ax_brake_min": -44.58650000000807,
+    "tum_ax_brake_min": -48.02323
+   },
+   {
+    "v_from_mps": 65.0,
+    "ocd_ax_full_throttle": 3.815625000000864,
+    "tum_ax_accelerating": 3.5975645,
+    "ocd_ax_brake_min": -48.631000000009635,
+    "tum_ax_brake_min": -52.90956
+   },
+   {
+    "v_from_mps": 70.0,
+    "ocd_ax_full_throttle": 2.2451249999998026,
+    "tum_ax_accelerating": 1.717511,
+    "ocd_ax_brake_min": -52.61875000000987,
+    "tum_ax_brake_min": -56.66016
+   },
+   {
+    "v_from_mps": 75.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": 0.3590538,
+    "ocd_ax_brake_min": -23.495749999987993,
+    "tum_ax_brake_min": -60.55893
+   },
+   {
+    "v_from_mps": 80.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": null
+   },
+   {
+    "v_from_mps": 85.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": null
+   }
+  ]
+ },
+ "0.94": {
+  "lap2_s": 103.6931,
+  "dt_end_s": 8.809131992686119,
+  "loss_by_limit_s": {
+   "braking": 1.8504891192193949,
+   "traction": 3.609637132502737,
+   "power": 0.2522650478999565,
+   "lateral_grip": 0.5461892132373699,
+   "controller": 2.5590201268349713
+  },
+  "segments": [
+   {
+    "s_from_m": 2987.6334189403638,
+    "s_to_m": 4606.420079117488,
+    "dt_s": 2.3197089971642306,
+    "v_tum_min_mps": 22.0638163095473,
+    "v_ocd_min_mps": 19.684506925374436,
+    "s_apex_tum_m": 3075.0,
+    "v_tum_entry_mps": 74.29435,
+    "v_ocd_entry_mps": 68.72757923239026,
+    "max_abs_e_m": 3.922768,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.2939352276234203,
+     "traction": 0.9418732678325299,
+     "power": 0.08132511672564682,
+     "lateral_grip": 0.22742578906217195,
+     "controller": 0.7751495959204616
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 4606.420079117488,
+    "s_to_m": 5011.0081119558,
+    "dt_s": 1.5570854432532428,
+    "v_tum_min_mps": 15.960966016484099,
+    "v_ocd_min_mps": 11.559460826526932,
+    "s_apex_tum_m": 4700.0,
+    "v_tum_entry_mps": 79.02481,
+    "v_ocd_entry_mps": 73.39328132098667,
+    "max_abs_e_m": 7.806743,
+    "cog_off_track_share": 0.04938271604938271,
+    "loss_by_limit_s": {
+     "braking": 0.8912391048915853,
+     "traction": 0.5646448408069391,
+     "power": 0.0006287535676379822,
+     "lateral_grip": 0.0,
+     "controller": 0.10057274398708034
+    },
+    "binding": "braking"
+   },
+   {
+    "s_from_m": 1463.8225816387658,
+    "s_to_m": 2218.2264236413907,
+    "dt_s": 1.2675893431209762,
+    "v_tum_min_mps": 22.602970224855422,
+    "v_ocd_min_mps": 18.585663297508795,
+    "s_apex_tum_m": 1565.0,
+    "v_tum_entry_mps": 75.51216,
+    "v_ocd_entry_mps": 70.17285983736919,
+    "max_abs_e_m": 2.461601,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.4082658312572358,
+     "traction": 0.28794445218061987,
+     "power": 0.14426041500971354,
+     "lateral_grip": 0.04879421256239116,
+     "controller": 0.37832443211101563
+    },
+    "binding": "braking"
+   },
+   {
+    "s_from_m": 834.3484934289376,
+    "s_to_m": 1463.8225816387658,
+    "dt_s": 1.1316932629308187,
+    "v_tum_min_mps": 22.127983824873006,
+    "v_ocd_min_mps": 20.973085331491564,
+    "s_apex_tum_m": 865.0,
+    "v_tum_entry_mps": 37.52504,
+    "v_ocd_entry_mps": 30.91187946654718,
+    "max_abs_e_m": 0.4316038,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.0,
+     "traction": 0.6617797036773989,
+     "power": 0.0,
+     "lateral_grip": 0.0011132760881927286,
+     "controller": 0.4688002831652272
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 2423.0635202123253,
+    "s_to_m": 2987.6334189403638,
+    "dt_s": 0.8415601677565014,
+    "v_tum_min_mps": 30.41994114348113,
+    "v_ocd_min_mps": 28.627323781229098,
+    "s_apex_tum_m": 2495.0,
+    "v_tum_entry_mps": 60.48244,
+    "v_ocd_entry_mps": 55.81174413078271,
+    "max_abs_e_m": 0.8262329,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.057252313359133514,
+     "traction": 0.4723010081557466,
+     "power": 0.0062544398907078535,
+     "lateral_grip": 0.04472967638335748,
+     "controller": 0.26102272996755593
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 534.6403854413293,
+    "s_to_m": 834.3484934289376,
+    "dt_s": 0.6032129360531968,
+    "v_tum_min_mps": 25.259831252920463,
+    "v_ocd_min_mps": 24.11081977763866,
+    "s_apex_tum_m": 800.0,
+    "v_tum_entry_mps": 77.86804,
+    "v_ocd_entry_mps": 72.00611126182726,
+    "max_abs_e_m": 0.4520515,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.0494331813354008,
+     "traction": 0.4351112659722767,
+     "power": 0.0,
+     "lateral_grip": 0.08781627554457641,
+     "controller": 0.03085221320094297
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 0.0,
+    "s_to_m": 534.6403854413293,
+    "dt_s": 0.44034017918109253,
+    "v_tum_min_mps": 68.02365,
+    "v_ocd_min_mps": 64.31384110474708,
+    "s_apex_tum_m": 0.0,
+    "v_tum_entry_mps": 68.02365,
+    "v_ocd_entry_mps": 64.31384110474708,
+    "max_abs_e_m": 0.09513065,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.0,
+     "traction": 0.0,
+     "power": 0.0,
+     "lateral_grip": 0.0,
+     "controller": 0.44034017918109253
+    },
+    "binding": "controller"
+   },
+   {
+    "s_from_m": 5011.0081119558,
+    "s_to_m": 5340.770241508524,
+    "dt_s": 0.38428935775637285,
+    "v_tum_min_mps": 36.74196916373386,
+    "v_ocd_min_mps": 34.11420204977994,
+    "s_apex_tum_m": 5085.0,
+    "v_tum_entry_mps": 68.48529,
+    "v_ocd_entry_mps": 64.06424602170685,
+    "max_abs_e_m": 0.8197316,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.0835173106370886,
+     "traction": 0.13374279549874857,
+     "power": 0.002572932338298365,
+     "lateral_grip": 0.06049836998064228,
+     "controller": 0.10395794930159502
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 2218.2264236413907,
+    "s_to_m": 2423.0635202123253,
+    "dt_s": 0.27212095247799795,
+    "v_tum_min_mps": 47.22578526630193,
+    "v_ocd_min_mps": 43.774422166912856,
+    "s_apex_tum_m": 2320.0,
+    "v_tum_entry_mps": 76.55202,
+    "v_ocd_entry_mps": 72.05618038200788,
+    "max_abs_e_m": 0.343559,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.06684615011553058,
+     "traction": 0.11223979837847757,
+     "power": 0.01722339036795196,
+     "lateral_grip": 0.07581161361603785,
+     "controller": 0.0
+    },
+    "binding": "traction"
+   }
+  ],
+  "cuts_m": [
+   534.6403854413293,
+   834.3484934289376,
+   1463.8225816387658,
+   2218.2264236413907,
+   2423.0635202123253,
+   2987.6334189403638,
+   4606.420079117488,
+   5011.0081119558
+  ],
+  "share_of_lap_by_class": {
+   "braking": 0.13751169317118803,
+   "traction": 0.11973807296538821,
+   "power": 0.1449953227315248,
+   "lateral_grip": 0.021515434985968196,
+   "controller": 0.5762394761459307
+  },
+  "straight_line": [
+   {
+    "v_from_mps": 10.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": null
+   },
+   {
+    "v_from_mps": 15.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": -9.521569
+   },
+   {
+    "v_from_mps": 20.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": -11.88088
+   },
+   {
+    "v_from_mps": 25.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": -14.8009
+   },
+   {
+    "v_from_mps": 30.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": 15.96681,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": -23.72425
+   },
+   {
+    "v_from_mps": 35.0,
+    "ocd_ax_full_throttle": 11.933500000003278,
+    "tum_ax_accelerating": 12.32722,
+    "ocd_ax_brake_min": -25.20875000000467,
+    "tum_ax_brake_min": -28.14045
+   },
+   {
+    "v_from_mps": 40.0,
+    "ocd_ax_full_throttle": 12.541875000002506,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": -30.369000000005826,
+    "tum_ax_brake_min": -31.52275
+   },
+   {
+    "v_from_mps": 45.0,
+    "ocd_ax_full_throttle": 8.187249999995629,
+    "tum_ax_accelerating": 10.81351,
+    "ocd_ax_brake_min": -32.22900000000618,
+    "tum_ax_brake_min": -36.77714
+   },
+   {
+    "v_from_mps": 50.0,
+    "ocd_ax_full_throttle": 8.406000000001768,
+    "tum_ax_accelerating": 7.839995,
+    "ocd_ax_brake_min": -36.87650000000576,
+    "tum_ax_brake_min": -39.64546
+   },
+   {
+    "v_from_mps": 55.0,
+    "ocd_ax_full_throttle": 7.733750000001692,
+    "tum_ax_accelerating": 6.9771754999999995,
+    "ocd_ax_brake_min": -40.24299999997925,
+    "tum_ax_brake_min": -44.67069
+   },
+   {
+    "v_from_mps": 60.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": 4.0086695,
+    "ocd_ax_brake_min": -44.45299999997724,
+    "tum_ax_brake_min": -48.02323
+   },
+   {
+    "v_from_mps": 65.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": 3.5975645,
+    "ocd_ax_brake_min": -49.16800000001126,
+    "tum_ax_brake_min": -52.90956
+   },
+   {
+    "v_from_mps": 70.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": 1.717511,
+    "ocd_ax_brake_min": -50.67775000001029,
+    "tum_ax_brake_min": -56.66016
+   },
+   {
+    "v_from_mps": 75.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": 0.3590538,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": -60.55893
+   },
+   {
+    "v_from_mps": 80.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": null
+   },
+   {
+    "v_from_mps": 85.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": null
+   }
+  ]
+ },
+ "0.92": {
+  "lap2_s": 104.6232,
+  "dt_end_s": 9.740032633198524,
+  "loss_by_limit_s": {
+   "braking": 1.40567156923767,
+   "traction": 3.61510505765639,
+   "power": 0.19809105353608378,
+   "lateral_grip": 0.835733629421657,
+   "controller": 3.695545080561149
+  },
+  "segments": [
+   {
+    "s_from_m": 2987.6334189403638,
+    "s_to_m": 4606.420079117488,
+    "dt_s": 2.6465500467458405,
+    "v_tum_min_mps": 22.0638163095473,
+    "v_ocd_min_mps": 19.78805963225224,
+    "s_apex_tum_m": 3075.0,
+    "v_tum_entry_mps": 74.29435,
+    "v_ocd_entry_mps": 67.0425717327589,
+    "max_abs_e_m": 1.922856,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.22137907652177688,
+     "traction": 0.8445651620679928,
+     "power": 0.12482023775975062,
+     "lateral_grip": 0.2171779502148961,
+     "controller": 1.238607620181424
+    },
+    "binding": "controller"
+   },
+   {
+    "s_from_m": 1463.8225816387658,
+    "s_to_m": 2218.2264236413907,
+    "dt_s": 1.383086624155224,
+    "v_tum_min_mps": 22.602970224855422,
+    "v_ocd_min_mps": 19.02703618950767,
+    "s_apex_tum_m": 1565.0,
+    "v_tum_entry_mps": 75.51216,
+    "v_ocd_entry_mps": 68.39231442660385,
+    "max_abs_e_m": 1.0777,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.34746545781504645,
+     "traction": 0.38948278667793373,
+     "power": 0.023814920196881813,
+     "lateral_grip": 0.09563179667204848,
+     "controller": 0.5266916627933135
+    },
+    "binding": "controller"
+   },
+   {
+    "s_from_m": 834.3484934289376,
+    "s_to_m": 1463.8225816387658,
+    "dt_s": 1.271602508221405,
+    "v_tum_min_mps": 22.127983824873006,
+    "v_ocd_min_mps": 20.79772735207433,
+    "s_apex_tum_m": 865.0,
+    "v_tum_entry_mps": 37.52504,
+    "v_ocd_entry_mps": 31.11627980245614,
+    "max_abs_e_m": 0.3296753,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.0,
+     "traction": 0.7322871650328713,
+     "power": 0.012168971044776789,
+     "lateral_grip": 0.02277758470503065,
+     "controller": 0.5043687874387264
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 4606.420079117488,
+    "s_to_m": 5011.0081119558,
+    "dt_s": 1.2667125839082942,
+    "v_tum_min_mps": 15.960966016484099,
+    "v_ocd_min_mps": 12.330388314098178,
+    "s_apex_tum_m": 4700.0,
+    "v_tum_entry_mps": 79.02481,
+    "v_ocd_entry_mps": 71.4644937635417,
+    "max_abs_e_m": 3.252625,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.4769578677582358,
+     "traction": 0.3892413714966153,
+     "power": 0.0006452337196678413,
+     "lateral_grip": 0.1867140647934252,
+     "controller": 0.21315404614035016
+    },
+    "binding": "braking"
+   },
+   {
+    "s_from_m": 2423.0635202123253,
+    "s_to_m": 2987.6334189403638,
+    "dt_s": 0.9694456487344638,
+    "v_tum_min_mps": 30.41994114348113,
+    "v_ocd_min_mps": 28.31648442335503,
+    "s_apex_tum_m": 2495.0,
+    "v_tum_entry_mps": 60.48244,
+    "v_ocd_entry_mps": 55.044746714500896,
+    "max_abs_e_m": 0.3662431,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.13448038722721734,
+     "traction": 0.5142832326910396,
+     "power": 0.004409913407065726,
+     "lateral_grip": 0.03722671665979217,
+     "controller": 0.2790453987493489
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 534.6403854413293,
+    "s_to_m": 834.3484934289376,
+    "dt_s": 0.7407420063404486,
+    "v_tum_min_mps": 25.259831252920463,
+    "v_ocd_min_mps": 23.543041281643102,
+    "s_apex_tum_m": 800.0,
+    "v_tum_entry_mps": 77.86804,
+    "v_ocd_entry_mps": 70.46078993928494,
+    "max_abs_e_m": 0.5935804,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.047609798909753684,
+     "traction": 0.5181453257503754,
+     "power": 0.0,
+     "lateral_grip": 0.10442927524493116,
+     "controller": 0.07055760643538841
+    },
+    "binding": "traction"
+   },
+   {
+    "s_from_m": 0.0,
+    "s_to_m": 534.6403854413293,
+    "dt_s": 0.6182902196246268,
+    "v_tum_min_mps": 68.02365,
+    "v_ocd_min_mps": 62.4582200200544,
+    "s_apex_tum_m": 0.0,
+    "v_tum_entry_mps": 68.02365,
+    "v_ocd_entry_mps": 62.4582200200544,
+    "max_abs_e_m": 0.09231537,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.0,
+     "traction": 0.0,
+     "power": 0.0,
+     "lateral_grip": 0.0,
+     "controller": 0.6182902196246268
+    },
+    "binding": "controller"
+   },
+   {
+    "s_from_m": 5011.0081119558,
+    "s_to_m": 5340.770241508524,
+    "dt_s": 0.5186662580390689,
+    "v_tum_min_mps": 36.74196916373386,
+    "v_ocd_min_mps": 33.574211458639,
+    "s_apex_tum_m": 5085.0,
+    "v_tum_entry_mps": 68.48529,
+    "v_ocd_entry_mps": 62.33201207344026,
+    "max_abs_e_m": 0.3358098,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.08989219486621798,
+     "traction": 0.15106964361065292,
+     "power": 0.0,
+     "lateral_grip": 0.08402007573476342,
+     "controller": 0.19368434382743446
+    },
+    "binding": "controller"
+   },
+   {
+    "s_from_m": 2218.2264236413907,
+    "s_to_m": 2423.0635202123253,
+    "dt_s": 0.3350504946435784,
+    "v_tum_min_mps": 47.22578526630193,
+    "v_ocd_min_mps": 43.10782026574684,
+    "s_apex_tum_m": 2320.0,
+    "v_tum_entry_mps": 76.55202,
+    "v_ocd_entry_mps": 70.5960094938064,
+    "max_abs_e_m": 0.2591515,
+    "cog_off_track_share": 0.0,
+    "loss_by_limit_s": {
+     "braking": 0.08788678613942189,
+     "traction": 0.07603037032890925,
+     "power": 0.032231777407940976,
+     "lateral_grip": 0.08775616539676981,
+     "controller": 0.05114539537053645
+    },
+    "binding": "braking"
+   }
+  ],
+  "cuts_m": [
+   534.6403854413293,
+   834.3484934289376,
+   1463.8225816387658,
+   2218.2264236413907,
+   2423.0635202123253,
+   2987.6334189403638,
+   4606.420079117488,
+   5011.0081119558
+  ],
+  "share_of_lap_by_class": {
+   "braking": 0.1384471468662301,
+   "traction": 0.10570626753975679,
+   "power": 0.08699719363891488,
+   "lateral_grip": 0.023386342376052385,
+   "controller": 0.6454630495790459
+  },
+  "straight_line": [
+   {
+    "v_from_mps": 10.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": null
+   },
+   {
+    "v_from_mps": 15.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": -9.521569
+   },
+   {
+    "v_from_mps": 20.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": -11.88088
+   },
+   {
+    "v_from_mps": 25.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": -14.8009
+   },
+   {
+    "v_from_mps": 30.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": 15.96681,
+    "ocd_ax_brake_min": -22.2112500000037,
+    "tum_ax_brake_min": -23.72425
+   },
+   {
+    "v_from_mps": 35.0,
+    "ocd_ax_full_throttle": 11.846125000002303,
+    "tum_ax_accelerating": 12.32722,
+    "ocd_ax_brake_min": -26.91550000000518,
+    "tum_ax_brake_min": -28.14045
+   },
+   {
+    "v_from_mps": 40.0,
+    "ocd_ax_full_throttle": 12.490000000003192,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": -30.966500000005226,
+    "tum_ax_brake_min": -31.52275
+   },
+   {
+    "v_from_mps": 45.0,
+    "ocd_ax_full_throttle": 8.00600000000236,
+    "tum_ax_accelerating": 10.81351,
+    "ocd_ax_brake_min": -32.33925000000568,
+    "tum_ax_brake_min": -36.77714
+   },
+   {
+    "v_from_mps": 50.0,
+    "ocd_ax_full_throttle": 8.548625000002062,
+    "tum_ax_accelerating": 7.839995,
+    "ocd_ax_brake_min": -36.27049999998144,
+    "tum_ax_brake_min": -39.64546
+   },
+   {
+    "v_from_mps": 55.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": 6.9771754999999995,
+    "ocd_ax_brake_min": -39.106999999979735,
+    "tum_ax_brake_min": -44.67069
+   },
+   {
+    "v_from_mps": 60.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": 4.0086695,
+    "ocd_ax_brake_min": -44.707000000008975,
+    "tum_ax_brake_min": -48.02323
+   },
+   {
+    "v_from_mps": 65.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": 3.5975645,
+    "ocd_ax_brake_min": -48.14300000000958,
+    "tum_ax_brake_min": -52.90956
+   },
+   {
+    "v_from_mps": 70.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": 1.717511,
+    "ocd_ax_brake_min": -43.7097499999777,
+    "tum_ax_brake_min": -56.66016
+   },
+   {
+    "v_from_mps": 75.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": 0.3590538,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": -60.55893
+   },
+   {
+    "v_from_mps": 80.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": null
+   },
+   {
+    "v_from_mps": 85.0,
+    "ocd_ax_full_throttle": null,
+    "tum_ax_accelerating": null,
+    "ocd_ax_brake_min": null,
+    "tum_ax_brake_min": null
+   }
+  ]
+ }
+}

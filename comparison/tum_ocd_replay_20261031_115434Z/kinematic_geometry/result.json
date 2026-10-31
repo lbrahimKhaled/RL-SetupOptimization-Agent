@@ -1,0 +1,219 @@
+{
+  "label": "Analytic kinematic reference/reconstruction consistency only; forced reference speed, NOT OCD driving or achieved lap",
+  "physics_steps_executed": 0,
+  "no_vehicle_model_loaded": true,
+  "no_training": true,
+  "reference_horizon_s": 94.88618556208073,
+  "integration": {
+    "method": "explicit midpoint, nominal2ms, exact partial final step",
+    "full_2ms_steps": 47443,
+    "last_partial_step_s": 0.00018556208073050584,
+    "end_s": 94.88618556208073,
+    "time_overshoot_s": 0.0,
+    "total_steps": 47444
+  },
+  "node_identity": {
+    "points_unclosed": 1069,
+    "XY_equal_export_after7significant_digit_rounding": true,
+    "s_equal_export_after7significant_digit_rounding": true,
+    "XY_max_abs_rounding_difference_m": 4.999070023359309e-05,
+    "s_max_abs_rounding_difference_m": 0.0004969708229509706,
+    "path_length_exact_m": 5341.425515681778,
+    "unfiltered_track_vs_export_same_geometry": true
+  },
+  "curvature": {
+    "filter_width_m": 10.0,
+    "unfiltered_width": null,
+    "filtered_minus_unfiltered_RMS_radpm": 0.000991115700257965,
+    "filtered_minus_unfiltered_max_abs_radpm": 0.025066955056573928,
+    "filter_window_nodes": 3
+  },
+  "equations": {
+    "CoG_corrected": "delta=atan(L*kappa/sqrt(1-(lr*kappa)^2))",
+    "simple": "delta=atan(L*kappa)",
+    "beta": "atan(lr/L*tan(delta))",
+    "yawdot": "v/L*cos(beta)*tan(delta)",
+    "xdot": "v*cos(yaw+beta)",
+    "ydot": "v*sin(yaw+beta)",
+    "initial_body_yaw": "analytical spline XY tangent minus beta0"
+  },
+  "interpretation_limits": [
+    "Requested CG inversion is a steady-curvature correction: when beta varies, velocity-heading derivative=yawdot+betadot. All output drift is not uniquely attributable to filtering.",
+    "Reference speed is deliberately forced only in this analytic sanity check, not in OCD or training.",
+    "Reference XY and speed are linearly interpolated in exported time; nodecurvature interpolation,7digit rounding and5m sampling can contribute reconstruction error.",
+    "TUM curvature filtering does not change its XY nodes, so geometry/filteredcurvature need not integrate to identical trajectories."
+  ],
+  "results": [
+    {
+      "case": "filtered10m_CoG_corrected",
+      "curvature": "filtered10m",
+      "steering_formula": "CoG_corrected",
+      "initial_velocity_tangent_rad": 3.3824517112983017,
+      "initial_body_yaw_rad": 3.382502829145044,
+      "initial_beta_rad": -5.1117846742262113e-05,
+      "max_abs_steer_rad": 0.2674021613815882,
+      "metrics": {
+        "first3s": {
+          "samples": 1501,
+          "end_s": 3.0,
+          "position_RMSE_m": 0.002282880620146992,
+          "position_max_m": 0.002858503077812767,
+          "position_terminal_m": 0.0027894831140543703,
+          "velocity_heading_RMSE_rad": 1.6545405128941392e-05,
+          "velocity_heading_terminal_rad": -5.906189424198516e-06
+        },
+        "first15s": {
+          "samples": 7501,
+          "end_s": 15.0,
+          "position_RMSE_m": 1.8873030417647376,
+          "position_max_m": 3.364967438538471,
+          "position_terminal_m": 2.6875734361467942,
+          "velocity_heading_RMSE_rad": 0.024557429643327616,
+          "velocity_heading_terminal_rad": 0.0642882101572333
+        },
+        "full": {
+          "samples": 47445,
+          "end_s": 94.88618556208073,
+          "position_RMSE_m": 2.4649156190092447,
+          "position_max_m": 5.098050012736727,
+          "position_terminal_m": 5.098050012736727,
+          "velocity_heading_RMSE_rad": 0.026469773518067848,
+          "velocity_heading_terminal_rad": -0.01437787248011535
+        }
+      },
+      "reference_speed_forced": true,
+      "NOT_an_OCD_lap": true
+    },
+    {
+      "case": "filtered10m_simple_atan_Lkappa",
+      "curvature": "filtered10m",
+      "steering_formula": "simple_atan_Lkappa",
+      "initial_velocity_tangent_rad": 3.3824517112983017,
+      "initial_body_yaw_rad": 3.3825028291449772,
+      "initial_beta_rad": -5.111784667547577e-05,
+      "max_abs_steer_rad": 0.26545817509253017,
+      "metrics": {
+        "first3s": {
+          "samples": 1501,
+          "end_s": 3.0,
+          "position_RMSE_m": 0.002282879549773205,
+          "position_max_m": 0.0028585008044425975,
+          "position_terminal_m": 0.002789480298906727,
+          "velocity_heading_RMSE_rad": 1.6545397604726865e-05,
+          "velocity_heading_terminal_rad": -5.906166708591343e-06
+        },
+        "first15s": {
+          "samples": 7501,
+          "end_s": 15.0,
+          "position_RMSE_m": 1.877383412159011,
+          "position_max_m": 3.3347063048021113,
+          "position_terminal_m": 2.779162412350166,
+          "velocity_heading_RMSE_rad": 0.024192489229430163,
+          "velocity_heading_terminal_rad": 0.06636460393713506
+        },
+        "full": {
+          "samples": 47445,
+          "end_s": 94.88618556208073,
+          "position_RMSE_m": 2.7880823947365454,
+          "position_max_m": 4.50942503792512,
+          "position_terminal_m": 1.5864675259946832,
+          "velocity_heading_RMSE_rad": 0.02569681887968403,
+          "velocity_heading_terminal_rad": -0.00487731095948174
+        }
+      },
+      "reference_speed_forced": true,
+      "NOT_an_OCD_lap": true
+    },
+    {
+      "case": "unfiltered_spline_CoG_corrected",
+      "curvature": "unfiltered_spline",
+      "steering_formula": "CoG_corrected",
+      "initial_velocity_tangent_rad": 3.3824517112983017,
+      "initial_body_yaw_rad": 3.3825027883624466,
+      "initial_beta_rad": -5.107706414506658e-05,
+      "max_abs_steer_rad": 0.3515625251021633,
+      "metrics": {
+        "first3s": {
+          "samples": 1501,
+          "end_s": 3.0,
+          "position_RMSE_m": 0.0027378637951801085,
+          "position_max_m": 0.0037722708936861896,
+          "position_terminal_m": 0.0037347339798811593,
+          "velocity_heading_RMSE_rad": 2.0329383692396084e-05,
+          "velocity_heading_terminal_rad": -5.324211419743818e-06
+        },
+        "first15s": {
+          "samples": 7501,
+          "end_s": 15.0,
+          "position_RMSE_m": 1.8105619949129867,
+          "position_max_m": 3.282452951250538,
+          "position_terminal_m": 2.165039160918973,
+          "velocity_heading_RMSE_rad": 0.023866644636248418,
+          "velocity_heading_terminal_rad": 0.05390746037240124
+        },
+        "full": {
+          "samples": 47445,
+          "end_s": 94.88618556208073,
+          "position_RMSE_m": 2.1526227957633965,
+          "position_max_m": 4.876127989106434,
+          "position_terminal_m": 4.876127989106434,
+          "velocity_heading_RMSE_rad": 0.0267935087076392,
+          "velocity_heading_terminal_rad": -0.013224228088167589
+        }
+      },
+      "reference_speed_forced": true,
+      "NOT_an_OCD_lap": true
+    },
+    {
+      "case": "unfiltered_spline_simple_atan_Lkappa",
+      "curvature": "unfiltered_spline",
+      "steering_formula": "simple_atan_Lkappa",
+      "initial_velocity_tangent_rad": 3.3824517112983017,
+      "initial_body_yaw_rad": 3.38250278836238,
+      "initial_beta_rad": -5.1077064078439954e-05,
+      "max_abs_steer_rad": 0.3471764634423896,
+      "metrics": {
+        "first3s": {
+          "samples": 1501,
+          "end_s": 3.0,
+          "position_RMSE_m": 0.0027378626541738308,
+          "position_max_m": 0.003772268057018836,
+          "position_terminal_m": 0.0037347311393312777,
+          "velocity_heading_RMSE_rad": 2.0329374245888038e-05,
+          "velocity_heading_terminal_rad": -5.324188652178208e-06
+        },
+        "first15s": {
+          "samples": 7501,
+          "end_s": 15.0,
+          "position_RMSE_m": 1.798741993200931,
+          "position_max_m": 3.2507661278717923,
+          "position_terminal_m": 2.244230295358698,
+          "velocity_heading_RMSE_rad": 0.023364302359316007,
+          "velocity_heading_terminal_rad": 0.056043722402428386
+        },
+        "full": {
+          "samples": 47445,
+          "end_s": 94.88618556208073,
+          "position_RMSE_m": 2.1050637682723234,
+          "position_max_m": 3.2507661278717923,
+          "position_terminal_m": 0.9017781850458004,
+          "velocity_heading_RMSE_rad": 0.02583656840295877,
+          "velocity_heading_terminal_rad": -0.002157727120535302
+        }
+      },
+      "reference_speed_forced": true,
+      "NOT_an_OCD_lap": true
+    }
+  ],
+  "wall_s": 0.21947479201480746,
+  "hashes": {
+    "scratch": "b83448c23efd9d9d310931bf184e0300a5470db9c1096731342f299986d82fcc",
+    "reference_CSV": "1370d33415589f20530f51686c7d934afca871a6e9dcf10358de6731e6e626a7",
+    "TUM_track_source": "cb02920c4f5e0e8cbbe18e2ff34a3afeb3a8c9ae8e6d31ff186da135d36a42b1",
+    "raw_raceline_CSV": "db621f25b9eb3c444fa51be52cbf96cc7dc077932b32f25b424da0ff70ce7c04"
+  },
+  "command": [
+    "/private/tmp/check_tum_kinematics_20261031.py"
+  ],
+  "no_torch_loaded": true
+}
