@@ -2,7 +2,9 @@
 
 Usage (2 threads, keeps a parallel training run usable):
   OMP_NUM_THREADS=2 VECLIB_MAXIMUM_THREADS=2 .venv/bin/python scripts/ocp_pl14.py CASE [CASE ...]
-CASE: bcn_beta055 bcn_beta060 bcn_beta065 bcn_half bcn_r1e6 bcn_pm4 bcn_guesses bcn_reint sha_pl14 sha_sf70h
+CASE: bcn_beta055 bcn_beta060 bcn_beta065 bcn_half bcn_r1e6 bcn_pm4 bcn_guesses bcn_reint bcn_beta060_adapt
+      sha_pl14 sha_pl14_half sha_pl14_adapt sha_sf70h sha_sf70h_adapt sha_sf70h_adapt_ws sha_sf70h_adapt_ws2
+      sha_sf70h_homotopy (the working SF70H route) reint_<case with a _warm_ file, e.g. reint_sha_pl14_adapt>
 Each case appends to results.json (keyed by case) and writes 1 m solution CSVs.
 """
 from __future__ import annotations
@@ -110,9 +112,62 @@ def chain(case, tname, car, st_kw, ref=None, W0=None, s0=None, csv=True, r=None,
 
 def run(case):
     t0 = time.time()
-    if case.startswith("bcn_beta"):
+    if case.startswith("reint_"):   # re-integration check on an adaptive solution, 1 m nominal
+        from rlsetup.ocp.verify import reintegrate
+        base = case[6:]
+        tname = "Catalunya" if base.startswith("bcn") else "Shanghai"
+        car = sf70h_tum_car(beta=0.60) if "sf70h" in base else pl14_car(beta=0.60)
+        w = np.load(OUT / f"_warm_{base}.npz")
+        tr = track(tname)
+        sol = solve(tr, car, SolveSettings(ds=1.0, mesh_u_ref=30.0, u_min=3.0), W0=w["W"], s0=w["s"])
+        res = summary(sol, PL14_REF if tname == "Catalunya" else None) | reintegrate(sol, tr, car)
+        save(case, res)
+        print(case, json.dumps(res, default=float)[:600], flush=True)
+    elif case.startswith("bcn_beta") and not case.endswith("_adapt"):
         beta = int(case[-3:]) / 100
         chain(case, "Catalunya", pl14_car(beta=beta), {}, ref=PL14_REF)
+    elif case == "sha_sf70h_adapt_ws":   # SF70H mapping warm-started from the PL14 Shanghai adaptive solution
+        w = np.load(OUT / "_warm_sha_pl14_adapt.npz")
+        chain(case, "Shanghai", sf70h_tum_car(beta=0.60), {"mesh_u_ref": 30.0, "u_min": 3.0},
+              W0=w["W"], s0=w["s"], meshes=MESHES + (0.5,))
+    elif case == "sha_sf70h_adapt_ws2":   # as _ws with kappa bound 0.99 and load floor 10 N
+        w = np.load(OUT / "_warm_sha_pl14_adapt.npz")
+        chain(case, "Shanghai", sf70h_tum_car(beta=0.60),
+              {"mesh_u_ref": 30.0, "u_min": 3.0, "kappa_max": 0.99, "N_min": 10.0},
+              W0=w["W"], s0=w["s"], meshes=MESHES + (0.5,))
+    elif case == "sha_sf70h_homotopy":   # parameter homotopy PL14 -> SF70H mapping at 1 m nominal adaptive
+        from dataclasses import fields, replace as dc_replace
+        def blend(a, b, lam):
+            kw = {}
+            for f_ in fields(a):
+                va, vb = getattr(a, f_.name), getattr(b, f_.name)
+                if isinstance(va, float):
+                    kw[f_.name] = (1 - lam) * va + lam * vb
+                elif hasattr(va, "__dataclass_fields__"):
+                    kw[f_.name] = blend(va, vb, lam)
+            return dc_replace(b, **kw)
+        a, b = pl14_car(beta=0.60), sf70h_tum_car(beta=0.60)
+        w = np.load(OUT / "_warm_sha_pl14_adapt.npz")
+        W0, s0 = w["W"], w["s"]
+        tr = track("Shanghai")
+        out = {}
+        for lam in (0.25, 0.5, 0.75, 1.0):
+            sol = solve(tr, blend(a, b, lam), SolveSettings(ds=1.0, mesh_u_ref=30.0, u_min=3.0), W0=W0, s0=s0)
+            out[f"lam_{lam:g}"] = summary(sol)
+            save(case, out)
+            print(case, lam, sol.status, sol.iters, round(sol.t_solve, 1), round(sol.laptime, 4), flush=True)
+            if not sol.success:
+                break
+            W0, s0 = sol.W, sol.s
+        if sol.success:
+            np.savez(OUT / f"_warm_{case}.npz", W=sol.W, s=sol.s)
+            write_csv(sol, tr, OUT / f"solution_{case}_1m.csv")
+            sol2 = solve(tr, b, SolveSettings(ds=0.5, mesh_u_ref=30.0, u_min=3.0), W0=W0, s0=s0)
+            out["final_0.5m"] = summary(sol2)
+            save(case, out)
+            print(case, 0.5, sol2.status, sol2.iters, round(sol2.t_solve, 1), round(sol2.laptime, 4), flush=True)
+            if sol2.success:
+                write_csv(sol2, tr, OUT / f"solution_{case}_0.5m.csv")
     elif case.endswith("_adapt"):   # speed-adapted mesh, u_min 3 m/s, meshes 4/2/1/0.5 m nominal
         kw = {"mesh_u_ref": 30.0, "u_min": 3.0}
         base = case[:-6]

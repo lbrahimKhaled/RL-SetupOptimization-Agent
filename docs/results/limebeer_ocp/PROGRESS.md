@@ -76,3 +76,30 @@ Spec: lead task of 31 Oct 2026; model source: docs/research/limebeer_ocp_model.m
 - Fix in progress: speed-adapted non-uniform mesh (h ~ ds * clip(u/u_ref)), lower u_min; keep uniform results too.
 - Added speed-adapted mesh option (SolveSettings.mesh_u_ref, h = ds*clip((u/u_ref)^2, 0.1, 1)); verify.py handles variable h. 16 tests pass.
 - Circle probe: steady optimum 9.6978 s for ds 6/3/1.5 m, but ds 3 m with default weights stopped at a non-steady local optimum 9.7307 -> local optima exist even on a circle.
+
+## M8 (31 Oct) Shanghai speed-adapted mesh FIX VERIFIED (case sha_pl14_adapt: mesh_u_ref 30 m/s, h=ds*clip((u/30)^2,0.1,1), u_min 3 m/s)
+- nominal ds 4/2/1/0.5 (mean 3.54/1.92/0.96/0.48, min 0.47/0.59/0.30/0.15 m; 1537/2839/5674/11349 nodes):
+  97.2813 / 97.2169 / 97.2253 / 97.2279 s, all Solve_Succeeded (182/74/65/79 it; 35/26/49/122 s). Last two deltas +0.008, +0.003 s.
+- Uniform mesh (u_min 10) was 97.69/98.09/98.31/98.41 with min speed 36 km/h at the u_min bound: a distorted solution
+  (unresolved stiff yaw mode at the hairpin). Adaptive min speed 58.6 km/h, penalty 0.016 s (flat). Use adaptive for Shanghai.
+- Note: solution_sha_pl14_adapt_1m.csv is actually the 0.5 m nominal mesh (script now names CSVs by final ds).
+- Next: sha_sf70h (uniform chain still running), sha_sf70h_adapt, bcn_beta060_adapt (consistency), re-integration on sha adapt.
+- sha_sf70h UNIFORM: 4 m 95.6784 (205 it), 2 m 95.9295 (1425 it, 458 s), 1 m Infeasible_Problem_Detected (1603 it, 1065 s) -> uniform mesh unusable here.
+- Launched sha_sf70h_adapt and bcn_beta060_adapt (logs /tmp/ocp/q_sf.log, /tmp/ocp/q_bcn.log).
+- bcn_beta060_adapt: 82.3408 / 82.3073 / 82.3273 / 82.3339 s (nominal 4/2/1/0.5 m), all Succeeded -> agrees with uniform 1 m 82.3347 / 0.5 m 82.3382 within 0.005 s.
+- sha_sf70h_adapt from QSS guess: 4 m Infeasible_Problem_Detected (1296 it). Retrying warm-started from the PL14 Shanghai adaptive solution (case sha_sf70h_adapt_ws).
+- sha_sf70h_adapt_ws: 4 m Solve_Succeeded 94.6849 s (1354 it, 235 s); 2 m Infeasible_Problem_Detected (1059 it). Diagnosing (/tmp/ocp/sfdiag.py).
+- Bug fixed: 'reint_*' case was caught by the '*_adapt' branch (ran a junk chain, entry removed from results.json).
+- reint_sha_pl14_adapt (1 m nominal adaptive, re-solved from 0.5 m: 97.2291 s, Succeeded): IDAS fails on 216/5675 intervals
+  (front tyres at force peak); elsewhere max |err| n 1.0 mm, xi 1.2e-3, u 6.2 mm/s, v 1.3 cm/s, omega 0.066 rad/s; RMS v 0.5 mm/s.
+  Lap re-integrated 97.2297 vs 97.2291 s. 50 m windows 82/109 complete, median |err| n 0.05 mm.
+- SF70H 4 m solution (sfdiag): slips at the +-0.6 bounds (rear spin, front-right lock), min loads 225 N: inner wheels near lift
+  (higher mu + h 0.335 m). Our model enforces Ffrx = Fflx always (PL14 eq 34 releases it when a wheel locks) and a 50 N load floor;
+  these get tight for this car. Trying kappa bound +-0.99 and N_min 10 N (case sha_sf70h_adapt_ws2).
+- sha_sf70h_adapt_ws2 (kappa +-0.99, N_min 10): 4 m 94.5122 Succeeded (449 it). Homotopy PL14->SF70H at 1 m adaptive (defaults):
+  lam 0.25 96.167, lam 0.5 95.3992 (both Succeeded). Both still running.
+- HOMOTOPY WORKS: lam 0.75 94.8265, lam 1.0 (= SF70H mapping, default kappa 0.6 / N_min 50) 94.2458 s Solve_Succeeded (340 it, 242 s) at 1 m nominal adaptive.
+  0.5 m refinement running. _warm_sha_sf70h_homotopy.npz + solution_sha_sf70h_homotopy_1m.csv saved.
+- SF70H mapping final: homotopy 1 m 94.2458 -> 0.5 m 94.2491 s (193 it, 315 s), Succeeded; delta +0.003 s.
+  ws2 (kappa 0.99, N_min 10) 2 m: Infeasible again (2202 it). Direct refinement fails; homotopy is the working route.
+- results.json: added _headline block. REPORT text returned to the lead in the handback (subagent may not write REPORT.md).
