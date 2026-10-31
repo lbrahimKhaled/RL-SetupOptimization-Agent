@@ -1,0 +1,78 @@
+{
+ "source": "frozen_TUM_reconstructed_open_loop",
+ "summary": {
+  "variant": "static_aero",
+  "termination": "spin",
+  "reference_horizon_s": 94.88618556208073,
+  "actual_sim_time_s": 19.56,
+  "physics_step_quantization_overshoot_s": 0.0,
+  "reference_horizon_reached": false,
+  "actual_progress_path_m": 890.3540527115988,
+  "actual_line_crossings_s": [
+   0.000882340225302706
+  ],
+  "actual_lap_times_s": [],
+  "actual_completed_full_laps": 0,
+  "initial_pose": {
+   "x": -0.52484,
+   "y": 2.609798,
+   "yaw": -2.9007358138740367,
+   "speed": 68.02365
+  },
+  "initial_vy_mps": 0.0,
+  "initial_yaw_rate_radps": 0.0,
+  "initial_pose_on_track": true,
+  "no_initial_steady_turn_state": "public StartPose cannot set vy/yaw_rate",
+  "trajectory_time_aligned": {
+   "samples": 9781,
+   "time_start_s": 0.0,
+   "time_end_s": 19.56,
+   "position_RMSE_m": 48.29069452901599,
+   "position_max_m": 127.74379031957143,
+   "speed_RMSE_mps": 6.773296566354259,
+   "speed_bias_mps": -4.772394880087509,
+   "terminal_position_error_m": 127.74379031957143
+  },
+  "first_2s": {
+   "samples": 1001,
+   "time_start_s": 0.0,
+   "time_end_s": 2.0,
+   "position_RMSE_m": 2.7934575848659424,
+   "position_max_m": 4.711380272699861,
+   "speed_RMSE_mps": 2.400134685405523,
+   "speed_bias_mps": -2.3084499312459625,
+   "terminal_position_error_m": 4.711380272699861
+  },
+  "first_reference_meter": {
+   "samples": 8,
+   "time_start_s": 0.0,
+   "time_end_s": 0.014,
+   "position_RMSE_m": 0.0016187373604476143,
+   "position_max_m": 0.0028470505037963773,
+   "speed_RMSE_mps": 0.13283440439582134,
+   "speed_bias_mps": -0.06680149898457799,
+   "terminal_position_error_m": 0.0028470505037963773
+  },
+  "station_matched_CoG_error_m": {
+   "RMS": 16.58731832851687,
+   "max_abs": 28.2725998852314,
+   "sample_rate_hz": 25
+  },
+  "on_track_control_interval_fraction": 0.2903885480572597,
+  "initial_pose_and_every_2ms_footprint_checked": true,
+  "footprint_exit_terminates": false,
+  "valid_clean_lap_claim": false,
+  "wall_s": 0.36357245803810656,
+  "state_trace_numeric_sha256": "740b1ada332ba53e8069d797ddd83f1e10260869c7be8a8aec30eacc3aff9d10",
+  "transient_numeric_sha256": "ff27146e8347411fe940c6600e99c6a556b76c83c3a13bc6f331e648da4109c4"
+ },
+ "command_csv_sha256": "5571f86fea9bd9789dff03e33dc88d67f06fd83c2567f389fbdea7af3a420b4e",
+ "reference_sha256": "1370d33415589f20530f51686c7d934afca871a6e9dcf10358de6731e6e626a7",
+ "parameter_snapshot_sha256": "f72bc3186196e884407d9ae0635040f40ea8e853846f4e486e981919eaa5365f",
+ "valid_clean_lap": false,
+ "protocol": "protocol.json",
+ "file": "static_aero.csv",
+ "rows": 489,
+ "sha256": "766e8fd9adc8bafaf103aec62388f99118f0d80422387261cf81bbaf01521f4d",
+ "created_utc": "2026-10-31T12:13:16+00:00"
+}

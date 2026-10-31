@@ -1,0 +1,8 @@
+{
+  "cwd": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent",
+  "command": "env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 NUMEXPR_NUM_THREADS=1 /usr/bin/nice -n 19 .venv/bin/python /private/tmp/check_tum_static_aero_20261031.py",
+  "exit_code": 0,
+  "source_sha256": "3168c6da7c5e4663219729c94f0b0f61f9810123619070300aac18ed3942620e",
+  "forcechecks_sha256": "d0a0c336e90301f6cc7a77001ac21a7c517a69516b2382b7460a01a6ddd775e6",
+  "expected_scope": "40 physics steps, no lap replay, no source changes"
+}

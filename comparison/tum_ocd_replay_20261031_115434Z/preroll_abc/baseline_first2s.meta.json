@@ -1,0 +1,8 @@
+{
+ "source": "first2s500Hz_open_loop_transient",
+ "command_csv_sha256": "bbaaf9919e690bcc67bffbfdd194a5b6094dff37b4745f8bce6c93e6b86f519f",
+ "file": "baseline_first2s.csv",
+ "rows": 1001,
+ "sha256": "d94ff2c6d50870b38def9701051a6849ebeee0250178259b19e6f512ce96a779",
+ "created_utc": "2026-10-31T12:24:11+00:00"
+}

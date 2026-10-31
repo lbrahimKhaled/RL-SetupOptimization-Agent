@@ -1,0 +1,133 @@
+{
+  "variant": "baseline",
+  "termination": "spin",
+  "reference_horizon_s": 94.88618556208073,
+  "actual_sim_time_s": 14.76,
+  "actual_reference_clock_s": 14.76,
+  "preroll_seconds": -0.0,
+  "preroll_failed": false,
+  "scoring_start": {
+    "state": {
+      "x": -0.52484,
+      "y": 2.609798,
+      "yaw": -2.9007358138740367,
+      "vx": 68.02365,
+      "vy": 0.0,
+      "yaw_rate": 0.0,
+      "steer_actual": 0.0,
+      "slip_rl": 0.0,
+      "slip_rr": 0.0
+    },
+    "actual_gear": 6,
+    "reference": {
+      "s_m": 0.0,
+      "x_m": -0.52484,
+      "y_m": 2.609798,
+      "yaw_rad": -2.9007358138740367,
+      "speed_mps": 68.02365,
+      "kappa_radpm": -3.132221e-05,
+      "gear": 6,
+      "engine_torque_crank_Nm": 491.6652,
+      "requested_torque_crank_Nm": 1384.583
+    },
+    "powertrain": {
+      "gear": 6,
+      "rear_axle_omega_radps": 206.17713372924587,
+      "engine_rpm": 11446.782553091241,
+      "engine_inertia_at_wheels_kgm2": 1.3831173550427778,
+      "since_shift_s": 0.1
+    },
+    "signals_available": false,
+    "note": "initial pose before first native step; vy/yaw_rate0, no forced steady-turn state"
+  },
+  "actual_progress_since_scoring_start_m": 784.6751702852071,
+  "physics_step_quantization_overshoot_s": 0.0,
+  "reference_horizon_reached": false,
+  "actual_progress_path_m": 784.6751702852071,
+  "actual_line_crossings_s": [
+    0.000882340225302706
+  ],
+  "actual_lap_times_s": [],
+  "actual_completed_full_laps": 0,
+  "line_crossings_after_scoring_start_s": [
+    0.000882340225302706
+  ],
+  "initial_pose": {
+    "x": -0.52484,
+    "y": 2.609798,
+    "yaw": -2.9007358138740367,
+    "speed": 68.02365
+  },
+  "startup_gear_audit": {
+    "policy": "reference",
+    "reference_gear": 6,
+    "before": {
+      "gear": 2,
+      "rear_axle_omega_radps": 206.17713372924587,
+      "engine_rpm": 28126.379987595617,
+      "engine_inertia_at_wheels_kgm2": 3.7767863631838186,
+      "since_shift_s": 0.0
+    },
+    "after": {
+      "gear": 6,
+      "rear_axle_omega_radps": 206.17713372924587,
+      "engine_rpm": 11446.782553091241,
+      "engine_inertia_at_wheels_kgm2": 1.3831173550427778,
+      "since_shift_s": 0.1
+    },
+    "assignment_count": 1,
+    "future_gear_updates": "ordinary unmodified OCD Powertrain.update_gear",
+    "initial_condition_only": true,
+    "body_pose_speed_wheel_omega_forced": false
+  },
+  "initial_vy_mps": 0.0,
+  "initial_yaw_rate_radps": 0.0,
+  "initial_pose_on_track": true,
+  "no_initial_steady_turn_state": "public StartPose cannot set vy/yaw_rate",
+  "trajectory_time_aligned": {
+    "samples": 7381,
+    "time_start_s": 0.0,
+    "time_end_s": 14.76,
+    "position_RMSE_m": 36.89589241666086,
+    "position_max_m": 68.26809857973674,
+    "speed_RMSE_mps": 3.168030353999638,
+    "speed_bias_mps": -1.7702062139564867,
+    "terminal_position_error_m": 68.26809857973674
+  },
+  "preroll_time_aligned": {
+    "samples": 0
+  },
+  "first_2s": {
+    "samples": 1001,
+    "time_start_s": 0.0,
+    "time_end_s": 2.0,
+    "position_RMSE_m": 0.9263159872574198,
+    "position_max_m": 2.1574618630107865,
+    "speed_RMSE_mps": 0.11497038450204516,
+    "speed_bias_mps": -0.014368819504458383,
+    "terminal_position_error_m": 2.1574618630107865
+  },
+  "first_reference_meter": {
+    "samples": 8,
+    "time_start_s": 0.0,
+    "time_end_s": 0.014,
+    "position_RMSE_m": 0.001587601718661838,
+    "position_max_m": 0.00276232379744489,
+    "speed_RMSE_mps": 0.1252187389478491,
+    "speed_bias_mps": -0.05980081355379241,
+    "terminal_position_error_m": 0.00276232379744489
+  },
+  "station_matched_CoG_error_m": {
+    "RMS": 23.634072405223144,
+    "max_abs": 41.635230307316874,
+    "sample_rate_hz": 25
+  },
+  "on_track_control_interval_fraction": 0.2899728997289973,
+  "scoring_on_track_control_interval_fraction": 0.2899728997289973,
+  "initial_pose_and_every_2ms_footprint_checked": true,
+  "footprint_exit_terminates": false,
+  "valid_clean_lap_claim": false,
+  "wall_s": 0.29994875006377697,
+  "state_trace_numeric_sha256": "cb408f23e1c789a1c8f8cd45a7a186e8ca610fedb6a1a628f395115e5916e433",
+  "transient_numeric_sha256": "cce2449cb5dbc8c06352675edda27029d3f4e6aa4d3db6c816c6a1ec7b6d305e"
+}

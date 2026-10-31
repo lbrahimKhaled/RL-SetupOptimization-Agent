@@ -1,0 +1,31 @@
+{
+  "cwd": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent",
+  "command": "env PYTHONPATH=/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/scripts/comparison:/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 NUMEXPR_NUM_THREADS=1 /usr/bin/nice -n 19 .venv/bin/python -u /private/tmp/replay_tum_controls_firstab_20261031.py --reference comparison/tum_ocd_replay_20261031_115434Z/reference/tum_none.csv --out comparison/tum_ocd_replay_20261031_115434Z/first_ab --variants baseline static_aero > comparison/tum_ocd_replay_20261031_115434Z/first_ab.log 2>&1",
+  "exit_code": 0,
+  "source_sha256": "2b6e35a585b81703246063e53e293ff61ca0b6119bb221405538cba2d5d5fe04",
+  "source_snapshot": "replay_tum_controls_firstab_20261031.py",
+  "artifact_sha256": {
+    "summary.json": "1ad2389bb9fee503996e04aa63b1a65eb56d532d7eb6e105a746307634d659c6",
+    "commands.meta.json": "2925e45af20ccff2c81ed63e6f8cd7350dbcfd7cd895218b451e18461bafe273",
+    "baseline_first2s.csv": "a9901aac583e67822a7119a71b537f6241eb2594b4adb7dbe309ce5dd88e5887",
+    "baseline.meta.json": "f064ac47653001b74545c7f5d87f84254608c4df8121288a3aeceed7edf8ccac",
+    "baseline.parameters.json": "60f2f8bbf13dbd84f80fa7f446d5786c210b8019a010d41bf8fb74c5f4c0d725",
+    "commands.csv": "5571f86fea9bd9789dff03e33dc88d67f06fd83c2567f389fbdea7af3a420b4e",
+    "static_aero.csv": "766e8fd9adc8bafaf103aec62388f99118f0d80422387261cf81bbaf01521f4d",
+    "baseline.summary.json": "f397ddacf0dcf2bc3a9ffaed665bd635bc9739b6fe0989687104511818e23161",
+    "static_aero.meta.json": "7ff2f9f6323ae78fe6d7f0d5898172247c6bedb4b3caef8d8fe525783fcf04d2",
+    "baseline.csv": "709556f6ea05970c8fb6416cbad104cf32cbfbca82ae5e07721e40462c3ae71a",
+    "reconstruction_validation.json": "6ac42e8951dfb0ef33f2a585b8563b838d34a25a601b85e7fa4d97bf0f55908f",
+    "baseline_first2s.meta.json": "2845dd14383646f49d88cbe4b5417f42c1825454fb38c7db553e0d4c4c950deb",
+    "static_aero_first2s.meta.json": "e270302972fa6333ba1dda6dfa37f4d0a5570e52370cb9fad9e61764d9788134",
+    "replay_tum_controls_firstab_20261031.py": "2b6e35a585b81703246063e53e293ff61ca0b6119bb221405538cba2d5d5fe04",
+    "protocol.json": "61205cb0011ee29f813db32ab18f40bb63a7ba970e468f85756d333c8afec793",
+    "static_aero.summary.json": "2f12237070c9d0383722ade18d68312cfbe7ea3d046397ce8a91d9215db804f1",
+    "baseline_repeat.json": "ce29baeb5b2a02a9b3bc3271a071c35924afeeb33c4b27f2a81a94b9bd96c44d",
+    "diagnostic_summary.json": "078990fe9df533479d27321ed8a4708ab9cc5808ed0acadb280a5b7b7f65ef87",
+    "static_aero_first2s.csv": "d018bd7fc1f9d9e16683acc18bd8a7f55da11a344caa4baadbfd0cb1dffe14a8",
+    "static_aero.parameters.json": "1b3be356f56d261c9411d8e92685abd0d09df13d64cb2c2530ef3e9ded74750a"
+  },
+  "no_process_signals": true,
+  "no_training_changes": true
+}

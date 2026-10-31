@@ -1,0 +1,8 @@
+{
+ "source": "first2s500Hz_open_loop_transient",
+ "command_csv_sha256": "bbaaf9919e690bcc67bffbfdd194a5b6094dff37b4745f8bce6c93e6b86f519f",
+ "file": "static_aero_radius_first2s.csv",
+ "rows": 1001,
+ "sha256": "a0a7392ae34d8d223854d6a3d10a33390a48e318b98a474056476baeb0285081",
+ "created_utc": "2026-10-31T12:24:12+00:00"
+}

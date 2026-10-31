@@ -1,0 +1,209 @@
+{
+  "created_utc": "2026-10-31T12:12:47.280923+00:00",
+  "type": "OCD cached-limit quasi-steady-state forward/backward calculation, NOT an actual driven lap",
+  "current_baseline_only": true,
+  "static_aero_GGV_not_measured_or_inferred": true,
+  "GGV_remeasurement": false,
+  "physics_steps_executed": 0,
+  "cache_path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/data/qss_profile_Shanghai_p1_TUM_sf70h_tum_brake15000.npz",
+  "cache_sha256": "807e843449007080c2acac4be6452a4764ae4af741291cf5ba37a54b30a8448f",
+  "cache_key_exact_match": true,
+  "validated_cache_key": {
+    "car": "sf70h_tum",
+    "ers": false,
+    "brake_torque_Nm": 15000.0,
+    "schema": 1,
+    "track": "Shanghai",
+    "track_path_sha256": "d5917a27a10035e18b3293ef549fa6ab4f05af75eed2eff173c6d2c1d2f23431",
+    "setup": {
+      "ride_freq_front_hz": 4.2347,
+      "ride_freq_rear_hz": 3.372,
+      "damping_ratio_front": 0.14412,
+      "damping_ratio_rear": 0.10593,
+      "rebound_bump_ratio": 1.0,
+      "fast_slow_ratio": 1.0,
+      "heave_freq_front_hz": 0.0,
+      "heave_freq_rear_hz": 0.0,
+      "heave_damping_ratio": 0.0,
+      "roll_stiffness_Nm_per_rad": 275835.0,
+      "roll_stiffness_front_share": 0.4533,
+      "ride_height_front_m": 0.035,
+      "rake_m": 0.05,
+      "aero_level": 0.5,
+      "aero_front_share": 0.4508,
+      "brake_bias_front": 0.49,
+      "final_drive_ratio": 1.0,
+      "camber_front_deg": 0.0,
+      "camber_rear_deg": 0.0,
+      "toe_front_deg": 0.0,
+      "toe_rear_deg": 0.0,
+      "lsd_preload_Nm": 0.0,
+      "lsd_lock_drive": 1.0,
+      "lsd_lock_coast": 0.0,
+      "packer_gap_front_m": 0.1,
+      "packer_gap_rear_m": 0.1
+    },
+    "ocd_lap_sources_sha256": {
+      "qss_lap.py": "251d38338e46ca46297c6815bbca0e3922d5535ce871096390c65ebc39640f44",
+      "handling.py": "4372ecac0110536e5ef5794b303560d73fd74665739cd84a9631e976b3842195",
+      "manoeuvres.py": "c0b75d06b03906886216549acda347636a2aef0e5d7e304b122b5f83cbd7ea3b",
+      "powertrain.py": "99609a4cd76db28576021515086a7bb6fc545ff860fbffab2c6ea0ded2df1bf0",
+      "backend.py": "64d2d65c6550382d1640b8003982bb129712efcd68f6a40faaa428b5a8b378c7",
+      "translator.py": "359ce311db518623680839a0100d0a87913fae7f3b0997316a5e10d5d9eaae69",
+      "car_setup.py": "5c99f82f24db640510bf4614848a01b3906a7006a9d311881dff1fb6b9677afd",
+      "aero_map.py": "9340359d727be1b2001f4c9b73fea4cad7425808748b993448a2af3c57c16ac8",
+      "rig.py": "c650c4ee1e67ab190fea52099dd887231274688f81de2de68c4f37aefe012381",
+      "vertical_model.py": "ed95da469c99c52678af4fd4ee5533482b194c561be39af63bcb33c66c1394c8"
+    },
+    "ocd_native_sha256": "2b62143d42172a88344d9621ba67fcc98f9d7c58fa0e197a18bc4d4e584dbf13",
+    "ocd_config_sha256": "db32a1c615912faffcbfe99238ddf986ecd9f1a7f7a50f3d8e417e5fa0ddf5c4"
+  },
+  "cached_safe_path_lap_s": 103.5610374471088,
+  "original_TUM_geometry_result": {
+    "car": "sf70h_tum",
+    "ers": false,
+    "drs": false,
+    "lap_time_s": 95.6457355825026,
+    "v_min_mps": 14.613866171108377,
+    "v_max_mps": 83.59138474600323,
+    "v_mean_mps": 55.83908377077256,
+    "ggv": [
+      [
+        15.0,
+        14.924570978271042,
+        16.523162304063487
+      ],
+      [
+        30.0,
+        18.512700200025424,
+        22.490615764403977
+      ],
+      [
+        45.0,
+        25.548864047221535,
+        29.844979866647307
+      ],
+      [
+        60.0,
+        32.961811196632226,
+        39.50136342350578
+      ],
+      [
+        75.0,
+        40.364373016146914,
+        50.50974786706664
+      ],
+      [
+        90.0,
+        48.627912423580995,
+        59.631256173885035
+      ]
+    ],
+    "traction": [
+      [
+        16.392780132947657,
+        11.553632917094491
+      ],
+      [
+        32.17406996269479,
+        15.353159711297275
+      ],
+      [
+        48.63774984848957,
+        21.31253370105502
+      ],
+      [
+        67.17285814328125,
+        31.08472298480215
+      ],
+      [
+        80.05584618486775,
+        30.837052422178015
+      ],
+      [
+        110.83131733413433,
+        32.026038761376455
+      ]
+    ],
+    "details": [],
+    "drag_coeff": 0.9204
+  },
+  "wall_s": 0.020282750017940998,
+  "path": {
+    "type": "track.reference original TUM/racetrack-database geometry at existing track sampling",
+    "length_m": 5340.770241508524,
+    "shape": [
+      1070,
+      3
+    ],
+    "numpy_bytes_sha256": "63e383066baaf6c664ed61c600357412b2a0795615bcf429d8fadb6ccde4f537",
+    "TUM_solver_path_length_m": 5341.425515681778,
+    "note": "Existing OCD helper computes numeric curvature on this line, not the separately resampled5m TUM solver grid."
+  },
+  "model_limits": {
+    "car": "sf70h_tum",
+    "setup": {
+      "ride_freq_front_hz": 4.2347,
+      "ride_freq_rear_hz": 3.372,
+      "damping_ratio_front": 0.14412,
+      "damping_ratio_rear": 0.10593,
+      "rebound_bump_ratio": 1.0,
+      "fast_slow_ratio": 1.0,
+      "heave_freq_front_hz": 0.0,
+      "heave_freq_rear_hz": 0.0,
+      "heave_damping_ratio": 0.0,
+      "roll_stiffness_Nm_per_rad": 275835.0,
+      "roll_stiffness_front_share": 0.4533,
+      "ride_height_front_m": 0.035,
+      "rake_m": 0.05,
+      "aero_level": 0.5,
+      "aero_front_share": 0.4508,
+      "brake_bias_front": 0.49,
+      "final_drive_ratio": 1.0,
+      "camber_front_deg": 0.0,
+      "camber_rear_deg": 0.0,
+      "toe_front_deg": 0.0,
+      "toe_rear_deg": 0.0,
+      "lsd_preload_Nm": 0.0,
+      "lsd_lock_drive": 1.0,
+      "lsd_lock_coast": 0.0,
+      "packer_gap_front_m": 0.1,
+      "packer_gap_rear_m": 0.1
+    },
+    "ERS": false,
+    "DRS": false,
+    "GGV_brake_ramp_cap_Nm": 15000.0,
+    "GGV_slip_cutoff": 0.12,
+    "friction_exponent": 2.0,
+    "mass_kg": 733.0,
+    "drag_coefficient_kgpm": 0.9204,
+    "QSS_vcap_mps": 100.0,
+    "machine_limit": "best of8gears,min(engine,measured traction); engine grid5m/s; ignores rotating-mass factor (optimistic)",
+    "caveats": [
+      "No yaw stability or dynamic path-following/steering feasibility.",
+      "GGV comes from short open-loop manoeuvres with settling; lateral peak/longitudinal ramps are separate tests.",
+      "Tyre longitudinal ramp limits remove aerodynamic drag, retain rolling loss implicitly.",
+      "TUM net ax, tyre demand including drag/rolling, and cached measured ax cannot be equated without converting those conventions.",
+      "No combined-force feasibility claim or static-aero reuse made."
+    ]
+  },
+  "TUM_required_lateral_diagnostic": {
+    "definition": "abs(TUM ay) / interpolated current cached OCD peak ay(speed); no combined longitudinal claim",
+    "points": 1069,
+    "points_over_one": 109,
+    "fraction_over_one": 0.1019644527595884,
+    "max_ratio": 1.1128972904858492
+  },
+  "source_hashes": {
+    "scratch": "121946a958fc6dafad1601a9bcc9af7f7984a0934d1a7121424c221c314c8b6d",
+    "qss_lap": "251d38338e46ca46297c6815bbca0e3922d5535ce871096390c65ebc39640f44",
+    "qss_profile": "286c785da3d040ecdc179ec04df860487b8446d9058b3bded0ae096ac853ca28",
+    "cars": "f4217f9a2b5e42a1d40287fe013b8c3a1f2d0284c232055477b80f595dfcf36b",
+    "native": "2b62143d42172a88344d9621ba67fcc98f9d7c58fa0e197a18bc4d4e584dbf13",
+    "TUM_csv": "1370d33415589f20530f51686c7d934afca871a6e9dcf10358de6731e6e626a7"
+  },
+  "no_torch_loaded": true,
+  "command": [
+    "/private/tmp/check_cached_qss_tumline_20261031.py"
+  ]
+}

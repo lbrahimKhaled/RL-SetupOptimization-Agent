@@ -1,0 +1,52 @@
+[
+ {
+  "v_mps": 15.0,
+  "tum_ay_max_mps2": 19.854421552741115,
+  "ocd_ay_max_mps2": 16.530554851701794,
+  "ocd_over_tum": 0.8325880866279669,
+  "steer_at_max_deg": 19.4954532355956,
+  "spun": false,
+  "understeer_deg_per_g": 0.3265055120554906,
+  "ocd_ay_max_lsd_open_mps2": 17.058657698795912
+ },
+ {
+  "v_mps": 25.0,
+  "tum_ay_max_mps2": 22.51724918270814,
+  "ocd_ay_max_mps2": 20.510099093781403,
+  "ocd_over_tum": 0.9108616655329237,
+  "steer_at_max_deg": 11.072973647172478,
+  "spun": false,
+  "understeer_deg_per_g": 0.2985470071425348,
+  "ocd_ay_max_lsd_open_mps2": 20.199603621927416
+ },
+ {
+  "v_mps": 35.0,
+  "tum_ay_max_mps2": 26.404918450810122,
+  "ocd_ay_max_mps2": 24.675682710138947,
+  "ocd_over_tum": 0.9345108471403698,
+  "steer_at_max_deg": 8.030567755027805,
+  "spun": false,
+  "understeer_deg_per_g": 0.25760960124184346,
+  "ocd_ay_max_lsd_open_mps2": 23.800463914732212
+ },
+ {
+  "v_mps": 50.0,
+  "tum_ay_max_mps2": 34.257974527764446,
+  "ocd_ay_max_mps2": 32.57079446714597,
+  "ocd_over_tum": 0.9507507351536182,
+  "steer_at_max_deg": 5.933542224848982,
+  "spun": false,
+  "understeer_deg_per_g": 0.19928219939981695,
+  "ocd_ay_max_lsd_open_mps2": 30.874275360584008
+ },
+ {
+  "v_mps": 70.0,
+  "tum_ay_max_mps2": 47.63297061779397,
+  "ocd_ay_max_mps2": 45.32211091411648,
+  "ocd_over_tum": 0.9514861308520985,
+  "steer_at_max_deg": 4.64438718580463,
+  "spun": false,
+  "understeer_deg_per_g": 0.12983523027883584,
+  "ocd_ay_max_lsd_open_mps2": 43.04935619463556
+ }
+]

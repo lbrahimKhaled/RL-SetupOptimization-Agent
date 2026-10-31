@@ -1,0 +1,145 @@
+{
+ "source": "frozen_TUM_reconstructed_open_loop",
+ "summary": {
+  "variant": "static_aero_radius",
+  "termination": "spin",
+  "reference_horizon_s": 94.88618556208073,
+  "actual_sim_time_s": 14.48,
+  "actual_reference_clock_s": 14.48,
+  "preroll_seconds": -0.0,
+  "preroll_failed": false,
+  "scoring_start": {
+   "state": {
+    "x": -0.52484,
+    "y": 2.609798,
+    "yaw": -2.9007358138740367,
+    "vx": 68.02365,
+    "vy": 0.0,
+    "yaw_rate": 0.0,
+    "steer_actual": 0.0,
+    "slip_rl": 0.0,
+    "slip_rr": 0.0
+   },
+   "actual_gear": 6,
+   "reference": {
+    "s_m": 0.0,
+    "x_m": -0.52484,
+    "y_m": 2.609798,
+    "yaw_rad": -2.9007358138740367,
+    "speed_mps": 68.02365,
+    "kappa_radpm": -3.132221e-05,
+    "gear": 6,
+    "engine_torque_crank_Nm": 491.6652,
+    "requested_torque_crank_Nm": 1384.583
+   },
+   "powertrain": {
+    "gear": 6,
+    "rear_axle_omega_radps": 197.9428770104288,
+    "engine_rpm": 10989.623485828199,
+    "engine_inertia_at_wheels_kgm2": 1.9252278702757737,
+    "since_shift_s": 0.1
+   },
+   "signals_available": false,
+   "note": "initial pose before first native step; vy/yaw_rate0, no forced steady-turn state"
+  },
+  "actual_progress_since_scoring_start_m": 778.2316980932023,
+  "physics_step_quantization_overshoot_s": 0.0,
+  "reference_horizon_reached": false,
+  "actual_progress_path_m": 778.2316980932023,
+  "actual_line_crossings_s": [
+   0.000882340225302706
+  ],
+  "actual_lap_times_s": [],
+  "actual_completed_full_laps": 0,
+  "line_crossings_after_scoring_start_s": [
+   0.000882340225302706
+  ],
+  "initial_pose": {
+   "x": -0.52484,
+   "y": 2.609798,
+   "yaw": -2.9007358138740367,
+   "speed": 68.02365
+  },
+  "startup_gear_audit": {
+   "policy": "reference",
+   "reference_gear": 6,
+   "before": {
+    "gear": 2,
+    "rear_axle_omega_radps": 197.9428770104288,
+    "engine_rpm": 27003.074850892142,
+    "engine_inertia_at_wheels_kgm2": 4.522188321629189,
+    "since_shift_s": 0.0
+   },
+   "after": {
+    "gear": 6,
+    "rear_axle_omega_radps": 197.9428770104288,
+    "engine_rpm": 10989.623485828199,
+    "engine_inertia_at_wheels_kgm2": 1.9252278702757737,
+    "since_shift_s": 0.1
+   },
+   "assignment_count": 1,
+   "future_gear_updates": "ordinary unmodified OCD Powertrain.update_gear",
+   "initial_condition_only": true,
+   "body_pose_speed_wheel_omega_forced": false
+  },
+  "initial_vy_mps": 0.0,
+  "initial_yaw_rate_radps": 0.0,
+  "initial_pose_on_track": true,
+  "no_initial_steady_turn_state": "public StartPose cannot set vy/yaw_rate",
+  "trajectory_time_aligned": {
+   "samples": 7241,
+   "time_start_s": 0.0,
+   "time_end_s": 14.48,
+   "position_RMSE_m": 35.63887765571556,
+   "position_max_m": 65.53078656219982,
+   "speed_RMSE_mps": 2.6796300748831,
+   "speed_bias_mps": -1.2370065741897336,
+   "terminal_position_error_m": 65.53078656219982
+  },
+  "preroll_time_aligned": {
+   "samples": 0
+  },
+  "first_2s": {
+   "samples": 1001,
+   "time_start_s": 0.0,
+   "time_end_s": 2.0,
+   "position_RMSE_m": 1.0058003996843012,
+   "position_max_m": 2.31159373328371,
+   "speed_RMSE_mps": 0.2339239890042933,
+   "speed_bias_mps": 0.1997182987745085,
+   "terminal_position_error_m": 2.31159373328371
+  },
+  "first_reference_meter": {
+   "samples": 8,
+   "time_start_s": 0.0,
+   "time_end_s": 0.014,
+   "position_RMSE_m": 0.00158938095478543,
+   "position_max_m": 0.0027663600242915105,
+   "speed_RMSE_mps": 0.12546945575742788,
+   "speed_bias_mps": -0.060012856355482924,
+   "terminal_position_error_m": 0.0027663600242915105
+  },
+  "station_matched_CoG_error_m": {
+   "RMS": 23.060712415483383,
+   "max_abs": 41.52129723214979,
+   "sample_rate_hz": 25
+  },
+  "on_track_control_interval_fraction": 0.2845303867403315,
+  "scoring_on_track_control_interval_fraction": 0.2845303867403315,
+  "initial_pose_and_every_2ms_footprint_checked": true,
+  "footprint_exit_terminates": false,
+  "valid_clean_lap_claim": false,
+  "wall_s": 0.3015455409185961,
+  "state_trace_numeric_sha256": "47fd3b817bca7df4c75525343dcad47f8e234eed3e627c8aa75993006dc06f75",
+  "transient_numeric_sha256": "e40848282a5300dd85e3d51bf7b3ebdd19d243d058ee0a2b3e988d67d9281e6e"
+ },
+ "command_csv_sha256": "5571f86fea9bd9789dff03e33dc88d67f06fd83c2567f389fbdea7af3a420b4e",
+ "reference_sha256": "1370d33415589f20530f51686c7d934afca871a6e9dcf10358de6731e6e626a7",
+ "parameter_snapshot_sha256": "21d01d0526c34db870e5a548fa64c5473938994251ea10b954c7b48df6b7b438",
+ "valid_clean_lap": false,
+ "protocol": "protocol.json",
+ "file": "static_aero_radius.csv",
+ "rows": 362,
+ "sha256": "811a5909bdb377816b08a4f926fde62024e41f64e587e5be95277433f9e30c27",
+ "created_utc": "2026-10-31T12:36:03+00:00"
+}

@@ -1,0 +1,19 @@
+{
+  "created_utc": "2026-10-31T11:57:48.374503+00:00",
+  "cwd": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent",
+  "reference_command": "env OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 NUMEXPR_NUM_THREADS=1 PYTHONDONTWRITEBYTECODE=1 /usr/bin/nice -n 19 /Users/ibrahimkhaled/Documents/tum/tumenv/bin/python -u /private/tmp/export_tum_none_replay_20261031.py /Users/ibrahimkhaled/Documents/tum/laptime-simulation --out comparison/tum_ocd_replay_20261031_115434Z/reference",
+  "reference_exit_code": 0,
+  "reference_console_output": "none94.886s vmax284.5km/h ERSused0.00MJ",
+  "rows": 1070,
+  "metadata_lap_s": 94.88618556208073,
+  "CSV_last_t_s_rounded": 94.88619,
+  "lap_source_for_reporting": "exact double precision metadata, CSV is rounded by existing exporter",
+  "CSV_sha256": "1370d33415589f20530f51686c7d934afca871a6e9dcf10358de6731e6e626a7",
+  "old_reference_sha256": "1370d33415589f20530f51686c7d934afca871a6e9dcf10358de6731e6e626a7",
+  "exact_old_reference_bytes_match": true,
+  "CSV_all_DRS_zero": true,
+  "CSV_all_EM_torque_zero": true,
+  "script_VARIANTS_restriction": "scratch comparison export module VARIANTS=(none,), original exporter/OCD/TUM source unchanged",
+  "training_process_signals_sent": false,
+  "sources_modified": false
+}

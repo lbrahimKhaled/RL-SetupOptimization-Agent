@@ -1,0 +1,79 @@
+{
+ "runs": [
+  {
+   "f": 1.0,
+   "termination": "spin",
+   "completed_lap2": false,
+   "lap_times_s": [],
+   "lap2_s": null,
+   "sim_time_s": 24.8,
+   "progress_m": 1239.607798003332,
+   "spin_at_s_raceline_m": 1039.607798003323,
+   "spin_lap": 1,
+   "on_track_cog_fraction_lap2": null,
+   "on_track_footprint_fraction_lap2": null,
+   "max_abs_e_raceline_lap2_m": null,
+   "rms_e_raceline_lap2_m": null,
+   "v_max_lap2_kmh": null,
+   "start": {
+    "s_raceline_m": 5140.770241508524,
+    "speed_mps": 50.183976844865605,
+    "gear": 5
+   },
+   "wall_s": 0.6654015829553828
+  }
+ ],
+ "raceline_inside_fraction_per_metre": {
+  "footprint": 0.7013667852462085,
+  "cog": 1.0
+ },
+ "gains": {
+  "tau_lat_s": 0.1,
+  "w_t_radps": 4.0,
+  "w_s_max_pm": 0.2,
+  "zeta": 0.9,
+  "k_us_rad_per_mps2": 0.0003,
+  "alpha_f_max_rad": [
+   0.2,
+   0.13
+  ],
+  "tau_lon_s": 0.04,
+  "kp_per_s": 2.0,
+  "ki_per_s2": 0.5,
+  "i_lim_mps": 3.0,
+  "k_r_s": 0.04,
+  "tc_slip": 0.16,
+  "abs_slip": 0.1,
+  "cut": 0.6,
+  "rise": 0.1
+ },
+ "setup": {
+  "ride_freq_front_hz": 4.2347,
+  "ride_freq_rear_hz": 3.372,
+  "damping_ratio_front": 0.14412,
+  "damping_ratio_rear": 0.10593,
+  "rebound_bump_ratio": 1.0,
+  "fast_slow_ratio": 1.0,
+  "heave_freq_front_hz": 0.0,
+  "heave_freq_rear_hz": 0.0,
+  "heave_damping_ratio": 0.0,
+  "roll_stiffness_Nm_per_rad": 275835.0,
+  "roll_stiffness_front_share": 0.4533,
+  "ride_height_front_m": 0.035,
+  "rake_m": 0.05,
+  "aero_level": 0.5,
+  "aero_front_share": 0.4508,
+  "brake_bias_front": 0.49,
+  "final_drive_ratio": 1.0,
+  "camber_front_deg": 0.0,
+  "camber_rear_deg": 0.0,
+  "toe_front_deg": 0.0,
+  "toe_rear_deg": 0.0,
+  "lsd_preload_Nm": 0.0,
+  "lsd_lock_drive": 1.0,
+  "lsd_lock_coast": 0.0,
+  "packer_gap_front_m": 0.1,
+  "packer_gap_rear_m": 0.1
+ },
+ "command": "scripts/comparison/tum_closed_loop.py --f 1.0 --no-checks --gain tc_slip 0.16 --out comparison/tum_ocd_debug_20261031_144747Z/diag_tc0.16"
+}
