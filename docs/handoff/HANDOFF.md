@@ -204,3 +204,11 @@ platforms/mac/train.sh --preset p0_TUMref --seed 0 --run-name p0_TUMref
 platforms\windows\start_detached.ps1 -Log runs\windows\p1_TUM_stdout.log platforms\windows\train.ps1 --preset p1_TUM --seed 0 --run-name p1_TUM
 platforms\windows\start_detached.ps1 -Log runs\windows\p0_TUMref_stdout.log platforms\windows\train.ps1 --preset p0_TUMref --seed 0 --run-name p0_TUMref
 ```
+
+## 31 Oct — in progress (resume here if the session ended)
+- **Decided by Ibrahim:** NO exact-OCD-replica OCP (docs/specs/MLT_OCP.md is shelved). Instead:
+  - **A/B Barcelona:** RL on `Catalunya`, car unchanged (`sf70h_tum`, p1_TUM recipe), best setup picked by QSS sweep → named setup `bcn_best`, preset `bcn`, run `runs/mac/D2/bcn/seed0`, keeper without auto-stop. Notes: `docs/results/bcn/SETUP_SELECTION.md`.
+  - **D/D-check:** Limebeer-style minimum-lap-time OCP, moderate model (planar body + load transfer + 4 combined-slip tyres + diff + aero + power; ≤ 2 days). Model/parameters being collected in `docs/research/limebeer_ocp_model.md`. Must reproduce Perantoni & Limebeer 2014 Barcelona 82.43 s before running on Shanghai. Not started in code.
+- **Earlier today:** closed-loop TUM lap in a TUM-aligned OCD (`comparison/tum_ocd_debug_20261031_144747Z/FINDINGS.md`, temporary ocd_first_lap worktree `../ocd_first_lap-tumdebug`, branch `tum-debug`): best 102.99 s vs TUM 94.89 s; main loss = AV-21-derived tyre slip behaviour (traction 4.4 s, braking 2.4 s).
+- Best RL laps so far: p1_TUM 101.27 s (Shanghai), p0_TUMref 103.37 s.
+- Commits are local (push when the network allows): `git push` on `comparison-tum-vs-rl`.
