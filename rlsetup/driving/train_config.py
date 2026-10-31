@@ -260,9 +260,16 @@ def _p0_tumref():
                    env=replace(c.env, setup='p0', max_brake_torque_Nm=12000., reference='raceline'))
 
 
+def _bcn():
+    """p1_TUM's recipe on Barcelona (racetrack-database Catalunya) with the QSS-best setup
+    bcn_best and 15 kN m brakes (docs/results/bcn/SETUP_SELECTION.md). Run name: bcn."""
+    c = _p1_tum()
+    return replace(c, preset='bcn', env=replace(c.env, track='Catalunya', setup='bcn_best', max_brake_torque_Nm=15000.))
+
+
 PRESETS = {'full': lambda: TrainConfig(preset='full'), 'smoke': _smoke, 'r1_warm': _r1_warm,
            'r1_warm_smoke': _r1_warm_smoke, 'p1_TUM': _p1_tum,
-           'p0_TUMref': _p0_tumref}
+           'p0_TUMref': _p0_tumref, 'bcn': _bcn}
 
 
 # --- dict / override helpers (JSON round trip of nested frozen dataclasses) -------------------------
