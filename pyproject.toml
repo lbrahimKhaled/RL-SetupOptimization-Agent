@@ -9,6 +9,10 @@ dependencies = [
     "sb3-contrib==2.9.0",
 ]
 
+[project.optional-dependencies]
+# Minimum-lap-time OCP (rlsetup/ocp, PL14 replication). cp311-abi3 wheel, ships IPOPT + MUMPS.
+ocp = ["casadi==3.8.2", "scipy"]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
