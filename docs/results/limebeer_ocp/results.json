@@ -2032,5 +2032,408 @@
    94.2491
   ],
   "shanghai_sf70h_failed": "uniform 1 m, adaptive from QSS 4 m, adaptive warm-started 2 m (twice): Infeasible_Problem_Detected"
+ },
+ "ladder": {
+  "_meta": {
+   "git": "29da9b5",
+   "casadi": "3.8.2",
+   "steps": [
+    [
+     "L0",
+     null,
+     "PL14 model, SF70H-TUM mapping (beta 0.60, 575 kW, kd diff, PL14 loads, CoG corridor w - 0.9 m)"
+    ],
+    [
+     "L1",
+     "tyre",
+     "OCD MF5.2 tyre (car's coefficients, combined slip, |kappa| <= 1), R = 0.3299 m"
+    ],
+    [
+     "L2",
+     "brakes",
+     "OCD brakes: 15 kN m total, bias 0.49 (setup), per-wheel torques, wheel-spin equilibrium"
+    ],
+    [
+     "L2b",
+     "rollres",
+     "OCD rolling resistance 0.03 N in the wheel torque balances"
+    ],
+    [
+     "L3",
+     "engine",
+     "OCD engine map x gear ratios x 0.96 (static upshift map) instead of 575 kW; ERS off"
+    ],
+    [
+     "L3b",
+     "inertia",
+     "wheel + engine rotating inertia (quasi-steady wheel spin, engine inertia per gear)"
+    ],
+    [
+     "L4",
+     "lsd",
+     "OCD LSD: (L_rr - L_rl) = 2 tanh(dOmega/2) * 1.0 * T_drive (coast lock 0) instead of kd"
+    ],
+    [
+     "L5",
+     "loads",
+     "OCD steady suspension: springs/ARBs from the translator, roll/pitch centres 0.2 m, tyre springs, aero at static ride heights"
+    ],
+    [
+     "L6",
+     "steer",
+     "OCD steering rate |d delta/dt| <= 1.5 rad/s (|delta| <= 0.6 already in L0)"
+    ],
+    [
+     "L7",
+     "track",
+     "OCD track rule: 4.6 x 2.0 m footprint corners inside the edges"
+    ],
+    [
+     "L8",
+     "rhaero",
+     "OCD ride-height aero (CzA +2 %/cm below reference) at the steady heave/pitch"
+    ]
+   ],
+   "threads": "OMP/VECLIB <= 2",
+   "references": {
+    "Shanghai": {
+     "OCD RL driver (p1_TUM)": 101.27,
+     "OCD QSS on TUM raceline (debug car)": 95.73,
+     "TUM laptime-sim none": 94.886
+    },
+    "Catalunya": {
+     "OCD RL run bcn best clean lap": 85.21,
+     "OCD QSS (bcn_best, safe line)": 82.89
+    }
+   },
+   "note": "lap times exclude the control-rate regularisation (penalty)"
+  },
+  "Shanghai": {
+   "L0": {
+    "description": "PL14 model, SF70H-TUM mapping (beta 0.60, 575 kW, kd diff, PL14 loads, CoG corridor w - 0.9 m)",
+    "lam": {
+     "tyre": 0.0,
+     "brakes": 0.0,
+     "rollres": 0.0,
+     "engine": 0.0,
+     "inertia": 0.0,
+     "lsd": 0.0,
+     "loads": 0.0,
+     "steer": 0.0,
+     "track": 0.0,
+     "rhaero": 0.0
+    },
+    "mesh_1m": {
+     "laptime_s": 94.21626200715176,
+     "penalty_s": 0.040767273580337895,
+     "status": "Solve_Succeeded",
+     "success": true,
+     "iters": 113,
+     "t_solve_s": 71.7,
+     "nodes": 5615,
+     "ds_mean": 0.9697682942397506,
+     "ds_min": 0.3152543046626306,
+     "max_eq_residual_scaled": 2.8749082794948865e-07,
+     "u_min_kmh": 60.847063476134664,
+     "u_max_kmh": 306.0350070467813,
+     "s_at_u_min": 4811.379034802883,
+     "N_min_N": 200.81745884034964,
+     "kappa_min": -0.5999998790425146,
+     "kappa_max": 0.5999999295284816,
+     "delta_max_abs": 0.3014661872395137,
+     "frac_drive_limited": 0.6509349955476402,
+     "frac_braking": 0.16936776491540517,
+     "frac_brake_at_cap": 0.0,
+     "frac_drive_and_brake": 0.013178984861976847,
+     "max_power_kW": 574.9999925660701,
+     "max_sideslip_deg": 8.264765425397579,
+     "ax_min_g": -5.761431489190213,
+     "ax_max_g": 1.7711968342736257,
+     "ay_max_g": 5.699930305864445,
+     "rear_dFx_median_abs_N": 4.46583101599299,
+     "rear_Fx_min_N": -7154.1070794730485,
+     "route": {
+      "direct": [
+       "Solve_Succeeded",
+       113
+      ]
+     },
+     "wall_s": 76.2
+    }
+   },
+   "_car": {
+    "ocd": {
+     "name": "sf70h_tum",
+     "setup": "p1_TUM",
+     "params_sha16": "c9ec9d6bfc84df6b",
+     "m": 733.0,
+     "Iz": 1159.6289062499995,
+     "l": 3.5999999999999996,
+     "l_f": 1.968,
+     "h_cg": 0.335,
+     "b_f": 1.6,
+     "b_r": 1.6,
+     "R": 0.32992819702949905,
+     "c_rr": 0.03,
+     "I_wf": 1.15,
+     "I_wr": 1.35,
+     "engine_inertia": [
+      7.766234710085538,
+      3.7767863631838186,
+      2.181007024423125,
+      1.3831173550427778,
+      1.3831173550427778,
+      1.3831173550427778,
+      0.5852276856624306,
+      0.5852276856624306
+     ],
+     "brake_bias_front": 0.49,
+     "max_brake_torque_Nm": 15000.0,
+     "final_drive": 1.0,
+     "ratios": [
+      25.0,
+      14.285714285714285,
+      10.526315789473685,
+      8.547008547008547,
+      6.993006993006993,
+      5.813953488372094,
+      5.2631578947368425,
+      4.8543689320388355
+     ],
+     "lsd": {
+      "lock_drive": 1.0,
+      "lock_coast": 0.0,
+      "preload": 0.0
+     },
+     "steer_max": 0.6,
+     "steer_rate_max": 1.5,
+     "footprint": [
+      [
+       2.468,
+       1.0
+      ],
+      [
+       2.468,
+       -1.0
+      ],
+      [
+       -2.1319999999999997,
+       -1.0
+      ],
+      [
+       -2.1319999999999997,
+       1.0
+      ]
+     ],
+     "CzA_static": [
+      2.1999040000000005,
+      2.6800960000000003
+     ],
+     "CxA": 1.56,
+     "rho": 1.18,
+     "roll_stiffness_front_share_translator": 0.4759652345503423,
+     "roll_centre_h": 0.2,
+     "pitch_centre_h": 0.2,
+     "static_loads_N": [
+      1629.8988,
+      1629.8988,
+      1965.4662000000005,
+      1965.4662000000005
+     ]
+    },
+    "l0": {
+     "name": "sf70h_tum_pl14",
+     "M": 733.0,
+     "Iz": 1159.6,
+     "w": 3.6,
+     "a": 1.968,
+     "h": 0.335,
+     "D_roll": 0.5,
+     "wf": 0.8,
+     "wr": 0.8,
+     "R": 0.33,
+     "kd": 10.47,
+     "ClA": 4.88,
+     "CdA": 1.56,
+     "rho": 1.18,
+     "aA": 1.9770491803278691,
+     "g": 9.81,
+     "Pmax": 575000.0,
+     "beta": 0.6,
+     "half_width": 0.9
+    }
+   },
+   "L1": {
+    "description": "OCD MF5.2 tyre (car's coefficients, combined slip, |kappa| <= 1), R = 0.3299 m",
+    "lam": {
+     "tyre": 1.0,
+     "brakes": 0.0,
+     "rollres": 0.0,
+     "engine": 0.0,
+     "inertia": 0.0,
+     "lsd": 0.0,
+     "loads": 0.0,
+     "steer": 0.0,
+     "track": 0.0,
+     "rhaero": 0.0
+    },
+    "mesh_1m": {
+     "laptime_s": 93.98620917666706,
+     "penalty_s": 0.06258149857908278,
+     "status": "Solve_Succeeded",
+     "success": true,
+     "iters": 352,
+     "t_solve_s": 442.4,
+     "nodes": 5614,
+     "ds_mean": 0.9699410352967937,
+     "ds_min": 0.31741559804413555,
+     "max_eq_residual_scaled": 3.1819700489640424e-07,
+     "u_min_kmh": 52.972594104710765,
+     "u_max_kmh": 305.7147795927389,
+     "s_at_u_min": 4801.884785915554,
+     "N_min_N": 191.5053504656431,
+     "kappa_min": -1.000000008018554,
+     "kappa_max": 0.9999999263053468,
+     "delta_max_abs": 0.5098366315129396,
+     "frac_drive_limited": 0.7014606341289633,
+     "frac_braking": 0.14481653010331313,
+     "frac_brake_at_cap": 0.0,
+     "frac_drive_and_brake": 0.010331314570716068,
+     "max_power_kW": 574.999979642534,
+     "max_sideslip_deg": 20.949207681216112,
+     "ax_min_g": -5.7128073391055265,
+     "ax_max_g": 1.6703765067875718,
+     "ay_max_g": 5.768639989144336,
+     "rear_dFx_median_abs_N": 28.949854645586356,
+     "rear_Fx_min_N": -7103.31045414993,
+     "route": {
+      "direct": [
+       "Solve_Succeeded",
+       352
+      ]
+     },
+     "wall_s": 447.6
+    }
+   },
+   "L2": {
+    "description": "OCD brakes: 15 kN m total, bias 0.49 (setup), per-wheel torques, wheel-spin equilibrium",
+    "lam": {
+     "tyre": 1.0,
+     "brakes": 1.0,
+     "rollres": 0.0,
+     "engine": 0.0,
+     "inertia": 0.0,
+     "lsd": 0.0,
+     "loads": 0.0,
+     "steer": 0.0,
+     "track": 0.0,
+     "rhaero": 0.0
+    },
+    "mesh_1m": {
+     "laptime_s": 93.49771247148905,
+     "penalty_s": 0.03261060497984559,
+     "status": "Solve_Succeeded",
+     "success": true,
+     "iters": 338,
+     "t_solve_s": 394.6,
+     "nodes": 5659,
+     "ds_mean": 0.9622281272585615,
+     "ds_min": 0.24056250837111293,
+     "max_eq_residual_scaled": 6.320518147434812e-07,
+     "u_min_kmh": 54.01722388107732,
+     "u_max_kmh": 305.7607238983936,
+     "s_at_u_min": 4796.593302659138,
+     "N_min_N": 195.31724901181522,
+     "kappa_min": -0.9999801917677363,
+     "kappa_max": 0.9999959170289859,
+     "delta_max_abs": 0.21956510412032687,
+     "frac_drive_limited": 0.7056016964127938,
+     "frac_braking": 0.14878953878777168,
+     "frac_brake_at_cap": 0.0,
+     "frac_drive_and_brake": 0.049832125817282205,
+     "max_power_kW": 574.9986300248269,
+     "max_sideslip_deg": 17.010295076977272,
+     "ax_min_g": -5.998056792857499,
+     "ax_max_g": 1.6662162710650767,
+     "ay_max_g": 5.760204050509472,
+     "rear_dFx_median_abs_N": 31.950951779192792,
+     "rear_Fx_min_N": -9231.44715906508,
+     "route": {
+      "direct": [
+       "Solve_Succeeded",
+       338
+      ]
+     },
+     "wall_s": 400.2
+    }
+   },
+   "L2b": {
+    "description": "OCD rolling resistance 0.03 N in the wheel torque balances",
+    "lam": {
+     "tyre": 1.0,
+     "brakes": 1.0,
+     "rollres": 1.0,
+     "engine": 0.0,
+     "inertia": 0.0,
+     "lsd": 0.0,
+     "loads": 0.0,
+     "steer": 0.0,
+     "track": 0.0,
+     "rhaero": 0.0
+    },
+    "mesh_1m": {
+     "laptime_s": 94.8842075562533,
+     "penalty_s": 0.032564549997022005,
+     "status": "Solve_Succeeded",
+     "success": true,
+     "iters": 97,
+     "t_solve_s": 113.7,
+     "nodes": 5647,
+     "ds_mean": 0.9642728833285283,
+     "ds_min": 0.25018381549762125,
+     "max_eq_residual_scaled": 4.21739364029383e-08,
+     "u_min_kmh": 53.88310019868593,
+     "u_max_kmh": 293.9014361840927,
+     "s_at_u_min": 4796.400100284772,
+     "N_min_N": 207.0355166434812,
+     "kappa_min": -0.9999994789497594,
+     "kappa_max": 0.9999999190121245,
+     "delta_max_abs": 0.21875010449334165,
+     "frac_drive_limited": 0.7147157782893572,
+     "frac_braking": 0.137241012927218,
+     "frac_brake_at_cap": 0.0,
+     "frac_drive_and_brake": 0.04728174251815123,
+     "max_power_kW": 574.9999781442975,
+     "max_sideslip_deg": 17.21558368716099,
+     "ax_min_g": -5.75883921913281,
+     "ax_max_g": 1.6423497635060111,
+     "ay_max_g": 5.444380452464514,
+     "rear_dFx_median_abs_N": 20.168093909998333,
+     "rear_Fx_min_N": -8705.684528236314,
+     "route": {
+      "direct": [
+       "Solve_Succeeded",
+       97
+      ]
+     },
+     "wall_s": 118.6
+    }
+   },
+   "L3": {
+    "description": "OCD engine map x gear ratios x 0.96 (static upshift map) instead of 575 kW; ERS off",
+    "lam": {
+     "tyre": 1.0,
+     "brakes": 1.0,
+     "rollres": 1.0,
+     "engine": 1.0,
+     "inertia": 0.0,
+     "lsd": 0.0,
+     "loads": 0.0,
+     "steer": 0.0,
+     "track": 0.0,
+     "rhaero": 0.0
+    }
+   }
+  }
  }
 }

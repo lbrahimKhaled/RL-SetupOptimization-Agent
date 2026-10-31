@@ -103,3 +103,15 @@ Spec: lead task of 31 Oct 2026; model source: docs/research/limebeer_ocp_model.m
 - SF70H mapping final: homotopy 1 m 94.2458 -> 0.5 m 94.2491 s (193 it, 315 s), Succeeded; delta +0.003 s.
   ws2 (kappa 0.99, N_min 10) 2 m: Infeasible again (2202 it). Direct refinement fails; homotopy is the working route.
 - results.json: added _headline block. REPORT text returned to the lead in the handback (subagent may not write REPORT.md).
+
+## LADDER (1 Nov) OCP made closer to OCD's car, one feature per step
+- Code: rlsetup/ocp/ocd_car.py (OCD params from OCDBackend(engine, sf70h_tum, ERS off, 15 kN m).reset(setup);
+  MF5.2 port of mf_52.cpp; steady-state load map of OCD's suspension), rlsetup/ocp/ladder_model.py (homotopy
+  weight per feature, lam=0 = L0), rlsetup/ocp/ladder_solve.py, scripts/ocp_ladder.py, tests/test_ocp_ladder.py.
+- MF5.2 port vs native OCD: OCD integrates with DoPri45 and logs stage-6 forces with the post-step state, so
+  logged state/forces never coincide; a final 1e-12 s step makes them consistent. Then max rel err 7.5e-10
+  over 24 points (kappa -1..0.13, alpha -0.06..0.25 rad, Fz 0.4-9 kN, all 4 wheels).
+- Load map vs native steady circle: 3e-9 rel (settled cases). LSD steady law checked natively.
+- L0 in the ladder layout: 94.2163 s (1 m) vs 94.2458 s pl14_model: separate drive/brake controls remove the
+  eq-48 smoothing of the single demand T.
+- Running: chain L1..L8 (process 1), refine 0.5 m watcher (process 2). Results -> results.json['ladder'], LADDER.md.
