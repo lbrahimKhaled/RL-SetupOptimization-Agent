@@ -51,3 +51,14 @@ def test_env_setup_and_reference(make_env):
     assert raceline.env_metadata()['reference']['name'].endswith('Track.reference')
     raceline.reset(seed=3)
     assert raceline.s_drive == pytest.approx(raceline.s % raceline.track.length)
+
+
+def test_bcn_preset_and_setup():
+    c, p1 = PRESETS['bcn'](), PRESETS['p1_TUM']()
+    assert (c.env.track, c.env.setup, c.env.max_brake_torque_Nm, c.env.car, c.env.ers) == \
+        ('Catalunya', 'bcn_best', 15000., 'sf70h_tum', False)
+    assert c.env.reward == p1.env.reward and c.demos == p1.demos and c.bc == p1.bc and c.agent == p1.agent
+    assert train_config_from_dict(json.loads(config_json(c))) == c
+    p1s, b = setups.get('p1_TUM').to_dict(), setups.get('bcn_best').to_dict()
+    assert {k: v for k, v in b.items() if v != p1s[k]} == {'aero_level': 1., 'aero_front_share': .5384,
+                                                          'brake_bias_front': .55}
