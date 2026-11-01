@@ -46,3 +46,19 @@ def get(name):
     if name not in SETUPS:
         raise KeyError(f'unknown setup {name!r} (known: {sorted(SETUPS)})')
     return SETUPS[name]
+
+
+def for_car(name, car, keep=()):
+    """Named setup `name` moved onto a car that has its own knob defaults (ocd_lap CarSpec
+    `setup_cls`, e.g. 'sf70h_f1' on ocd_first_lap branch sf70h-f1: heave on, brake bias 0.58).
+    Start from the car's default setup and apply the knobs where `name` differs from `Setup()`,
+    except those in `keep`, where the car's own default stays. `car` is a cars.CARS name or an
+    object with a `setup_cls` attribute. For cars without their own class (av21, sf70h_tum, and
+    every car on the main ocd_first_lap checkout) this returns get(name) itself."""
+    from ocd_lap import cars
+    spec = cars.get(car) if isinstance(car, str) else car
+    cls = getattr(spec, 'setup_cls', None)
+    if cls is None:
+        return get(name)
+    named, p0 = get(name).to_dict(), Setup().to_dict()
+    return cls().replace(**{k: v for k, v in named.items() if v != p0[k] and k not in keep})

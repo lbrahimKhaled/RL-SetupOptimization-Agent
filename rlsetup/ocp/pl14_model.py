@@ -110,6 +110,44 @@ def sf70h_tum_car(**kw) -> CarParams:
     return replace(base, **kw)
 
 
+# 'sf70h_f1' (ocd_first_lap branch sf70h-f1, approved 1 Nov 2026; docs/research/f1_car_parameters.md)
+# values the PL14 model can take. Constants copied from that car's ocd_lap/cars.py and the shipped
+# OCD JSON (MF5.2 PKY*, FNOMIN); tests/test_ocp_model.py checks them against the formulas.
+F1_STEER_MAX_RAD = 0.30          # cars.F1['steer_max_rad'] (F1DOC §3): use SolveSettings(delta_max=...)
+F1_IZ_PL14_KGM2 = 450.0 * (733.0 / 660.0) * (3.6 / 3.4) ** 2   # cars.F1['iz_pl14_kgm2'] = 560.3
+_PKY1, _PKY2, _PKY4, _FNOMIN = -75.5, 4.65, 2.0, 3000.0          # shipped OCD MF5.2, kept by sf70h_f1
+
+
+def pl14_alpha_max_for_mf(muy: float, N: float, q: float = 1.9) -> float:
+    """PL14 slip-angle coefficient [rad] equivalent to OCD's MF5.2 with C = q, E = 0 and the kept
+    Ky = |PKY1| FNOMIN sin(PKY4 atan(N / (PKY2 FNOMIN))): alpha_max = Q S mu_y N / Ky, the same
+    relation the car uses for kappa (cars.f1_tyre_overrides, F1DOC §2 READING 1)."""
+    qs = q * math.pi / (2 * math.atan(q))
+    ky = abs(_PKY1) * _FNOMIN * math.sin(_PKY4 * math.atan(N / (_PKY2 * _FNOMIN)))
+    return qs * muy * N / ky
+
+
+def sf70h_f1_car(Iz: float = 1159.6, **kw) -> CarParams:
+    """PL14 model with the sf70h_f1 values where they map; everything else as sf70h_tum_car.
+
+    MAPPED (new vs sf70h_tum_car): lateral peak-slip coefficients alp1/alp2 at 2000/6000 N from the
+    car's MF5.2 (kept Ky with TUM mu_y, C = 1.9, E = 0; pl14_alpha_max_for_mf): front 9.40 / 9.76
+    deg, rear 10.88 / 11.48 deg (PL14 9 / 8 deg); longitudinal kap1/kap2 stay PL14's 0.11 / 0.10,
+    which is exactly what the car's PKX were derived from; Q = 1.9 both (= car's PCX1/PCY1);
+    Iz (1159.6 kept, or F1_IZ_PL14_KGM2 for the _iz560 variant); beta 0.58 (car's brake bias
+    default); half_width 1.035 m (car footprint). The steering limit 0.30 rad is a solve setting
+    (SolveSettings.delta_max = F1_STEER_MAX_RAD).
+    NOT MAPPED (no element in this model): 15 kN m brake torque cap, heave elements, footprint
+    length, ride-height aero, wheel spin dynamics."""
+    base = sf70h_tum_car()
+    tf = replace(base.tyre_f, alp1=pl14_alpha_max_for_mf(base.tyre_f.muy1, 2000.0),
+                 alp2=pl14_alpha_max_for_mf(base.tyre_f.muy2, 6000.0))
+    tr = replace(base.tyre_r, alp1=pl14_alpha_max_for_mf(base.tyre_r.muy1, 2000.0),
+                 alp2=pl14_alpha_max_for_mf(base.tyre_r.muy2, 6000.0))
+    car = replace(base, name="sf70h_f1_pl14", Iz=Iz, beta=0.58, half_width=1.035, tyre_f=tf, tyre_r=tr)
+    return replace(car, **kw)
+
+
 def smax(x, eps: float):
     """PL14 eq 48: max(x,0) ~ (x + sqrt(x^2+eps))/2."""
     return 0.5 * (x + ca.sqrt(x * x + eps))
