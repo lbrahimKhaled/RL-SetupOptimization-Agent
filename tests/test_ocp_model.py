@@ -145,3 +145,21 @@ def test_sf70h_mapping():
     assert car.M == 733.0 and car.Pmax == 575e3
     assert car.tyre_f.mux1 == pytest.approx(1.70) and car.tyre_r.muy2 == pytest.approx(2.0)
     assert car.aA == pytest.approx(1.977, abs=1e-3)
+
+
+def test_sf70h_f1_mapping():
+    """sf70h_f1 (ocd_first_lap sf70h-f1): only alp, Iz, beta, half_width change vs sf70h_tum_car;
+    alp = Q S mu_y N / Ky reproduces the car's MF5.2 lateral peak at 0.751 alp_max."""
+    from rlsetup.ocp.pl14_model import F1_IZ_PL14_KGM2, pl14_alpha_max_for_mf, sf70h_f1_car
+    from rlsetup.ocp.solve import SolveSettings
+    old, new = sf70h_tum_car(), sf70h_f1_car()
+    assert (new.Iz, new.beta, new.half_width) == (1159.6, 0.58, 1.035)
+    assert sf70h_f1_car(Iz=F1_IZ_PL14_KGM2).Iz == pytest.approx(560.3, abs=0.05)
+    for t_old, t_new, deg in ((old.tyre_f, new.tyre_f, (9.40, 9.76)), (old.tyre_r, new.tyre_r, (10.88, 11.48))):
+        assert (t_new.kap1, t_new.kap2, t_new.Qx, t_new.Qy, t_new.mux1, t_new.muy2) == \
+            (t_old.kap1, t_old.kap2, t_old.Qx, t_old.Qy, t_old.mux1, t_old.muy2)
+        assert math.degrees(t_new.alp1) == pytest.approx(deg[0], abs=0.01)
+        assert math.degrees(t_new.alp2) == pytest.approx(deg[1], abs=0.01)
+    # MF sweep of the car (front, 3 kN): lateral peak 7.05 deg = 0.751 alpha_max
+    assert 0.751 * math.degrees(pl14_alpha_max_for_mf(1.85, 3000.0)) == pytest.approx(7.05, abs=0.02)
+    assert SolveSettings().delta_max == 0.6

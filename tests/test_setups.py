@@ -62,3 +62,23 @@ def test_bcn_preset_and_setup():
     p1s, b = setups.get('p1_TUM').to_dict(), setups.get('bcn_best').to_dict()
     assert {k: v for k, v in b.items() if v != p1s[k]} == {'aero_level': 1., 'aero_front_share': .5384,
                                                           'brake_bias_front': .55}
+
+
+def test_for_car():
+    """Cars without their own Setup class get the named setup itself; a car with one gets its
+    defaults plus the named setup's changes from Setup(), except the kept knobs."""
+    from dataclasses import dataclass
+    from types import SimpleNamespace
+    assert setups.for_car('p1_TUM', 'sf70h_tum') is setups.get('p1_TUM')
+    assert setups.for_car('p1_TUM', SimpleNamespace(setup_cls=None)) is setups.get('p1_TUM')
+
+    @dataclass(frozen=True)
+    class Own(Setup):
+        heave_freq_front_hz: float = 6.
+        brake_bias_front: float = .58
+    car = SimpleNamespace(setup_cls=Own)
+    s = setups.for_car('p1_TUM', car, keep=('brake_bias_front',))
+    assert type(s) is Own and s.heave_freq_front_hz == 6. and s.brake_bias_front == .58
+    assert (s.roll_stiffness_front_share, s.aero_front_share, s.lsd_lock_drive) == (.4533, .4508, 1.)
+    assert setups.for_car('p1_TUM', car).brake_bias_front == .49
+    assert setups.for_car('p0', car) == Own()

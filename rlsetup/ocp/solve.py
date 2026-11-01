@@ -38,6 +38,7 @@ class SolveSettings:
     corridor_fixed: float | None = None   # +-fixed [m] (ML16: 4 m); None -> half-width minus car half-width
     N_min: float = 50.0             # wheel-load floor [N] (replaces PL14 light-wheel clipping)
     kappa_max: float = 0.6          # |longitudinal slip| bound [-] (kappa = -1 is a locked wheel)
+    delta_max: float = 0.6          # |road-wheel steer| bound [rad] (OCD backend 0.6; sf70h_f1 0.30)
     u_min: float = 10.0             # [m/s]
     mesh_u_ref: float | None = None  # speed-adapted mesh: h(s) = ds * clip((u/mesh_u_ref)^mesh_pow, mesh_min_frac, 1)
     mesh_pow: float = 2.0           # 2: keeps h * (s-domain yaw/lateral eigenvalue ~ 1/u^2) about constant
@@ -156,7 +157,7 @@ def solve(track: Track, car: CarParams, st: SolveSettings, W0: np.ndarray | None
     ubw = np.zeros((NX + NC + NZ, N))
     rows = {  # physical bounds
         0: (lo, hi), 1: (-1.0, 1.0), 2: (st.u_min, 120.0), 3: (-20.0, 20.0), 4: (-3.0, 3.0),
-        5: (-0.6, 0.6), 6: (-8 * sc["Fc"], 3 * sc["Fc"]),
+        5: (-st.delta_max, st.delta_max), 6: (-8 * sc["Fc"], 3 * sc["Fc"]),
     }
     for i in range(7, 11):
         rows[i] = (-st.kappa_max, st.kappa_max)

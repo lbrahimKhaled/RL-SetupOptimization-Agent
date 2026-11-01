@@ -3,6 +3,12 @@
 debug OCD car of ocd_first_lap branch `tum-debug` (worktree ../ocd_first_lap-tumdebug).
 
     .venv/bin/python scripts/comparison/tum_closed_loop.py [--ocd-root <worktree>] [--out <dir>]
+    .venv/bin/python scripts/comparison/tum_closed_loop.py --ocd-root ../ocd_first_lap-f1 --car sf70h_f1
+
+--car (default sf70h_tum_debug) drives another car of the --ocd-root checkout with the same
+controller. A car with its own knob defaults (CarSpec.setup_cls, e.g. sf70h_f1) gets p1_TUM's
+knobs on top of them, keeping its own brake bias unless --brake-bias is given
+(rlsetup.driving.setups.for_car); any other car gets p1_TUM exactly, as before.
 
 Debug OCD (branch tum-debug, Python-only changes, native .so symlinked from the main checkout):
   car    'sf70h_tum_debug' = sf70h_tum (TUM mass, geometry, tyre peak-mu law, engine, gearbox)
@@ -224,7 +230,7 @@ def tyre_check(params, spec, P, loads=(2000., 4000., 6000., 9000.)):
     return rows
 
 
-def lateral_check(setup, speeds=(15., 25., 35., 50., 70.), overrides=None):
+def lateral_check(setup, speeds=(15., 25., 35., 50., 70.), overrides=None, car=None):
     """Steady-state lateral limit of the debug car (ocd_lap.handling.ramp_steer, 0.03 rad/s,
     LSD as in the setup and opened) against TUM's own axle-wise limit (sf70h_checks.tum_limits)."""
     from ocd_lap import handling
@@ -234,10 +240,11 @@ def lateral_check(setup, speeds=(15., 25., 35., 50., 70.), overrides=None):
     spec = importlib.util.spec_from_file_location('sf70h_checks', path)
     checks = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(checks)
+    car = car or CAR
     out = []
     for v in speeds:
-        a = handling.ramp_steer(setup, v, rate_radps=.03, car=CAR, overrides=overrides)
-        b = handling.ramp_steer(setup.replace(lsd_lock_drive=0.), v, rate_radps=.03, car=CAR,
+        a = handling.ramp_steer(setup, v, rate_radps=.03, car=car, overrides=overrides)
+        b = handling.ramp_steer(setup.replace(lsd_lock_drive=0.), v, rate_radps=.03, car=car,
                                 overrides=overrides)
         tum = checks.tum_limits(v)[0]
         out.append(dict(v_mps=v, tum_ay_max_mps2=tum, ocd_ay_max_mps2=a['max_ay_mps2'],
@@ -403,8 +410,8 @@ def run(f, ctx, gains):
     from ocd_lap.backend import OCDBackend, StartPose, Inputs, DT
     import ocd_trace
     track, ttrack, geo, prof, setup, spec_tum = (ctx[k] for k in ('track', 'ttrack', 'geo', 'prof', 'setup', 'spec_tum'))
-    backend = OCDBackend(powertrain='engine', car=CAR, max_brake_torque_Nm=BRAKE_TORQUE_NM,
-                         overrides=ctx.get('overrides'))
+    backend = OCDBackend(powertrain='engine', car=ctx.get('car', CAR), max_brake_torque_Nm=BRAKE_TORQUE_NM,
+                         overrides=ctx.get('overrides'), **ctx.get('backend_kw', {}))
     spec = backend.spec
     raceline = geo.raceline
     L = raceline.length
@@ -523,13 +530,19 @@ def main():
     ap.add_argument('--f', type=float, nargs='+', default=list(F_LIST))
     ap.add_argument('--all', action='store_true', help='run every f (default: stop at the first clean lap 2)')
     ap.add_argument('--gain', nargs=2, action='append', default=[], metavar=('NAME', 'VALUE'),
-                    help='diagnostic only: override one Gains field (float)')
+                    help="diagnostic only: override one Gains field (float, or 'a,b' for a tuple)")
     ap.add_argument('--lsd-lock', type=float, default=None,
                     help='diagnostic only: Setup.lsd_lock_drive instead of the p1_TUM value (1.0)')
     ap.add_argument('--tyre-scale', nargs=2, action='append', default=[], metavar=('NAME', 'VALUE'),
                     help='diagnostic only: MF5.2 scaling factor (e.g. LKX 1.6) on all four wheels')
     ap.add_argument('--no-checks', action='store_true', help='skip the tyre / lateral / QSS checks')
+    ap.add_argument('--car', default=CAR, help=f'car of the --ocd-root checkout (default {CAR})')
+    ap.add_argument('--brake-bias', type=float, default=None,
+                    help="front brake bias instead of the setup's (p1_TUM 0.49, or the car's own default)")
+    ap.add_argument('--knob', nargs=2, action='append', default=[], metavar=('NAME', 'VALUE'),
+                    help='diagnostic only: set one setup knob (float), e.g. heave_damping_ratio 0.3')
     args = ap.parse_args()
+    car = args.car
     ocd_root = setup_paths(args.ocd_root)
     from ocd_lap.backend import OCDBackend, StartPose
     from ocd_lap.track import Track
@@ -542,34 +555,42 @@ def main():
     out = Path(args.out) if args.out else common.OUT_ROOT / f'tum_ocd_debug_{stamp}'
     out.mkdir(parents=True, exist_ok=False)
     from dataclasses import replace as _replace
-    gains = _replace(Gains(), **{k: float(v) for k, v in args.gain})
+    # a comma gives a tuple (alpha_f_max_rad '0.125,0.125'); otherwise a float
+    gains = _replace(Gains(), **{k: tuple(float(x) for x in v.split(',')) if ',' in v else float(v)
+                                 for k, v in args.gain})
     track = Track('Shanghai')
     ttrack = Track('Shanghai', tum_mode=True)
     geo = ocd_trace.Geometry(track)
     tum = load_tum(TUM_CSV, geo.raceline)
     tum_meta = json.loads(TUM_CSV.with_suffix('.meta.json').read_text())
     prof = Profile(tum, tum_meta['lap_time_s'])
-    setup = setups.get(SETUP)
+    setup = setups.for_car(SETUP, car, keep=('brake_bias_front',))
+    if args.brake_bias is not None:
+        setup = setup.replace(brake_bias_front=args.brake_bias)
+    if args.knob:
+        setup = setup.replace(**{k: float(v) for k, v in args.knob})
     if args.lsd_lock is not None:
         setup = setup.replace(lsd_lock_drive=args.lsd_lock)
     spec_tum = cars.TUM_F1
     overrides = {P + f'z.tire_model.{w}.{k}': float(v) for k, v in args.tyre_scale
                  for w in ('front_left', 'front_right', 'rear_left', 'rear_right')} or None
-    probe = OCDBackend(powertrain='engine', car=CAR, max_brake_torque_Nm=BRAKE_TORQUE_NM, overrides=overrides)
+    backend_kw = {} if cars.get(car).ers is None else {'ers': False}   # ERS off (the debug car has none)
+    probe = OCDBackend(powertrain='engine', car=car, max_brake_torque_Nm=BRAKE_TORQUE_NM, overrides=overrides,
+                       **backend_kw)
     probe.reset(setup, StartPose(speed=10.))
     params = probe.run_metadata()['parameters']
     r_scale = params[P + 'tire.rolling_radius_m.velocity_scaling.factors']
-    ctx = dict(overrides=overrides, lf=params[P + 'cog.distance_from_front_axle_m'], track=track, ttrack=ttrack, geo=geo, prof=prof, setup=setup, spec_tum=spec_tum,
+    ctx = dict(car=car, backend_kw=backend_kw, overrides=overrides, lf=params[P + 'cog.distance_from_front_axle_m'], track=track, ttrack=ttrack, geo=geo, prof=prof, setup=setup, spec_tum=spec_tum,
                r0=params[P + 'tire.rolling_radius_m.rear'], r_scale=r_scale)
     if not args.no_checks:
         tyres = tyre_check(params, spec_tum, P)
         (out / 'tyre_check.json').write_text(json.dumps(common._clean(tyres), indent=1) + '\n')
-        lat = lateral_check(setup, overrides=overrides)
+        lat = lateral_check(setup, overrides=overrides, car=car)
         (out / 'lateral_check.json').write_text(json.dumps(common._clean(lat), indent=1) + '\n')
         from ocd_lap import qss_lap
         w0 = time.perf_counter()
-        ggv = qss_lap.measure_ggv(setup, car=CAR, brake_torque_Nm=BRAKE_TORQUE_NM, overrides=overrides)
-        q = qss_lap.lap_time(setup, track, car=CAR, ers=False, drs=False, path=track.reference, ggv_data=ggv,
+        ggv = qss_lap.measure_ggv(setup, car=car, brake_torque_Nm=BRAKE_TORQUE_NM, overrides=overrides)
+        q = qss_lap.lap_time(setup, track, car=car, ers=False, drs=False, path=track.reference, ggv_data=ggv,
                              overrides=overrides)
         q = {k: v for k, v in q.items() if k not in ('v_profile', 's_m')}
         q.update(wall_s=time.perf_counter() - w0, note='OCD QSS (qss_lap) of the debug car on TUM raceline, '
@@ -577,7 +598,7 @@ def main():
         (out / 'qss_debug_car.json').write_text(json.dumps(common._clean(q), indent=1) + '\n')
         print('QSS debug car on TUM raceline:', q['lap_time_s'], flush=True)
     s_grid = np.arange(0., geo.raceline.length, 1.)
-    fp = cars.get(CAR).footprint
+    fp = cars.get(car).footprint
     ceiling = dict(footprint=float(np.mean([track.contains_car(*geo.raceline.point(si), geo.raceline.heading(si), fp) for si in s_grid])),
                    cog=float(np.mean([ttrack.contains_cog(*geo.raceline.point(si)) for si in s_grid])))
     print('raceline inside the track (per metre):', ceiling, flush=True)
@@ -599,11 +620,12 @@ def main():
             'source': 'tum_closed_loop_debug_ocd', 'summary': summary, 'lap_time_s': summary['lap2_s'],
             'speed_scale_f': f, 'tum_reference': {'csv': str(TUM_CSV), 'sha256': common.sha256_file(TUM_CSV),
                                                   'lap_time_s': tum_meta['lap_time_s'], 'variant': tum_meta['variant']},
-            'conditions': {'car': CAR, 'setup_name': SETUP if args.lsd_lock is None else f'{SETUP} with lsd_lock_drive={args.lsd_lock}', 'setup': asdict(setup), 'max_brake_torque_Nm': BRAKE_TORQUE_NM,
-                           'ers': False, 'drs': False, 'recuperation': False, 'post_setup_params': cars.get(CAR).post_setup,
+            'conditions': {'car': car, 'setup_name': SETUP if args.lsd_lock is None else f'{SETUP} with lsd_lock_drive={args.lsd_lock}',
+                           'setup_class': type(setup).__name__, 'brake_bias_arg': args.brake_bias, 'setup': asdict(setup), 'max_brake_torque_Nm': BRAKE_TORQUE_NM,
+                           'ers': False, 'drs': False, 'recuperation': False, 'post_setup_params': getattr(cars.get(car), 'post_setup', {}),
                            'diagnostic_ocd_overrides': overrides,
                            'track': "Track('Shanghai', tum_mode=True): raceline path, CoG off-track (logged)",
-                           'on_track': 'footprint 4.6 x 2.0 m at every 2 ms step (logged only)',
+                           'on_track': f'car footprint {fp} at every 2 ms step (logged only)',
                            'on_track_cog': 'CoG inside the track at every 2 ms step (TUM mode check, logged)',
                            'run_in_m': RUN_IN_M, 'laps': LAPS, 'control_dt_s': .02, 'physics_dt_s': .002,
                            'initial_gear': 'TUM find_gear at the start speed (initial condition only)'},
