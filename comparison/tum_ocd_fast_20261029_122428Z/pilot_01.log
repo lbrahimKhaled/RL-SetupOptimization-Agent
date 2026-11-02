@@ -1,0 +1,43 @@
+geometry alpha=0.50: planned inside 1.000000
+geometry alpha=1.00: planned inside 1.000000
+trial0000 {'alpha': 0.5, 'factor': 1.0, 'lookahead_s': 0.22, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0001 {'alpha': 1.0, 'factor': 1.0, 'lookahead_s': 0.22, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0002 {'alpha': 0.5, 'factor': 0.95, 'lookahead_s': 0.22, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0003 {'alpha': 1.0, 'factor': 0.95, 'lookahead_s': 0.22, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0004 {'alpha': 0.5, 'factor': 0.85, 'lookahead_s': 0.22, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0005 {'alpha': 1.0, 'factor': 0.85, 'lookahead_s': 0.22, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0006 {'alpha': 0.5, 'factor': 0.7, 'lookahead_s': 0.22, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=True cause=lap_complete lap2=137.2151104806195
+trial0007 {'alpha': 1.0, 'factor': 0.7, 'lookahead_s': 0.22, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=True cause=lap_complete lap2=138.33708335879794
+trial0008 {'alpha': 0.5, 'factor': 1.0, 'lookahead_s': 0.16, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0009 {'alpha': 1.0, 'factor': 1.0, 'lookahead_s': 0.16, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0010 {'alpha': 0.5, 'factor': 0.95, 'lookahead_s': 0.16, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0011 {'alpha': 1.0, 'factor': 0.95, 'lookahead_s': 0.16, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0012 {'alpha': 0.5, 'factor': 0.85, 'lookahead_s': 0.16, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0013 {'alpha': 1.0, 'factor': 0.85, 'lookahead_s': 0.16, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0014 {'alpha': 0.5, 'factor': 0.7, 'lookahead_s': 0.16, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0015 {'alpha': 1.0, 'factor': 0.7, 'lookahead_s': 0.16, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0016 {'alpha': 0.5, 'factor': 1.0, 'lookahead_s': 0.1, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0017 {'alpha': 1.0, 'factor': 1.0, 'lookahead_s': 0.1, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0018 {'alpha': 0.5, 'factor': 0.95, 'lookahead_s': 0.1, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0019 {'alpha': 1.0, 'factor': 0.95, 'lookahead_s': 0.1, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0020 {'alpha': 0.5, 'factor': 0.85, 'lookahead_s': 0.1, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0021 {'alpha': 1.0, 'factor': 0.85, 'lookahead_s': 0.1, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0022 {'alpha': 0.5, 'factor': 0.7, 'lookahead_s': 0.1, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0023 {'alpha': 1.0, 'factor': 0.7, 'lookahead_s': 0.1, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0024 {'alpha': 0.5, 'factor': 1.0, 'lookahead_s': 0.28, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0025 {'alpha': 1.0, 'factor': 1.0, 'lookahead_s': 0.28, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0026 {'alpha': 0.5, 'factor': 0.95, 'lookahead_s': 0.28, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0027 {'alpha': 1.0, 'factor': 0.95, 'lookahead_s': 0.28, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0028 {'alpha': 0.5, 'factor': 0.85, 'lookahead_s': 0.28, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0029 {'alpha': 1.0, 'factor': 0.85, 'lookahead_s': 0.28, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0030 {'alpha': 0.5, 'factor': 0.7, 'lookahead_s': 0.28, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=True cause=lap_complete lap2=137.26083332763906
+trial0031 {'alpha': 1.0, 'factor': 0.7, 'lookahead_s': 0.28, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=True cause=lap_complete lap2=138.35436228014404
+trial0032 {'alpha': 0.5, 'factor': 1.0, 'lookahead_s': 0.35, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0033 {'alpha': 1.0, 'factor': 1.0, 'lookahead_s': 0.35, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0034 {'alpha': 0.5, 'factor': 0.95, 'lookahead_s': 0.35, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0035 {'alpha': 1.0, 'factor': 0.95, 'lookahead_s': 0.35, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0036 {'alpha': 0.5, 'factor': 0.85, 'lookahead_s': 0.35, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0037 {'alpha': 1.0, 'factor': 0.85, 'lookahead_s': 0.35, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=False cause=off_track lap2=None
+trial0038 {'alpha': 0.5, 'factor': 0.7, 'lookahead_s': 0.35, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=True cause=lap_complete lap2=137.35750000759188
+trial0039 {'alpha': 1.0, 'factor': 0.7, 'lookahead_s': 0.35, 'speed_kp': 0.4, 'speed_ki': 0.2} clean=True cause=lap_complete lap2=138.4204166693554
+{"stop": "plan_complete", "trials": 40, "best_lap2_s": 137.2151104806195, "repeat_verified": true}

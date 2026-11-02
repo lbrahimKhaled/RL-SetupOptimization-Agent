@@ -1,0 +1,5 @@
+{
+  "utc": "2026-10-29T14:21:35.915263+00:00",
+  "command": "PYTHONPATH=/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 NUMEXPR_NUM_THREADS=1 /usr/bin/nice -n 19 .venv/bin/python scripts/comparison/tune_tum_actions.py --out comparison/tum_ocd_fast_20261029_122428Z/actions_pilot01 --max-trials 20 --wall-seconds 900 --channels speed",
+  "script_sha256": "659f48460390859589ef586da5b3f427cc23766153bf5ae782a461e8b0fa936d"
+}
