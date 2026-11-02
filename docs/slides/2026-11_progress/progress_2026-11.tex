@@ -1,0 +1,277 @@
+\documentclass[aspectratio=169,10pt]{beamer}
+\usetheme{metropolis}
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\definecolor{refblue}{HTML}{2a78d6}
+\definecolor{simorange}{HTML}{eb6834}
+\definecolor{rlaqua}{HTML}{14855c}
+\newcommand{\xiref}{\xi_{\mathrm{ref}}}
+\setbeamertemplate{frame footer}{RL setup optimisation -- progress, 26 Oct -- 2 Nov 2026}
+
+\title{Reward engineering, simulator fidelity and lap-time benchmarks}
+\subtitle{RL driving agent in OCD: Barcelona and Shanghai}
+\author{Ibrahim Khaled}
+\date{2 November 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{frame}{Outline}
+  \begin{enumerate}
+    \item Reward engineering: from line tracking to a time-optimal reward
+    \item Simulator check: AV-21 leftovers in the ``F1'' car
+    \item Verification: Limebeer-style optimal control (OCP) reproduced
+    \item Results: Barcelona vs.\ Limebeer, Shanghai vs.\ real world and QSS
+    \item Open points and next steps
+  \end{enumerate}
+\end{frame}
+
+% ------------------------------------------------------------------
+\section{Reward engineering}
+
+\begin{frame}{Old reward (\texttt{ref\_tracking}, run \texttt{full1})}
+  Per 50\,Hz tick, $e$ = lateral offset to the reference line $\xiref$:
+  \[
+    r = a\,\Delta s \;-\; b\,\Delta t\,\bigl(1 + \underbrace{\dot u^\top W \dot u}_{\text{jitter}}\bigr) \;-\; \underbrace{c\,e^2}_{\text{tracking}}
+    \qquad a=b=1,\; c=0.1,\; W=\mathrm{diag}(0.01, 0.001, 0.001)
+  \]
+  Failure (off track, stall, wrong way): $P = 50 + 30\,c\,e_{\text{exit}}^2$.
+
+  \medskip
+  \textbf{What we saw} (Shanghai, AV-21 car, full1 at 2.95M steps):
+  \begin{itemize}
+    \item Driver glued to $\xiref$: mean $|e| = 0.39$\,m, max 1.83\,m.
+    \item Lap cost split: time 123.3, \textbf{tracking 175.9}, smoothness 10.4. Tracking was a larger term than lap time.
+    \item Best clean lap 122.85\,s. The reference line is a \emph{safe} min-curvature line, so following it closely means driving slowly.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{New reward (\texttt{time\_pbrs}, R1): what changed}
+  \[
+    r = a\,\Delta s - b\,\Delta t \;+\; \bigl[\gamma\,\Phi(s') - \Phi(s)\bigr],
+    \qquad \Phi(s) = -k\,|e(s)|,\; k = 1\,\text{m}^{-1},\; \gamma = 0.992
+  \]
+  \begin{columns}[T]
+    \begin{column}{0.55\textwidth}
+      \begin{enumerate}
+        \item \textbf{Jitter term removed.} $\dot u^\top W \dot u$ is no longer rewarded (only logged).
+        \item \textbf{Line penalty linear, not squared:} $k|e|$ instead of $c\,e^2$.
+        \item \textbf{Line term is potential-based shaping} (Ng et al.\ 1999), so the optimal policy is the same as with no line term at all. $\xiref$ only guides early learning.
+        \item Constant failure penalty $P = 100$; a stall truncates the episode instead of ending it.
+      \end{enumerate}
+    \end{column}
+    \begin{column}{0.43\textwidth}
+      \includegraphics[width=\linewidth]{fig/penalty_shape.png}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Why these two changes}
+  \textbf{Removing the jitter (smoothness) term}
+  \begin{itemize}
+    \item Top racing agents (Linesight/Trackmania, GT Sophy) use no smoothness term in the reward.
+    \item Christmann et al.\ (IROS 2024): a smoothness penalty can make the agent settle for worse performance, and its weight is hard to tune.
+    \item The time cost already penalises wasted inputs. Smoothness stays a logged diagnostic.
+  \end{itemize}
+  \textbf{$|e|$ instead of $e^2$}
+  \begin{itemize}
+    \item $e^2$ is flat near the line and steep far from it. Small deviations cost almost nothing, large ones dominate the return.
+    \item $|e|$ has a constant gradient (Linesight also shapes on a linear distance).
+    \item Inside a PBRS potential the term cannot change the final driver. It only speeds up early learning.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Effect of the new reward}
+  \centering
+  \begin{tabular}{@{}llrr@{}}
+    \toprule
+    Run & Car / reward & Best clean lap 2 & Own QSS (safe line)\\
+    \midrule
+    full1 & AV-21, old reward & 122.85\,s & 133.9\,s\\
+    r1\_warm & AV-21, new reward, warm start & 123.04\,s & 133.9\,s\\
+    sf70h\_mac\_r1 & sf70h\_tum, new reward, from scratch & \textbf{103.24\,s} & 104.78\,s\\
+    p1\_TUM & sf70h\_tum + TUM-like setup, new reward & \textbf{101.27\,s} & 103.56\,s\\
+    \bottomrule
+  \end{tabular}
+  \bigskip
+  \begin{itemize}
+    \item The warm start kept the old line-following habits and gained nothing. From scratch, the free driver \textbf{beats the QSS lap on the safe line} by 1.5--2.3\,s, because it is no longer tied to that line.
+    \item Cost: lower clean rate. Only 48/194 deterministic evaluations were clean in sf70h\_mac\_r1.
+  \end{itemize}
+\end{frame}
+
+% ------------------------------------------------------------------
+\section{Simulator check: AV-21 leftovers}
+
+\begin{frame}{The ``F1'' car was partly an AV-21}
+  OCD ships the \textbf{Dallara AV-21} (Indy Autonomous Challenge car). \texttt{sf70h\_tum} replaced only the values that TUM's F1 file provides:
+  \begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+      \textbf{From TUM (F1):}\\
+      mass 733\,kg, geometry, peak $\mu$ per axle, aero ($C_zA$ 4.88, $C_xA$ 1.56\,m$^2$), 575\,kW engine, gear ratios, ERS
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \textbf{Still AV-21 (PLACEHOLDER):}\\
+      tyre slip stiffness and curve shape (PKX/PKY, PEX/PEY, PCX/PCY), combined slip, inertias (scaled), wheel masses and inertias, tyre vertical stiffness, roll centres, steering lock 0.6\,rad, suspension defaults
+    \end{column}
+  \end{columns}
+  \bigskip
+  \alert{Consequence:} the AV-21 slip stiffness now carries about 30\,\% more friction, so the rear's longitudinal force peaks at \textbf{13--33\,\% slip}. A real F1 tyre peaks near 8\,\%. Lateral force has already collapsed by then, so the car cannot use its traction on corner exits.
+\end{frame}
+
+\begin{frame}{Diagnosis: TUM's 94.9\,s lap driven in OCD}
+  \begin{columns}[c]
+    \begin{column}{0.55\textwidth}
+      \includegraphics[width=\linewidth]{fig/gap_breakdown.png}
+    \end{column}
+    \begin{column}{0.42\textwidth}
+      \small
+      \begin{itemize}
+        \item Closed-loop tracking of TUM's raceline and speed profile in a TUM-aligned OCD car.
+        \item Best driven lap \textbf{102.99\,s} vs.\ TUM 94.89\,s, while OCD's own QSS is 95.73\,s. The \emph{quasi-static} limits match. The time goes in \emph{transients}.
+        \item Longitudinal slip stiffness $\times1.6$ alone: \textbf{$-2.69$\,s}, with QSS unchanged.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Fix: new car \texttt{sf70h\_f1} (1 Nov)}
+  \small
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    Item & AV-21 / old & F1 value (source)\\
+    \midrule
+    Tyre PKX1/2/3 & 30.7 / 0.27 / 0.13 & F 42.17 / $-0.96$ / 0; R 49.84 / $-0.38$ / 0 (PL14 peak slip)\\
+    PCX1, PCY1; PEX, PEY & 1.6, 1.5; AV-21 & 1.9, 1.9; 0 (PL14)\\
+    Steering lock & 0.6\,rad & 0.30\,rad\\
+    Heave springs & off & 1.0 / 0.25 MN/m (F / R)\\
+    Brake bias, torque & 0.50, 12\,kN\,m & 0.58, 15\,kN\,m\\
+    Footprint & 4.6\,$\times$\,2.0\,m & 5.006\,$\times$\,2.07\,m (FIA 2017 width)\\
+    \bottomrule
+  \end{tabular}
+  \medskip
+  \begin{itemize}
+    \item Fx peak moves from $\kappa = 0.14$--$0.27$ to $0.075$--$0.081$. Peak $\mu$ is unchanged.
+    \item Closed-loop TUM lap: 102.87 $\to$ \textbf{101.84\,s} (101.29\,s with heave damping).
+    \item \alert{New finding:} with zero heave damping the car porpoises (4.5\,Hz heave mode) at high downforce. A heave-damping value is needed.
+  \end{itemize}
+\end{frame}
+
+% ------------------------------------------------------------------
+\section{Verification: Limebeer-style OCP}
+
+\begin{frame}{Minimum-lap-time OCP, as in Perantoni \& Limebeer 2014}
+  \begin{itemize}
+    \item Planar body, quasi-static load transfer, 4 combined-slip tyres, LSD, aero, power limit. Distance-domain direct collocation (CasADi + IPOPT), mesh down to 0.5\,m.
+    \item \textbf{D-check, Barcelona with Limebeer's car: 82.34\,s} vs.\ PL14 mesh-converged 82.57\,s, i.e.\ $-0.28$\,\% (pass band $\pm1.5$\,\%).
+    \item Mesh-converged within 0.005\,s. KKT residuals $<5\times10^{-7}$. IDAS re-integration agrees to $<1$\,ms in lap time.
+    \item Same model with the SF70H-TUM values: \textbf{Shanghai 94.25\,s} (TUM QSS 94.89\,s), \textbf{Barcelona 78.76\,s}. With the \texttt{sf70h\_f1} tyre: 94.62 / 79.38\,s.
+  \end{itemize}
+  \medskip
+  \small Limits: local optima only (a different initial guess gave $+0.55$\,s). No suspension and no wheel-spin dynamics. This is an external reference, not an OCD lap.
+\end{frame}
+
+% ------------------------------------------------------------------
+\section{Results}
+
+\begin{frame}{Barcelona: Limebeer's OCP vs.\ our RL driver}
+  \begin{columns}[c]
+    \begin{column}{0.6\textwidth}
+      \includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{fig/barcelona_bars.png}
+    \end{column}
+    \begin{column}{0.38\textwidth}
+      \small
+      \begin{itemize}
+        \item RL: \textbf{83.97\,s} (step 5.05M of 7.05M).
+        \item $+1.40$\,s ($+1.7$\,\%) to PL14's 82.57\,s.
+        \item $+1.08$\,s ($+1.3$\,\%) to our own QSS (82.89\,s).
+        \item Faster than ML16's suspension model (84.55\,s).
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  \vspace{-2pt}
+  \footnotesize\alert{Not the same car:} PL14 uses a 2013-era F1 car (660\,kg, $C_L$ 3.0, 560\,kW). Ours is \texttt{sf70h\_tum} (733\,kg, 575\,kW) with \texttt{bcn\_best} at aero\_level 1.0 on a PLACEHOLDER aero map. Our OCP with SF70H-TUM values gives 78.76\,s.
+\end{frame}
+
+\begin{frame}{Shanghai: real world vs.\ QSS vs.\ our RL driver}
+  \begin{columns}[c]
+    \begin{column}{0.6\textwidth}
+      \includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{fig/shanghai_bars.png}
+    \end{column}
+    \begin{column}{0.38\textwidth}
+      \small
+      No Limebeer lap exists for Shanghai.
+      \begin{itemize}
+        \item RL \textbf{101.27\,s}: $+9.4$\,s to Vettel's SF70H (91.86\,s), $+6.4$\,s to TUM QSS with no ERS/DRS.
+        \item RL beats our QSS on its own safe line (103.56\,s).
+        \item Our QSS on TUM's raceline (95.73\,s) is within 0.84\,s of TUM.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Shanghai: how the gap closed}
+  \begin{columns}[c]
+    \begin{column}{0.6\textwidth}
+      \includegraphics[width=\linewidth]{fig/shanghai_progression.png}
+    \end{column}
+    \begin{column}{0.38\textwidth}
+      \small
+      Gap to the real SF70H: \textbf{31.0\,s $\to$ 9.4\,s}.
+      \smallskip
+
+      Remaining gap (Shanghai):
+      \begin{itemize}
+        \item ERS + DRS off: $\approx 3.6$\,s (TUM 94.89 $\to$ 91.24\,s)
+        \item AV-21 tyre transients: up to $\approx 8$\,s in closed loop. \texttt{sf70h\_f1} fixes part of it.
+        \item Track check uses the full footprint. TUM's raceline keeps the car on track for only 70\,\% of the lap.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Training curves (clean deterministic laps only)}
+  \centering
+  \includegraphics[width=0.98\linewidth]{fig/learning_curves.png}
+  \small
+  Both runs plateau. Barcelona: best 83.97\,s, then 84.0--84.7\,s with only 26/142 clean deterministic evaluations. Shanghai: 101.3--102\,s from 4M to 10.5M steps.
+\end{frame}
+
+% ------------------------------------------------------------------
+\section{Open points}
+
+\begin{frame}{Summary and next steps}
+  \textbf{Summary}
+  \begin{itemize}
+    \item The time-optimal reward (no jitter term, linear $|e|$ shaping as PBRS) lets the driver beat the QSS lap on its own reference line.
+    \item The AV-21 tyre slip behaviour explains much of the gap between our car and an F1 car. \texttt{sf70h\_f1} replaces it with F1-sourced values.
+    \item Our OCP reproduces Limebeer's Barcelona lap within 0.3\,\%. RL is within 1.7\,\% of it (with a different car).
+  \end{itemize}
+  \textbf{Decisions needed}
+  \begin{enumerate}
+    \item Heave damping for \texttt{sf70h\_f1}, or softer heave springs (porpoising).
+    \item $I_z$: keep 1159.6 (recommended) or use 560\,kg\,m$^2$.
+    \item RL on \texttt{sf70h\_f1}: scale env steering to 0.30\,rad and re-tune demo traction-control targets.
+    \item Then: ERS on, a racing line sized for the car's footprint, and seeds 1--2.
+  \end{enumerate}
+\end{frame}
+
+\appendix
+\begin{frame}{Sources in the repository}
+  \footnotesize
+  \begin{itemize}
+    \item Reward: \texttt{docs/specs/R1\_time\_optimal.md}, \texttt{docs/research/reward\_redesign.md}, \texttt{rlsetup/driving/config.py}, DECISIONS \#13, \#19
+    \item Runs: \texttt{docs/results/\{D2\_full1, R1\_warm, sf70h\_mac\_r1, bcn\}}, \texttt{comparison/training\_stop\_20261029\_094402Z/p1\_TUM}
+    \item AV-21 diagnosis: \texttt{comparison/tum\_ocd\_debug\_20261031\_144747Z/FINDINGS.md}, \texttt{docs/research/f1\_car\_parameters.md}
+    \item New car: \texttt{docs/reports/SF70H\_F1\_UPGRADE.md}; ocd\_first\_lap branch \texttt{sf70h-f1} (\texttt{docs/SF70H\_TUM\_CAR.md})
+    \item OCP: \texttt{docs/results/limebeer\_ocp/REPORT.md}, \texttt{docs/research/limebeer\_lap\_times.md}
+    \item Real laps: \texttt{docs/research/shanghai\_lap\_records.md}, \texttt{shanghai\_sim\_and\_car\_reference.md}
+  \end{itemize}
+  Most of this material is on branches \texttt{comparison-tum-vs-rl} / \texttt{sf70h-f1}, not yet on \texttt{main}.
+\end{frame}
+
+\end{document}
