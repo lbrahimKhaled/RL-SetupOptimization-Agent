@@ -1,0 +1,46 @@
+{
+  "grid_m": 1.0,
+  "footprint_m": [
+    [
+      2.468,
+      1.0
+    ],
+    [
+      2.468,
+      -1.0
+    ],
+    [
+      -2.1319999999999997,
+      -1.0
+    ],
+    [
+      -2.1319999999999997,
+      1.0
+    ]
+  ],
+  "planned_only": true,
+  "candidates": [
+    {
+      "alpha": 0.5,
+      "planned_only": true,
+      "sample_count": 5364,
+      "max_grid_m": 1.0,
+      "inside_fraction": 1.0,
+      "all_sampled_footprints_inside": true,
+      "violating_samples": 0,
+      "line_length_m": 5363.334935224137,
+      "line_digest": "52f65a8a08101d84"
+    },
+    {
+      "alpha": 1.0,
+      "planned_only": true,
+      "sample_count": 5389,
+      "max_grid_m": 1.0,
+      "inside_fraction": 1.0,
+      "all_sampled_footprints_inside": true,
+      "violating_samples": 0,
+      "line_length_m": 5388.632316623453,
+      "line_digest": "f34d816ebc135011"
+    }
+  ]
+}

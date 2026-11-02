@@ -1,0 +1,504 @@
+{
+ "source": "pure_pursuit_formula_tracking_diagnostic",
+ "protocol": "protocol.json",
+ "protocol_sha256": "beb9fe5314698878448a1e3327ed819f29c935fdfd5b206ccb106aee678117b1",
+ "summary": {
+  "formula": {
+   "mode": "original",
+   "base_m": 3.0,
+   "lookahead_s": 0.35,
+   "prediction_s": 0.0,
+   "beta_weight": 0.0,
+   "maximum_lookahead_m": 35.0,
+   "understeer_gain": 0.0,
+   "cross_gain": 0.0,
+   "yaw_gain": 0.0
+  },
+  "factor": null,
+  "constant_speed_mps": 12.0,
+  "termination": "lap2_complete",
+  "completed_lap2": true,
+  "lap_times_s": [
+   445.18499982918013,
+   445.184600037881
+  ],
+  "lap2_s": 445.184600037881,
+  "progress_m": 10977.927355263473,
+  "sim_time_s": 907.08,
+  "maximum_sim_time_s": 1200.0,
+  "wall_s": 13.649420415982604,
+  "lap2_metrics": {
+   "samples": 11132,
+   "station_weighting": "positive TUM-raceline progress, trapezoidal integration",
+   "station_distance_m": 5340.777736961818,
+   "station_span_m": 5340.777736961818,
+   "raceline_length_m": 5340.770241508524,
+   "station_coverage_fraction": 1.0000014034405067,
+   "full_station_coverage": true,
+   "not_a_clean_lap_claim": true,
+   "CoG_error_m": {
+    "rms": 0.04865173034516725,
+    "max_abs": 0.5125663830195202,
+    "mean": 0.0050033090137288376
+   },
+   "rear_error_m": {
+    "rms": 0.041754111503188515,
+    "max_abs": 0.4674997821492928,
+    "mean": 0.004201085291156637
+   },
+   "body_heading_error_rad": {
+    "rms": 0.018914206800821367,
+    "max_abs": 0.27266620706093647,
+    "mean": 0.0014457359908978005
+   },
+   "CoG_velocity_heading_error_rad": {
+    "rms": 0.013137972028797058,
+    "max_abs": 0.18220403259298834,
+    "mean": 1.8407474083696353e-06
+   },
+   "rear_velocity_heading_error_rad": {
+    "rms": 0.01292277354623618,
+    "max_abs": 0.19655310178289298,
+    "mean": 5.5730672595581346e-06
+   },
+   "speed_error_mps": {
+    "rms": 0.0022723509425171735,
+    "max_abs": 0.04981162414114415,
+    "mean": -4.124245424756697e-14
+   },
+   "mean_actual_speed_mps": 12.001079300502752,
+   "mean_actual_vx_mps": 11.999999999999957,
+   "mean_target_speed_mps": 11.999999999999998,
+   "on_track_interval_fraction": 0.706189297678153,
+   "tracking_score_m": 0.1767933261000473
+  },
+  "terminal_sample": {
+   "t_s": 907.08,
+   "lap": 3,
+   "t_lap_s": 0.030400132938893876,
+   "progress_m": 10977.927355263473,
+   "s_path_m": 0.3799275953633696,
+   "s_raceline_m": 0.4496991764772247,
+   "e_raceline_m": 7.093165803227254e-05,
+   "heading_err_raceline_rad": 9.826785067090782e-05,
+   "e_path_m": -3.412985678996728,
+   "track_position": -0.381222088103759,
+   "x_m": -0.9451729685460686,
+   "y_m": 2.506515676791719,
+   "yaw_rad": -15.4670785608219,
+   "speed_mps": 12.000000057458205,
+   "vx_mps": 12.000000049591932,
+   "vy_mps": -0.0004345003385589496,
+   "yaw_rate_radps": -0.0003489634635744952,
+   "ax_mps2": -2.0919382935448342e-07,
+   "ay_mps2": -0.004188574791563846,
+   "steer_cmd_rad": -0.00010993900922996467,
+   "steer_actual_rad": -0.00010817965815214713,
+   "throttle": 0.014585372959475087,
+   "brake": 0.0,
+   "drive_torque_axle_Nm": 119.01393972571769,
+   "gear": 1,
+   "engine_rpm": 8699.735931046553,
+   "engine_torque_crank_Nm": 4.9589141552866325,
+   "e_motor_torque_crank_Nm": 0.0,
+   "ers_energy_J": null,
+   "slip_rl": 0.001915117529519982,
+   "slip_rr": 0.0019240504960191453,
+   "brake_torque_FL_Nm": 0.0,
+   "kappa_FL": -0.0010370953865177282,
+   "alpha_FL_rad": -1.4109286103778103e-05,
+   "Fz_FL_N": 1717.6689807254172,
+   "brake_torque_FR_Nm": 0.0,
+   "kappa_FR": -0.001037048086616172,
+   "alpha_FR_rad": -1.4104894531683599e-05,
+   "Fz_FR_N": 1717.0331199994491,
+   "brake_torque_RL_Nm": 0.0,
+   "kappa_RL": 0.0019151168529731135,
+   "alpha_RL_rad": -1.1122776473865209e-05,
+   "Fz_RL_N": 2086.1010135879837,
+   "brake_torque_RR_Nm": 0.0,
+   "kappa_RR": 0.0019240511718404906,
+   "alpha_RR_rad": -1.112329493255548e-05,
+   "Fz_RR_N": 2085.502630224575,
+   "on_track": 1,
+   "target_speed_mps": 12.0,
+   "lookahead_m": 7.20000001776119,
+   "beta_rear_rad": 0.0,
+   "s_predicted_rear_m": null,
+   "e_rear_m": 8.518511326152713e-05,
+   "rear_velocity_heading_error_rad": -3.90561478127438e-05,
+   "speed_error_mps": 4.959193233844417e-08,
+   "CoG_velocity_heading_error_rad": 6.205948928972305e-05
+  },
+  "footprint_limits": "recorded every2ms, do not terminate; diagnostic NOT a clean lap",
+  "recorder_crossings_s": [
+   16.68,
+   461.86499982918014,
+   907.0495998670611
+  ],
+  "initial_pose": {
+   "x": 193.85558594000008,
+   "y": 49.734719020000014,
+   "yaw": -2.9299026201653295,
+   "vx": 12.0,
+   "vy": 0.0,
+   "yaw_rate": 0.0,
+   "steer_actual": 0.0,
+   "slip_rl": 0.0,
+   "slip_rr": 0.0
+  },
+  "initial_on_track": false,
+  "flag_semantics": "initial pose checked; each25Hz interval ANDs every2ms footprint check, first interval includes initial pose",
+  "metrics_match": true,
+  "lap_time_matches": true,
+  "verified": true
+ },
+ "conditions": {
+  "car": "sf70h_tum",
+  "setup_name": "p1_TUM",
+  "setup": {
+   "ride_freq_front_hz": 4.2347,
+   "ride_freq_rear_hz": 3.372,
+   "damping_ratio_front": 0.14412,
+   "damping_ratio_rear": 0.10593,
+   "rebound_bump_ratio": 1.0,
+   "fast_slow_ratio": 1.0,
+   "heave_freq_front_hz": 0.0,
+   "heave_freq_rear_hz": 0.0,
+   "heave_damping_ratio": 0.0,
+   "roll_stiffness_Nm_per_rad": 275835.0,
+   "roll_stiffness_front_share": 0.4533,
+   "ride_height_front_m": 0.035,
+   "rake_m": 0.05,
+   "aero_level": 0.5,
+   "aero_front_share": 0.4508,
+   "brake_bias_front": 0.49,
+   "final_drive_ratio": 1.0,
+   "camber_front_deg": 0.0,
+   "camber_rear_deg": 0.0,
+   "toe_front_deg": 0.0,
+   "toe_rear_deg": 0.0,
+   "lsd_preload_Nm": 0.0,
+   "lsd_lock_drive": 1.0,
+   "lsd_lock_coast": 0.0,
+   "packer_gap_front_m": 0.1,
+   "packer_gap_rear_m": 0.1
+  },
+  "ers": false,
+  "drs": false,
+  "recuperation": false,
+  "max_brake_torque_Nm": 15000.0,
+  "physics_dt_s": 0.002,
+  "control_dt_s": 0.04,
+  "footprint_m": [
+   [
+    2.468,
+    1.0
+   ],
+   [
+    2.468,
+    -1.0
+   ],
+   [
+    -2.1319999999999997,
+    -1.0
+   ],
+   [
+    -2.1319999999999997,
+    1.0
+   ]
+  ],
+  "footprint_exit_terminates": false,
+  "start": "original TUM line abeam path -200m; no settle (existing TUM diagnostic)",
+  "not_matched_RL_reset": true,
+  "simulation_time_limit_s": 1200.0
+ },
+ "lap_time_s": 445.184600037881,
+ "valid_clean_lap": false,
+ "schema": [
+  [
+   "t_s",
+   "s",
+   "time since the start of the recording (car placed 200 m before the line; RL: since hand-over after the 2 s settle)"
+  ],
+  [
+   "lap",
+   "-",
+   "line crossings before this sample: 0 = run-in, 1 = lap 1, 2 = lap 2 (the flying lap), 3 = after lap 2"
+  ],
+  [
+   "t_lap_s",
+   "s",
+   "time since the last line crossing (crossing interpolated between ticks); time since start on the run-in"
+  ],
+  [
+   "progress_m",
+   "m",
+   "distance driven along Track.path since the start (unwrapped)"
+  ],
+  [
+   "s_path_m",
+   "m",
+   "arc length on Track.path (ocd_first_lap safe minimum-curvature line), [0, 5388.77)"
+  ],
+  [
+   "s_raceline_m",
+   "m",
+   "arc length on Track.reference (TUM raceline polyline), [0, 5340.77)"
+  ],
+  [
+   "x_m",
+   "m",
+   "CoG x (track frame)"
+  ],
+  [
+   "y_m",
+   "m",
+   "CoG y"
+  ],
+  [
+   "yaw_rad",
+   "rad",
+   "yaw angle (OCD psi, counter-clockwise from +x; not wrapped)"
+  ],
+  [
+   "speed_mps",
+   "m/s",
+   "hypot(vx, vy)"
+  ],
+  [
+   "vx_mps",
+   "m/s",
+   "body-frame longitudinal velocity"
+  ],
+  [
+   "vy_mps",
+   "m/s",
+   "body-frame lateral velocity, positive = left"
+  ],
+  [
+   "yaw_rate_radps",
+   "rad/s",
+   "yaw rate, positive = counter-clockwise (left)"
+  ],
+  [
+   "ax_mps2",
+   "m/s^2",
+   "body-frame acceleration dvx/dt - r vy from OCD's state derivative at the sample"
+  ],
+  [
+   "ay_mps2",
+   "m/s^2",
+   "body-frame acceleration dvy/dt + r vx from OCD's state derivative, positive = left"
+  ],
+  [
+   "steer_cmd_rad",
+   "rad",
+   "steering command (OCD steering_actuator target), positive = left"
+  ],
+  [
+   "steer_actual_rad",
+   "rad",
+   "actual steering angle after OCD's PT1 actuator (0.6 rad, 1.5 rad/s limits)"
+  ],
+  [
+   "throttle",
+   "-",
+   "throttle pedal [0, 1]"
+  ],
+  [
+   "brake",
+   "-",
+   "brake pedal [0, 1] (x 12 kN m total, split by the setup brake bias 0.5)"
+  ],
+  [
+   "drive_torque_axle_Nm",
+   "N m",
+   "rear-axle drive torque OCD received in the last 2 ms step (transmission output)"
+  ],
+  [
+   "brake_torque_FL_Nm",
+   "N m",
+   "brake torque FL OCD received in the last 2 ms step"
+  ],
+  [
+   "brake_torque_FR_Nm",
+   "N m",
+   "brake torque FR OCD received in the last 2 ms step"
+  ],
+  [
+   "brake_torque_RL_Nm",
+   "N m",
+   "brake torque RL OCD received in the last 2 ms step"
+  ],
+  [
+   "brake_torque_RR_Nm",
+   "N m",
+   "brake torque RR OCD received in the last 2 ms step"
+  ],
+  [
+   "gear",
+   "-",
+   "gear, 1-based (ocd_lap.powertrain, TUM F1 ratios)"
+  ],
+  [
+   "engine_rpm",
+   "1/min",
+   "engine speed = rear-axle speed x overall ratio of the current gear"
+  ],
+  [
+   "engine_torque_crank_Nm",
+   "N m",
+   "throttle x full-load engine torque at engine_rpm (ocd_lap.powertrain, recomputed at the sample)"
+  ],
+  [
+   "e_motor_torque_crank_Nm",
+   "N m",
+   "throttle x e-motor torque at engine_rpm and speed (0 with ERS off or empty store; recomputed at the sample)"
+  ],
+  [
+   "ers_energy_J",
+   "J",
+   "ERS energy left (refilled to 4 MJ at each line crossing); empty with ERS off"
+  ],
+  [
+   "slip_rl",
+   "-",
+   "rear-left longitudinal slip ratio (backend state)"
+  ],
+  [
+   "slip_rr",
+   "-",
+   "rear-right longitudinal slip ratio (backend state)"
+  ],
+  [
+   "kappa_FL",
+   "-",
+   "longitudinal slip ratio FL (OCD x_vec)"
+  ],
+  [
+   "kappa_FR",
+   "-",
+   "longitudinal slip ratio FR (OCD x_vec)"
+  ],
+  [
+   "kappa_RL",
+   "-",
+   "longitudinal slip ratio RL (OCD x_vec)"
+  ],
+  [
+   "kappa_RR",
+   "-",
+   "longitudinal slip ratio RR (OCD x_vec)"
+  ],
+  [
+   "alpha_FL_rad",
+   "rad",
+   "slip angle FL (OCD x_vec)"
+  ],
+  [
+   "alpha_FR_rad",
+   "rad",
+   "slip angle FR (OCD x_vec)"
+  ],
+  [
+   "alpha_RL_rad",
+   "rad",
+   "slip angle RL (OCD x_vec)"
+  ],
+  [
+   "alpha_RR_rad",
+   "rad",
+   "slip angle RR (OCD x_vec)"
+  ],
+  [
+   "Fz_FL_N",
+   "N",
+   "vertical tyre force FL (OCD)"
+  ],
+  [
+   "Fz_FR_N",
+   "N",
+   "vertical tyre force FR (OCD)"
+  ],
+  [
+   "Fz_RL_N",
+   "N",
+   "vertical tyre force RL (OCD)"
+  ],
+  [
+   "Fz_RR_N",
+   "N",
+   "vertical tyre force RR (OCD)"
+  ],
+  [
+   "e_raceline_m",
+   "m",
+   "lateral offset to TUM's raceline (Track.reference), positive = left"
+  ],
+  [
+   "heading_err_raceline_rad",
+   "rad",
+   "yaw minus raceline heading, wrapped to [-pi, pi)"
+  ],
+  [
+   "e_path_m",
+   "m",
+   "lateral offset to Track.path (the RL driver's safe line xi_ref), positive = left"
+  ],
+  [
+   "track_position",
+   "-",
+   "lateral position across the track at s_path: -1 right edge ... +1 left edge (DrivingEnv.track_position)"
+  ],
+  [
+   "on_track",
+   "0/1",
+   "car footprint (4.6 x 2.0 m box) inside the track at every 2 ms physics step of the tick ending here (Track.contains_car, the env's own check)"
+  ],
+  [
+   "target_speed_mps",
+   "m/s",
+   "speed-controller target: f x v_TUM(ers) at the raceline point 0.5 s x vx ahead"
+  ],
+  [
+   "lookahead_m",
+   "m",
+   "actual commanded pure-pursuit arc lookahead"
+  ],
+  [
+   "beta_rear_rad",
+   "rad",
+   "body rear-axle velocity sideslip used by the new formula"
+  ],
+  [
+   "s_predicted_rear_m",
+   "m",
+   "original TUM-line station matched to predicted rear axle"
+  ],
+  [
+   "e_rear_m",
+   "m",
+   "actual rear-axle signed lateral offset from original TUM line"
+  ],
+  [
+   "rear_velocity_heading_error_rad",
+   "rad",
+   "actual rear velocity heading minus tangent at rear match"
+  ],
+  [
+   "speed_error_mps",
+   "m/s",
+   "body vx minus the commanded speed during this control interval"
+  ],
+  [
+   "CoG_velocity_heading_error_rad",
+   "rad",
+   "CoG velocity heading minus tangent at CoG match"
+  ]
+ ],
+ "file": "repeat_constant12.0.csv",
+ "rows": 22677,
+ "sha256": "f5b9bc2de70aad84dfe9a7bab21874424c7353548ca1d05634476ea6251e419c",
+ "created_utc": "2026-10-29T14:49:58+00:00"
+}

@@ -1,0 +1,24 @@
+geometry 0.0 length 5388.632 inside 1.0
+geometry 0.05 length 5385.99 inside 1.0
+geometry 0.1 length 5383.372 inside 1.0
+geometry 0.15 length 5380.779 inside 1.0
+geometry 0.2 length 5378.211 inside 1.0
+geometry 0.25 length 5375.669 inside 1.0
+geometry 0.3 length 5373.151 inside 1.0
+geometry 0.35 length 5370.659 inside 1.0
+geometry 0.4 length 5368.192 inside 1.0
+geometry 0.45 length 5365.751 inside 1.0
+geometry 0.5 length 5363.335 inside 1.0
+geometry 0.55 length 5360.945 inside 0.999627
+geometry 0.6 length 5358.58 inside 0.999067
+geometry 0.65 length 5356.242 inside 0.997573
+geometry 0.7 length 5353.93 inside 0.995891
+geometry 0.75 length 5351.643 inside 0.991779
+geometry 0.8 length 5349.383 inside 0.971963
+geometry 0.85 length 5347.15 inside 0.908377
+geometry 0.9 length 5344.943 inside 0.820954
+geometry 0.95 length 5342.763 inside 0.76006
+geometry 1.0 length 5340.611 inside 0.701367
+BEST_ALPHA 0.5 REFINED [{'alpha': 0.0, 'sample_spacing_m': 0.25, 'samples': 21555, 'inside_fraction': 1.0, 'invalid_samples': 0}, {'alpha': 0.5, 'sample_spacing_m': 0.25, 'samples': 21454, 'inside_fraction': 1.0, 'invalid_samples': 0}, {'alpha': 1.0, 'sample_spacing_m': 0.25, 'samples': 21363, 'inside_fraction': 0.7013059963488274, 'invalid_samples': 6381}]
+BOTTLENECKS {"lap2_samples": 2610, "full_throttle_fraction": 0.3938697318007663, "braking_fraction": 0.178544061302682, "full_brake_fraction": 0.0, "front_lock_fraction_kappa_below_minus_0_12": 0.020306513409961684, "rear_slip_above_0_12_fraction": 0.19731800766283525, "max_rear_abs_slip": 0.6307676, "TC_active_reconstructed_fraction": 0.3881226053639847, "TC_mean_throttle_reduction_when_requested_positive": 0.15952483869738443, "full_throttle_while_target_lag_exceeds_3mps_fraction": 0.24597701149425288, "preview_target_speed_error_metrics": {"samples": 2610, "mae_mps": 4.103573610869784, "rmse_mps": 5.542722398691778, "bias_actual_minus_target_mps": -3.6980576715755595, "max_lag_mps": 13.765038470561443, "max_overspeed_mps": 2.5156621190133137, "mean_actual_mps": 51.89425455084199, "mean_reference_mps": 55.59231222241754}, "raceline_error_rms_m": 2.4289918414646303, "raceline_error_max_abs_m": 11.999839583524876, "steer_command_minus_actual_rms_rad": 0.0035308250740609228, "steer_command_minus_actual_max_abs_rad": 0.019723900000000003, "steer_command_near_0_6rad_cap_fraction": 0.0, "speed_max_kmh": 276.355404, "caution": "Observed control/slip correlations and approximate TC reconstruction from rounded logs do not isolate physical causation."}
+OUT /Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/comparison/tum_ocd_fast_20261029_122428Z

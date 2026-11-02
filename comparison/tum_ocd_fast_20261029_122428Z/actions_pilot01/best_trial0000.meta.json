@@ -1,0 +1,943 @@
+{
+ "source": "PP_position_indexed_action_target_corrections_non_RL",
+ "protocol": "protocol.json",
+ "protocol_sha256": "6f543e85411e6c54aa20b56089dbc106f3a454dca0ebed31b48261c70625d6ae",
+ "conditions": {
+  "car": "sf70h_tum",
+  "setup_name": "p1_TUM",
+  "setup": {
+   "ride_freq_front_hz": 4.2347,
+   "ride_freq_rear_hz": 3.372,
+   "damping_ratio_front": 0.14412,
+   "damping_ratio_rear": 0.10593,
+   "rebound_bump_ratio": 1.0,
+   "fast_slow_ratio": 1.0,
+   "heave_freq_front_hz": 0.0,
+   "heave_freq_rear_hz": 0.0,
+   "heave_damping_ratio": 0.0,
+   "roll_stiffness_Nm_per_rad": 275835.0,
+   "roll_stiffness_front_share": 0.4533,
+   "ride_height_front_m": 0.035,
+   "rake_m": 0.05,
+   "aero_level": 0.5,
+   "aero_front_share": 0.4508,
+   "brake_bias_front": 0.49,
+   "final_drive_ratio": 1.0,
+   "camber_front_deg": 0.0,
+   "camber_rear_deg": 0.0,
+   "toe_front_deg": 0.0,
+   "toe_rear_deg": 0.0,
+   "lsd_preload_Nm": 0.0,
+   "lsd_lock_drive": 1.0,
+   "lsd_lock_coast": 0.0,
+   "packer_gap_front_m": 0.1,
+   "packer_gap_rear_m": 0.1
+  },
+  "max_brake_torque_Nm": 15000.0,
+  "ers": false,
+  "drs": false,
+  "recuperation": false,
+  "decision_dt_s": 0.04,
+  "tick_dt_s": 0.02,
+  "physics_dt_s": 0.002,
+  "footprint_m": [
+   [
+    2.468,
+    1.0
+   ],
+   [
+    2.468,
+    -1.0
+   ],
+   [
+    -2.1319999999999997,
+    -1.0
+   ],
+   [
+    -2.1319999999999997,
+    1.0
+   ]
+  ],
+  "seed": 0,
+  "settle_s": 2.0,
+  "run_in_m": 200.0,
+  "strict_footprint_termination": true
+ },
+ "summary": {
+  "profile_sha256": "d21110ccdafbb5e2746e6bd47704806bed1e3a1e20b3bb0f7928e044222a2ebf",
+  "clean": true,
+  "termination": "lap_complete",
+  "truncation": null,
+  "lap_times_s": [
+   135.94285714285698,
+   135.96815484371788
+  ],
+  "lap2_s": 135.96815484371788,
+  "recorder_check": {
+   "lap_times_match_env": true,
+   "configured_reference": "path",
+   "max_abs_configured_ref_minus_env_e_ref_m": 0.0,
+   "recorder_crossings_s": [
+    4.468571339326798,
+    140.41142848218377,
+    276.37958332590165
+   ]
+  },
+  "laps": [
+   {
+    "progress": 5388.773713834052,
+    "time": 135.9428571428527,
+    "smoothness": 11.664710000927904,
+    "tracking": 602.7964116595825,
+    "penalty": 0.0,
+    "lap_time_s": 135.94285714285698,
+    "cost": 750.4039788033631,
+    "cost_r1": 135.9428571428527
+   },
+   {
+    "progress": 5388.773713834052,
+    "time": 135.96815484371365,
+    "smoothness": 9.447904842675184,
+    "tracking": 602.1901198026231,
+    "penalty": 0.0,
+    "lap_time_s": 135.96815484371788,
+    "cost": 747.606179489012,
+    "cost_r1": 135.96815484371365
+   }
+  ],
+  "decisions": 6910,
+  "sim_time_s": 276.38,
+  "progress_m": 10934.515805408402,
+  "episode_return": 10701.075047194441,
+  "wall_s": 7.932010666001588,
+  "handover": {
+   "state": {
+    "x": 152.88746405960111,
+    "y": 35.61713560080665,
+    "yaw": -2.9117481817939472,
+    "vx": 21.55763575378738,
+    "vy": -0.0032921035669443745,
+    "yaw_rate": -0.006787389098618559,
+    "steer_actual": -0.0011630977478710826,
+    "slip_rl": 0.0038678550560115,
+    "slip_rr": 0.0040996344902761985
+   },
+   "s_path_m": 5231.825332282876,
+   "s_ref_m": 5231.825332282876,
+   "settle_integral_m": 0.14099388003634203,
+   "start": {
+    "s0": 5188.773713834052,
+    "fraction": 0.5,
+    "v0": 21.600983754734596,
+    "attempts": 1,
+    "settle_s": 2.0
+   }
+  },
+  "terminal_state": {
+   "x": -0.21319951142621424,
+   "y": 0.9233391033522785,
+   "yaw": -15.470704716806734,
+   "vx": 48.27810603509658,
+   "vy": 0.007057648630840447,
+   "yaw_rate": -0.004223172138955707,
+   "steer_actual": -0.00038274308244688445,
+   "slip_rl": 0.01402884555771633,
+   "slip_rr": 0.014168567546846228
+  },
+  "terminal_sample": {
+   "t_s": 276.38,
+   "decision": 6909,
+   "decision_end": 1,
+   "a_steer": -0.0006810753257013857,
+   "a_throttle": 0.1371598094701767,
+   "a_brake": -0.800000011920929,
+   "target_speed_mps": 48.40711283385775,
+   "s_controller_m": 5362.375282146527,
+   "s_preview_controller_m": 5386.497053922109,
+   "s_preview_tum_m": 23.255015926202983,
+   "speed_scale_f": 0.7,
+   "s_action_path_m": 5387.8339100643925,
+   "local_speed_factor": 0.7,
+   "TUM_preview_speed_mps": 69.1530183340825,
+   "pp_steer_rad": -0.00040864519542083144,
+   "pp_throttle": 0.4247732162475586,
+   "pp_brake": 0.0,
+   "residual_steer_rad": 0.0,
+   "residual_throttle": 0.0,
+   "residual_brake": 0.0,
+   "applied_residual_steer_rad": 0.0,
+   "applied_residual_throttle": 0.0,
+   "applied_residual_brake": 0.0,
+   "lap": 3,
+   "t_lap_s": 0.00041667409834644786,
+   "progress_m": 10934.515805408402,
+   "s_path_m": 0.01999618922945956,
+   "s_raceline_m": 0.09993315032807004,
+   "e_raceline_m": 1.7121224065183536,
+   "heading_err_raceline_rad": -0.003582606904554808,
+   "e_path_m": -1.703358601305906,
+   "track_position": -0.1328605303706687,
+   "x_m": -0.21319951142621424,
+   "y_m": 0.9233391033522785,
+   "yaw_rad": -15.470704716806734,
+   "speed_mps": 48.278106550966065,
+   "vx_mps": 48.27810603509658,
+   "vy_mps": 0.007057648630840447,
+   "yaw_rate_radps": -0.004223172138955707,
+   "ax_mps2": 1.7482310846744582,
+   "ay_mps2": -0.19672563763681272,
+   "steer_cmd_rad": -0.00040864519542083144,
+   "steer_actual_rad": -0.00038274308244688445,
+   "throttle": 0.4247732063134511,
+   "brake": 0.0,
+   "drive_torque_axle_Nm": 1299.3714473031403,
+   "gear": 5,
+   "engine_rpm": 9909.15497513126,
+   "engine_torque_crank_Nm": 193.5734725956098,
+   "e_motor_torque_crank_Nm": 0.0,
+   "ers_energy_J": null,
+   "slip_rl": 0.01402884555771633,
+   "slip_rr": 0.014168567546846228,
+   "brake_torque_FL_Nm": 0.0,
+   "kappa_FL": -0.001171012112416702,
+   "alpha_FL_rad": -0.00035507101505480044,
+   "Fz_FL_N": 3057.6324969541274,
+   "brake_torque_FR_Nm": 0.0,
+   "kappa_FR": -0.00117325617107602,
+   "alpha_FR_rad": -0.00035506717445610633,
+   "Fz_FR_N": 3028.5927005365925,
+   "brake_torque_RL_Nm": 0.0,
+   "kappa_RL": 0.013981666251160017,
+   "alpha_RL_rad": -0.00028767688172335725,
+   "Fz_RL_N": 4100.997854878942,
+   "brake_torque_RR_Nm": 0.0,
+   "kappa_RR": 0.014121894411689838,
+   "alpha_RR_rad": -0.00028771679121961054,
+   "Fz_RR_N": 4069.764477170369,
+   "on_track": 1,
+   "reward": 0.9568150693552109,
+   "r_progress": 0.9597999588877428,
+   "r_time": 0.02,
+   "r_smoothness": 1.0368907658630634e-07,
+   "r_tracking": 0.2901430524642813,
+   "r_penalty": 0.0,
+   "r_shaping": 0.017015110467468064,
+   "e_ref_env_m": -1.703358601305906,
+   "termination": "lap_complete",
+   "truncation": ""
+  },
+  "controller_config": {
+   "speed_kp": 0.4,
+   "speed_ki": 0.2,
+   "integral_limit_m": 5.0,
+   "brake_cap": 1.0,
+   "lookahead_m": 3.0,
+   "lookahead_s": 0.22,
+   "speed_preview_s": 0.5,
+   "released_pedal_action": -0.8,
+   "traction_control": true,
+   "traction_slip_start": 0.08,
+   "traction_slip_span": 0.12
+  },
+  "trial_index": 0,
+  "coordinate": {
+   "channel": "speed",
+   "zone": {
+    "name": "main_straight_3500_4500",
+    "indices": [
+     42,
+     43,
+     44,
+     45,
+     46,
+     47,
+     48,
+     49,
+     50,
+     51,
+     52,
+     53
+    ]
+   }
+  },
+  "requested_delta": 0.05,
+  "previous_clean_lap2_s": 137.2151104806195,
+  "profile": {
+   "speed": [
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.75,
+    0.75,
+    0.75,
+    0.75,
+    0.75,
+    0.75,
+    0.75,
+    0.75,
+    0.75,
+    0.75,
+    0.75,
+    0.75,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7,
+    0.7
+   ],
+   "steer": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "throttle": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "brake": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  "accepted": true,
+  "improvement_s": 1.2469556369016175
+ },
+ "lap_time_s": 135.96815484371788,
+ "learned_weights_loaded": false,
+ "schema": [
+  [
+   "t_s",
+   "s",
+   "time since the start of the recording (car placed 200 m before the line; RL: since hand-over after the 2 s settle)"
+  ],
+  [
+   "lap",
+   "-",
+   "line crossings before this sample: 0 = run-in, 1 = lap 1, 2 = lap 2 (the flying lap), 3 = after lap 2"
+  ],
+  [
+   "t_lap_s",
+   "s",
+   "time since the last line crossing (crossing interpolated between ticks); time since start on the run-in"
+  ],
+  [
+   "progress_m",
+   "m",
+   "distance driven along Track.path since the start (unwrapped)"
+  ],
+  [
+   "s_path_m",
+   "m",
+   "arc length on Track.path (ocd_first_lap safe minimum-curvature line), [0, 5388.77)"
+  ],
+  [
+   "s_raceline_m",
+   "m",
+   "arc length on Track.reference (TUM raceline polyline), [0, 5340.77)"
+  ],
+  [
+   "x_m",
+   "m",
+   "CoG x (track frame)"
+  ],
+  [
+   "y_m",
+   "m",
+   "CoG y"
+  ],
+  [
+   "yaw_rad",
+   "rad",
+   "yaw angle (OCD psi, counter-clockwise from +x; not wrapped)"
+  ],
+  [
+   "speed_mps",
+   "m/s",
+   "hypot(vx, vy)"
+  ],
+  [
+   "vx_mps",
+   "m/s",
+   "body-frame longitudinal velocity"
+  ],
+  [
+   "vy_mps",
+   "m/s",
+   "body-frame lateral velocity, positive = left"
+  ],
+  [
+   "yaw_rate_radps",
+   "rad/s",
+   "yaw rate, positive = counter-clockwise (left)"
+  ],
+  [
+   "ax_mps2",
+   "m/s^2",
+   "body-frame acceleration dvx/dt - r vy from OCD's state derivative at the sample"
+  ],
+  [
+   "ay_mps2",
+   "m/s^2",
+   "body-frame acceleration dvy/dt + r vx from OCD's state derivative, positive = left"
+  ],
+  [
+   "steer_cmd_rad",
+   "rad",
+   "steering command (OCD steering_actuator target), positive = left"
+  ],
+  [
+   "steer_actual_rad",
+   "rad",
+   "actual steering angle after OCD's PT1 actuator (0.6 rad, 1.5 rad/s limits)"
+  ],
+  [
+   "throttle",
+   "-",
+   "throttle pedal [0, 1]"
+  ],
+  [
+   "brake",
+   "-",
+   "brake pedal [0, 1] (x 12 kN m total, split by the setup brake bias 0.5)"
+  ],
+  [
+   "drive_torque_axle_Nm",
+   "N m",
+   "rear-axle drive torque OCD received in the last 2 ms step (transmission output)"
+  ],
+  [
+   "brake_torque_FL_Nm",
+   "N m",
+   "brake torque FL OCD received in the last 2 ms step"
+  ],
+  [
+   "brake_torque_FR_Nm",
+   "N m",
+   "brake torque FR OCD received in the last 2 ms step"
+  ],
+  [
+   "brake_torque_RL_Nm",
+   "N m",
+   "brake torque RL OCD received in the last 2 ms step"
+  ],
+  [
+   "brake_torque_RR_Nm",
+   "N m",
+   "brake torque RR OCD received in the last 2 ms step"
+  ],
+  [
+   "gear",
+   "-",
+   "gear, 1-based (ocd_lap.powertrain, TUM F1 ratios)"
+  ],
+  [
+   "engine_rpm",
+   "1/min",
+   "engine speed = rear-axle speed x overall ratio of the current gear"
+  ],
+  [
+   "engine_torque_crank_Nm",
+   "N m",
+   "throttle x full-load engine torque at engine_rpm (ocd_lap.powertrain, recomputed at the sample)"
+  ],
+  [
+   "e_motor_torque_crank_Nm",
+   "N m",
+   "throttle x e-motor torque at engine_rpm and speed (0 with ERS off or empty store; recomputed at the sample)"
+  ],
+  [
+   "ers_energy_J",
+   "J",
+   "ERS energy left (refilled to 4 MJ at each line crossing); empty with ERS off"
+  ],
+  [
+   "slip_rl",
+   "-",
+   "rear-left longitudinal slip ratio (backend state)"
+  ],
+  [
+   "slip_rr",
+   "-",
+   "rear-right longitudinal slip ratio (backend state)"
+  ],
+  [
+   "kappa_FL",
+   "-",
+   "longitudinal slip ratio FL (OCD x_vec)"
+  ],
+  [
+   "kappa_FR",
+   "-",
+   "longitudinal slip ratio FR (OCD x_vec)"
+  ],
+  [
+   "kappa_RL",
+   "-",
+   "longitudinal slip ratio RL (OCD x_vec)"
+  ],
+  [
+   "kappa_RR",
+   "-",
+   "longitudinal slip ratio RR (OCD x_vec)"
+  ],
+  [
+   "alpha_FL_rad",
+   "rad",
+   "slip angle FL (OCD x_vec)"
+  ],
+  [
+   "alpha_FR_rad",
+   "rad",
+   "slip angle FR (OCD x_vec)"
+  ],
+  [
+   "alpha_RL_rad",
+   "rad",
+   "slip angle RL (OCD x_vec)"
+  ],
+  [
+   "alpha_RR_rad",
+   "rad",
+   "slip angle RR (OCD x_vec)"
+  ],
+  [
+   "Fz_FL_N",
+   "N",
+   "vertical tyre force FL (OCD)"
+  ],
+  [
+   "Fz_FR_N",
+   "N",
+   "vertical tyre force FR (OCD)"
+  ],
+  [
+   "Fz_RL_N",
+   "N",
+   "vertical tyre force RL (OCD)"
+  ],
+  [
+   "Fz_RR_N",
+   "N",
+   "vertical tyre force RR (OCD)"
+  ],
+  [
+   "e_raceline_m",
+   "m",
+   "lateral offset to TUM's raceline (Track.reference), positive = left"
+  ],
+  [
+   "heading_err_raceline_rad",
+   "rad",
+   "yaw minus raceline heading, wrapped to [-pi, pi)"
+  ],
+  [
+   "e_path_m",
+   "m",
+   "lateral offset to Track.path (the RL driver's safe line xi_ref), positive = left"
+  ],
+  [
+   "track_position",
+   "-",
+   "lateral position across the track at s_path: -1 right edge ... +1 left edge (DrivingEnv.track_position)"
+  ],
+  [
+   "on_track",
+   "0/1",
+   "car footprint (4.6 x 2.0 m box) inside the track at every 2 ms physics step of the tick ending here (Track.contains_car, the env's own check)"
+  ],
+  [
+   "decision",
+   "-",
+   "index of the 25 Hz decision this tick belongs to (0 = first decision after hand-over)"
+  ],
+  [
+   "decision_end",
+   "0/1",
+   "1 on the tick that ends a decision; the columns from `reward` on are filled only there (stochastic files hold only these rows)"
+  ],
+  [
+   "a_steer",
+   "-",
+   "raw policy action held over the decision, steering, [-1, 1] (x 0.6 rad)"
+  ],
+  [
+   "a_throttle",
+   "-",
+   "raw policy action, throttle, [-1, 1] (pedal = clip((a + 0.5) / 1.5, 0, 1))"
+  ],
+  [
+   "a_brake",
+   "-",
+   "raw policy action, brake, [-1, 1] (same deadzone mapping)"
+  ],
+  [
+   "reward",
+   "-",
+   "reward of the decision (time_pbrs: r_progress - r_time - r_penalty + r_shaping)"
+  ],
+  [
+   "r_progress",
+   "-",
+   "a ds over the decision (a = 1 per m of Track.path progress)"
+  ],
+  [
+   "r_time",
+   "-",
+   "b dt over the decision (b = 1 per s)"
+  ],
+  [
+   "r_smoothness",
+   "-",
+   "b dt du^T W du (logged only, not rewarded in time_pbrs)"
+  ],
+  [
+   "r_tracking",
+   "-",
+   "diagnostic tracking term to the SAVED RUN reference"
+  ],
+  [
+   "r_penalty",
+   "-",
+   "failure penalty P (100 for off track / non-finite / wrong way)"
+  ],
+  [
+   "r_shaping",
+   "-",
+   "potential shaping using the SAVED RUN reference"
+  ],
+  [
+   "e_ref_env_m",
+   "m",
+   "offset to the SAVED RUN reference (path or raceline), positive left"
+  ],
+  [
+   "termination",
+   "text",
+   "env termination at this decision: off_track, nonfinite, wrong_way, lap_complete (empty otherwise)"
+  ],
+  [
+   "truncation",
+   "text",
+   "env truncation at this decision: time_limit, stall (empty otherwise)"
+  ],
+  [
+   "target_speed_mps",
+   "m/s",
+   "factor times TUM speed at the spatial preview point"
+  ],
+  [
+   "s_controller_m",
+   "m",
+   "current arc length on the line followed by pure pursuit"
+  ],
+  [
+   "s_preview_controller_m",
+   "m",
+   "speed preview arc length on the controller line"
+  ],
+  [
+   "s_preview_tum_m",
+   "m",
+   "spatially matched preview arc length on TUM raceline"
+  ],
+  [
+   "speed_scale_f",
+   "-",
+   "predeclared speed factor for this attempt"
+  ],
+  [
+   "s_action_path_m",
+   "m",
+   "Track.path station at the start of the held command"
+  ],
+  [
+   "local_speed_factor",
+   "-",
+   "position-indexed multiplier of spatial TUM speed; not literal TUM targets unless one"
+  ],
+  [
+   "TUM_preview_speed_mps",
+   "m/s",
+   "original TUM speed at controller spatial preview"
+  ],
+  [
+   "pp_steer_rad",
+   "rad",
+   "nominal geometric PP steering before action correction"
+  ],
+  [
+   "pp_throttle",
+   "-",
+   "nominal PP/PI throttle for the locally scaled target before correction"
+  ],
+  [
+   "pp_brake",
+   "-",
+   "nominal PP/PI brake for the locally scaled target before correction"
+  ],
+  [
+   "residual_steer_rad",
+   "rad",
+   "requested position-indexed steering correction"
+  ],
+  [
+   "residual_throttle",
+   "-",
+   "requested position-indexed throttle correction"
+  ],
+  [
+   "residual_brake",
+   "-",
+   "requested position-indexed brake correction"
+  ],
+  [
+   "applied_residual_steer_rad",
+   "rad",
+   "actual steering difference after legal clamp and action encoding"
+  ],
+  [
+   "applied_residual_throttle",
+   "-",
+   "actual throttle difference after legal clamp and action encoding"
+  ],
+  [
+   "applied_residual_brake",
+   "-",
+   "actual brake difference after legal clamp and action encoding"
+  ]
+ ],
+ "nominal_PP_semantics": "PP/PI commands at actual state with current locally scaled target, before physical residuals",
+ "file": "best_trial0000.csv",
+ "rows": 13819,
+ "sha256": "8fa1be72dd5b19dcb06b0ae47660d2eba2dfed5370481f3ca32a6d92c4b967dc",
+ "created_utc": "2026-10-29T14:21:53+00:00"
+}

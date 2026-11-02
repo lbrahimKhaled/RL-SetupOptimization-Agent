@@ -1,0 +1,6 @@
+{
+  "utc": "2026-10-29T13:36:06.858058+00:00",
+  "command": "PYTHONPATH=/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 NUMEXPR_NUM_THREADS=1 /usr/bin/nice -n 19 .venv/bin/python scripts/comparison/tune_tum_ocd.py --out comparison/tum_ocd_fast_20261029_122428Z/pilot_01 --max-trials 40 --wall-seconds 600 --alphas .5 1 --factors 1 .95 .85 .7 --lookaheads .22 .16 .10 .28 .35 --kp .4 --ki .2",
+  "script_sha256": "d734868333d10a919e2f05529b0526fec5a25f11a55cfb7d1322008c474ae919",
+  "no_training_process_changes": true
+}

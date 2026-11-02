@@ -1,0 +1,68 @@
+{
+  "created_utc": "2026-10-29T14:39:53.169981+00:00",
+  "source_trace": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent/comparison/tum_original_fullspeed_20261028_185217Z/p1_25hz/tum_original_f1.csv",
+  "source_sha256": "ea35c30ddb77dc11cb6eb29797a130f9c49ae6cff8483751233604c3b862dfe3",
+  "lap2_s_full_precision_metadata": 104.36090224242731,
+  "CG_lateral_error_full_precision_metadata": {
+    "rms_m": 2.4289918414646303,
+    "max_abs_m": 11.999839583524876
+  },
+  "heading_metrics_from_rounded_CSV": {
+    "body_yaw_minus_TUM_tangent_RMS_rad": 0.06851366689435598,
+    "body_yaw_minus_TUM_tangent_max_abs_rad": 0.4138094,
+    "velocity_heading_minus_TUM_tangent_RMS_rad": 0.06253977774193491,
+    "velocity_heading_minus_TUM_tangent_max_abs_rad": 0.3641532620621608
+  },
+  "speed_error_full_precision_metadata": {
+    "samples": 2610,
+    "mae_mps": 4.1121233456397945,
+    "rmse_mps": 5.557755175317533,
+    "bias_actual_minus_target_mps": -3.7203145097270727,
+    "max_lag_mps": 13.769031250789268,
+    "max_overspeed_mps": 2.5153334908977456,
+    "mean_actual_mps": 51.87199771269047,
+    "mean_reference_mps": 55.59231222241754
+  },
+  "max_lateral_error_row_from_rounded_CSV": {
+    "t_s": "127.16",
+    "s_path_m": "958.6149",
+    "s_raceline_m": "942.2339",
+    "speed_mps": "35.38235",
+    "target_speed_mps": "42.94316",
+    "e_raceline_m": "-11.99984",
+    "heading_err_raceline_rad": "0.05545403",
+    "steer_cmd_rad": "0.2231985",
+    "steer_actual_rad": "0.225983",
+    "alpha_FL_rad": "0.2478389",
+    "alpha_FR_rad": "0.2471571",
+    "throttle": "0.664945",
+    "brake": "0"
+  },
+  "formula_identity": {
+    "rear_axle_offset_m": 1.632,
+    "wheelbase_m": 3.5999999999999996,
+    "lookahead_m": "3 + .35*max(vx,0)",
+    "goal_station": "matched_CG_station - rear_axle_offset + lookahead",
+    "steering": "atan2(2*wheelbase*sin(angle_to_goal_from_rear),distance_to_goal_from_rear)",
+    "weights_loaded": false,
+    "parameters_verified_from": "ocd_lap.cars.get(sf70h_tum), the same spec DemoDriver reads"
+  },
+  "tracking_objective_note": "Report CG lateral RMS/max and rear-axle lateral RMS/max separately, plus body-heading and velocity-heading errors at fixed speed condition. Original TUM footprint violations are diagnostic flags, never clean benchmark claims. Do not rank different speed conditions together.",
+  "constant_speed_grip_screen": {
+    "TUM_smoothed_peak_curvature_radpm": 0.07553188,
+    "TUM_station_m": 4701.854,
+    "measured_OCD_lateral_limit_at15_mps2": 16.523162304063487,
+    "constant15_required_ay_mps2": 16.994673,
+    "constant12_required_ay_mps2": 10.87659072,
+    "note": "Necessary curvature-demand comparison only. Constant12 offers a more conservative formula-precision isolation test; no driven result is implied."
+  },
+  "preserved_action_pilot": {
+    "complete": true,
+    "trials": 20,
+    "best_lap2_s": 128.99097404479943,
+    "repeat_verified": true,
+    "continued_search_on_hold": true
+  },
+  "old_searches_and_training_processes_observed_absent": true,
+  "no_new_physics_run": true
+}
