@@ -306,22 +306,4 @@
   \end{columns}
 \end{frame}
 
-% 15 -----------------------------------------------------------------
-\begin{frame}[shrink=5]{Summary and next steps}
-  \small
-  \textbf{Summary}
-  \begin{itemize}
-    \item Time-optimal reward (no jitter term, linear $|e|$ as PBRS): the driver beats the QSS lap on its own reference line.
-    \item The AV-21 tyre slip stiffness explains much of the gap to an F1 car; \texttt{sf70h\_f1} replaces it with F1-sourced values.
-    \item Our OCP reproduces Limebeer's Barcelona lap within 0.3\,\%; RL is within 1.7\,\% of it (different car).
-  \end{itemize}
-  \textbf{Decisions needed}
-  \begin{enumerate}
-    \item Heave damping for \texttt{sf70h\_f1}, or softer heave springs (porpoising).
-    \item $I_z$: keep 1159.6 (recommended) or use 560\,kg\,m$^2$.
-    \item RL on \texttt{sf70h\_f1}: env steering to 0.30\,rad, re-tuned demo TC. Then ERS on, a racing line sized for the footprint, seeds 1--2.
-  \end{enumerate}
-  \footnotesize Still AV-21 / PLACEHOLDER: $I_x$, $I_y$, wheel masses, combined-slip weights, relaxation lengths, roll centres, dampers, aero map.
-\end{frame}
-
 \end{document}

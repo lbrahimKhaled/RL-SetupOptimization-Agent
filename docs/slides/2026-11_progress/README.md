@@ -1,4 +1,4 @@
-# Progress deck, 2 Nov 2026 (Beamer, 15 pages)
+# Progress deck, 2 Nov 2026 (Beamer, 14 pages)
 
 `progress_2026-11.pdf`:
 1. Title
@@ -6,7 +6,6 @@
 4–11. Vehicle dynamics: AV-21 → `sf70h_tum` → `sf70h_f1` (TUM values, MF5.2 peak-friction mapping, slip-stiffness problem and PL14 fix, tyre curves, combined slip, heave/brakes/steering/footprint, porpoising, lap-time and controller effect)
 12. Limebeer-style OCP verification
 13–14. Barcelona vs Limebeer, Shanghai vs real world / QSS
-15. Summary and decisions
 
 Rebuild:
 ```sh
