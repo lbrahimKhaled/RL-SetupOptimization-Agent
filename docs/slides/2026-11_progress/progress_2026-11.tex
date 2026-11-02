@@ -2,6 +2,7 @@
 \usetheme{metropolis}
 \usepackage[utf8]{inputenc}
 \usepackage{booktabs}
+\usepackage{array}
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
 \usepackage{xcolor}
@@ -23,7 +24,7 @@
 \begin{frame}{Outline}
   \begin{enumerate}
     \item Reward engineering: from line tracking to a time-optimal reward
-    \item Simulator check: AV-21 leftovers in the ``F1'' car
+    \item Vehicle dynamics: AV-21 $\to$ \texttt{sf70h\_tum} $\to$ \texttt{sf70h\_f1}, parameter by parameter
     \item Verification: Limebeer-style optimal control (OCP) reproduced
     \item Results: Barcelona vs.\ Limebeer, Shanghai vs.\ real world and QSS
     \item Open points and next steps
@@ -105,63 +106,373 @@
 \end{frame}
 
 % ------------------------------------------------------------------
-\section{Simulator check: AV-21 leftovers}
+\section{Vehicle dynamics: what changed in the car}
 
-\begin{frame}{The ``F1'' car was partly an AV-21}
-  OCD ships the \textbf{Dallara AV-21} (Indy Autonomous Challenge car). \texttt{sf70h\_tum} replaced only the values that TUM's F1 file provides:
-  \begin{columns}[T]
-    \begin{column}{0.48\textwidth}
-      \textbf{From TUM (F1):}\\
-      mass 733\,kg, geometry, peak $\mu$ per axle, aero ($C_zA$ 4.88, $C_xA$ 1.56\,m$^2$), 575\,kW engine, gear ratios, ERS
-    \end{column}
-    \begin{column}{0.5\textwidth}
-      \textbf{Still AV-21 (PLACEHOLDER):}\\
-      tyre slip stiffness and curve shape (PKX/PKY, PEX/PEY, PCX/PCY), combined slip, inertias (scaled), wheel masses and inertias, tyre vertical stiffness, roll centres, steering lock 0.6\,rad, suspension defaults
-    \end{column}
-  \end{columns}
-  \bigskip
-  \alert{Consequence:} the AV-21 slip stiffness now carries about 30\,\% more friction, so the rear's longitudinal force peaks at \textbf{13--33\,\% slip}. A real F1 tyre peaks near 8\,\%. Lateral force has already collapsed by then, so the car cannot use its traction on corner exits.
+\begin{frame}{Three cars, built in layers}
+  \footnotesize
+  \renewcommand{\arraystretch}{1.05}
+  \begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.17\textwidth}>{\raggedright\arraybackslash}p{0.24\textwidth}>{\raggedright\arraybackslash}p{0.26\textwidth}>{\raggedright\arraybackslash}p{0.26\textwidth}@{}}
+    \toprule
+    & \texttt{av21} (shipped OCD) & \texttt{sf70h\_tum} (27 Oct) & \texttt{sf70h\_f1} (1 Nov)\\
+    \midrule
+    Idea & Dallara AV-21 (Indy Autonomous Challenge) & AV-21 model with every value TUM's \texttt{F1\_Shanghai.ini} gives & \texttt{sf70h\_tum} + F1 values from papers and the FIA rules\\
+    Mass, geometry, aero & AV-21 & TUM & TUM\\
+    Tyre peak $\mu$ & AV-21 (1.46 / 1.16) & TUM (1.65--2.15) & TUM\\
+    Tyre slip stiffness, shape & AV-21 & \leavevmode\alert{AV-21} & PL14 (Limebeer)\\
+    Steering lock & 0.6\,rad & \leavevmode\alert{0.6\,rad} & 0.30\,rad\\
+    Heave springs & off & off & 1.0 / 0.25\,MN/m\\
+    Brakes & 12\,kN\,m, 0.50 & 12--15\,kN\,m, 0.50 & 15\,kN\,m, 0.58\\
+    Footprint & 4.2\,$\times$\,2.0\,m & 4.6\,$\times$\,2.0\,m & 5.006\,$\times$\,2.07\,m\\
+    \bottomrule
+  \end{tabular}
+  \smallskip
+
+  Each new car is opt-in. \texttt{av21} and \texttt{sf70h\_tum} stay bit-identical (Shanghai \texttt{lap.csv} sha256 unchanged, 85 unit tests). There are also two variants used only for diagnosis: \texttt{sf70h\_tum\_debug} (31 Oct) and \texttt{sf70h\_f1\_iz560}.
 \end{frame}
 
-\begin{frame}{Diagnosis: TUM's 94.9\,s lap driven in OCD}
-  \begin{columns}[c]
-    \begin{column}{0.55\textwidth}
-      \includegraphics[width=\linewidth]{fig/gap_breakdown.png}
+\begin{frame}{\texttt{sf70h\_tum} (1/3): chassis, mass, aero}
+  \small
+  \begin{columns}[T]
+    \begin{column}{0.6\textwidth}
+      \footnotesize
+      \begin{tabular}{@{}lll@{}}
+        \toprule
+        Parameter & AV-21 & \texttt{sf70h\_tum} (from TUM)\\
+        \midrule
+        Mass (driver, no fuel) & 800\,kg & 733\,kg (\texttt{general.m})\\
+        Wheelbase & 3.2\,m & 3.6\,m ($l_f$ 1.968 / $l_r$ 1.632)\\
+        CoG height & 0.30\,m & 0.335\,m\\
+        Track F / R & 1.6 / 1.5\,m & 1.6 / 1.6\,m\\
+        Rolling radius & 0.30\,m & 0.3299\,m ($2.073/2\pi$)\\
+        Air density & 1.225 & 1.18\,kg/m$^3$\\
+        Rolling resistance & 0.025 & 0.03\\
+        $C_zA$ F / R, $C_xA$ [m$^2$] & \multicolumn{2}{l}{2.20 / 2.68, 1.56 (already TUM)}\\
+        $I_x / I_y / I_z$ [kg\,m$^2$] & 100 / 500 / 1000 & 97.6 / 579.8 / 1159.6\\
+        \bottomrule
+      \end{tabular}
     \end{column}
-    \begin{column}{0.42\textwidth}
-      \small
+    \begin{column}{0.37\textwidth}
+      \textbf{Inertias are scaled, not sourced} (PLACEHOLDER):
+      \[
+        I_{y,z} \propto m L^2, \qquad I_x \propto m\,t^2
+      \]
+      ($L$ wheelbase, $t$ mean track), starting from the AV-21 values.
+
+      \medskip
+      Moving the CoG back (45.3\,\% front vs 46.1\,\%) with the same aero balance, plus 3.7\,\% less downforce from the lower $\rho$, makes this step \emph{slightly slower} in the QSS.
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{\texttt{sf70h\_tum} (2/3): tyre peak friction, mapped exactly}
+  TUM uses a tyre that is linear in load. So does MF5.2's peak friction:
+  \[
+    \mu_{\text{TUM}}(F_z) = \mu_0 + \tfrac{d\mu}{dF_z}(F_z - f_{z0}),
+    \qquad
+    \mu_{\text{MF}}(F_z) = (P_{D1} + P_{D2}\,df_z)\,\lambda_\mu,\quad df_z = \tfrac{F_z - F_{\text{nom}}}{F_{\text{nom}}}
+  \]
+  Both use $F_{\text{nom}} = f_{z0} = 3000$\,N, so $P_{D1} = \mu_0/\lambda_\mu$ and $P_{D2} = \frac{d\mu}{dF_z} f_{z0}/\lambda_\mu$, with $\lambda_\mu = 0.97$ kept.
+  \medskip
+
+  \small
+  \begin{columns}[T]
+    \begin{column}{0.52\textwidth}
+      \begin{tabular}{@{}lrrrr@{}}
+        \toprule
+        & $\mu_0$ & $P_{D1}$ new & $P_{D1}$ AV-21 & $P_{D2}$\\
+        \midrule
+        Front $x$ & 1.65 & 1.701 & 1.50 & $-0.155$\\
+        Front $y$ & 1.85 & 1.907 & 1.20 & $-0.155$\\
+        Rear $x$ & 1.95 & 2.010 & 1.50 & $-0.155$\\
+        Rear $y$ & 2.15 & 2.216 & 1.20 & $-0.155$\\
+        \bottomrule
+      \end{tabular}
+      \\[2pt]\footnotesize AV-21 $P_{D2}$: $-0.04$ ($x$), $-0.09$ ($y$).
+    \end{column}
+    \begin{column}{0.46\textwidth}
       \begin{itemize}
-        \item Closed-loop tracking of TUM's raceline and speed profile in a TUM-aligned OCD car.
-        \item Best driven lap \textbf{102.99\,s} vs.\ TUM 94.89\,s, while OCD's own QSS is 95.73\,s. The \emph{quasi-static} limits match. The time goes in \emph{transients}.
-        \item Longitudinal slip stiffness $\times1.6$ alone: \textbf{$-2.69$\,s}, with QSS unchanged.
+        \item Peak $\mu_x$ matches TUM \emph{exactly} at every load. Peak $\mu_y$ matches on average ($\pm2$\,\% split from the AV-21 zero-slip offset PVY1).
+        \item Grip at 3\,kN: $+34$\,\% longitudinal (rear), $+79$\,\% lateral (rear) vs the AV-21.
+        \item \alert{Only these 4 numbers per wheel changed.} Everything else in the tyre stayed AV-21.
       \end{itemize}
     \end{column}
   \end{columns}
 \end{frame}
 
-\begin{frame}{Fix: new car \texttt{sf70h\_f1} (1 Nov)}
+\begin{frame}{\texttt{sf70h\_tum} (3/3): powertrain, ERS, DRS, brakes, QSS}
   \small
-  \begin{tabular}{@{}lll@{}}
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \textbf{ERS} (new in \texttt{powertrain.py}, from TUM)
+      \begin{itemize}
+        \item 120\,kW after losses, $\eta = 0.9$, $\le 200$\,N\,m at the crank, only above 27.8\,m/s
+        \item 4\,MJ per lap, ``first come, first boost''. \alert{No recuperation} (TUM has it: $-1.44$\,s)
+      \end{itemize}
+      \textbf{DRS}: QSS only, $C_xA \times 0.83$ in TUM's two Shanghai zones while accelerating.\\[3pt]
+      \textbf{QSS}: friction \emph{ellipse} $(a_x/a_{x,\max})^2 + (a_y/a_{y,\max})^2 \le 1$ (TUM's exponent 2). The AV-21 used a diamond (exponent 1), which is 7.8\,s slower on the same g-g-v. The g-g-v is now measured up to 90\,m/s.\\[3pt]
+      RL runs: \textbf{ERS and DRS off}.
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \textbf{Brakes}: torque at which the first axle reaches its peak (bias 0.50, quasi-static)\\[2pt]
+      \begin{tabular}{@{}rrr@{}}
+        \toprule
+        Speed & AV-21 & \texttt{sf70h\_tum}\\
+        \midrule
+        0\,m/s & 2.9\,kN\,m & 3.8\,kN\,m\\
+        60\,m/s & 6.7 & 8.7\\
+        80\,m/s & 9.5 & 12.3\\
+        90\,m/s & 11.2 & \textbf{14.3}\\
+        \bottomrule
+      \end{tabular}
+      \\[3pt]
+      The old 12\,kN\,m could not lock the F1 car above $\approx$80\,m/s, so above that speed the brakes, not the tyres, limited deceleration. Raised to \textbf{15\,kN\,m}.
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{What each layer is worth (QSS, Shanghai, safe line, \texttt{Setup()})}
+  \begin{columns}[c]
+    \begin{column}{0.5\textwidth}
+      \small
+      \begin{tabular}{@{}lrr@{}}
+        \toprule
+        Step & Lap [s] & $v_{\max}$ [km/h]\\
+        \midrule
+        AV-21 (exp.\ 1) & 133.92 & 288\\
+        AV-21 (exp.\ 2) & 126.43 & 288\\
+        + TUM tyre $\mu$ & 106.42 & 288\\
+        + mass 733\,kg & 104.48 & 288\\
+        + geometry & 104.78 & 301\\
+        + ERS & 103.25 & 311\\
+        + DRS & 102.82 & 321\\
+        \bottomrule
+      \end{tabular}
+      \\[3pt]\footnotesize Exponent 2 from ``+ TUM tyre $\mu$'' on. Peak friction alone is worth $\approx$20\,s.
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \small
+      Against TUM's laptime-sim, \textbf{same raceline}, ERS/DRS off: ours 96.86\,s, TUM 94.89\,s ($+2.0$\,s). That splits into:
+      \begin{itemize}
+        \item \textbf{car limits $+5.0$\,s}: our g-g-v is lower (next slide)
+        \item \textbf{solver/powertrain $-3.1$\,s}: we omit TUM's rotating-mass factor, rolling resistance under acceleration, 0.5\,m/s cornering margin and $r(v)$
+      \end{itemize}
+      The safe line costs $\approx$8\,s against the raceline (104.78 vs 96.86\,s): it is 48\,m longer and built with a 4.5\,m width allowance.
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Measured g-g-v limits vs TUM's own model}
+  \centering
+  \includegraphics[width=0.92\linewidth]{fig/ggv_limits.png}\\
+  \small\raggedright
+  Lateral is close to TUM (4.87 vs 5.23\,g at 75\,m/s). \textbf{Braking is the biggest shortfall} (3.88 vs 5.25\,g). Causes: the brake ramp is labelled at its start speed (the peak is reached 15--20\,m/s lower), bias 0.50 vs TUM's ideal split, pitch/slip transients during the 0.6\,s ramp, and a 61\,\% front roll-stiffness split (AV-21 default) vs TUM's 45\,\% static split (0.45 gains 0.22\,s).
+\end{frame}
+
+\begin{frame}{Diagnosis: TUM's 94.9\,s lap driven closed-loop in OCD}
+  \begin{columns}[c]
+    \begin{column}{0.52\textwidth}
+      \includegraphics[width=\linewidth]{fig/gap_breakdown.png}
+    \end{column}
+    \begin{column}{0.46\textwidth}
+      \small
+      \begin{itemize}
+        \item TUM-aligned debug car: constant aero, TUM's $r(v)$, CoG-only track check. A 50\,Hz controller tracks TUM's line and speed (feed-forward + PI, TC at 8\,\% slip, ABS).
+        \item Driven \textbf{102.99\,s} vs QSS 95.73\,s vs TUM 94.89\,s. The \emph{quasi-static} limits match; the time is lost in \emph{transients}.
+        \item Longitudinal slip stiffness $\times1.6$: \textbf{$-2.69$\,s}, QSS unchanged.
+        \item Artefact: a locked LSD makes the rear wheels fight (3.8\,kN Fx difference), but an open LSD is worse ($+2.36$\,s).
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[shrink=5]{Why the AV-21 slip stiffness hurts: the MF5.2 algebra}
+  \small
+  \begin{gather*}
+    F_x = D \sin\!\bigl(C \arctan(B\kappa - E(B\kappa - \arctan B\kappa))\bigr),\qquad D = \mu F_z,\\
+    K_x = F_z (p_{K1} + p_{K2}\,df_z)\,e^{p_{K3} df_z},\qquad B = \frac{K_x}{C D}
+  \end{gather*}
+  \vspace{-4pt}
+  \begin{itemize}
+    \item The initial slope $K_x$ is set by PKX only. The peak sits at a fixed $B\kappa$ (for $E = 0$, $B\kappa^\ast = \tan\frac{\pi}{2C}$), so $\displaystyle \kappa^\ast \propto \frac{\mu}{K_x/F_z}$.
+    \item \texttt{sf70h\_tum} raised $\mu$ by 34--79\,\% and left $K_x$ alone, so the peak \textbf{moved out to larger slip}. On top of that, the AV-21 curvature $E_x = 0.7$ flattens the top of the curve.
+    \item AV-21 $K_x/F_z$ = 29.3 / 30.7 / 35.3 at 2 / 3 / 6\,kN. F1 (PL14) = 43.7 / 42.5 / 38.5: the AV-21 tyre is \textbf{25--33\,\% softer} at low load.
+  \end{itemize}
+  \footnotesize
+  \begin{tabular}{@{}lccc@{}}
     \toprule
-    Item & AV-21 / old & F1 value (source)\\
+    Rear tyre, peak slip & AV-21 & \texttt{sf70h\_tum} & \texttt{sf70h\_f1}\\
     \midrule
-    Tyre PKX1/2/3 & 30.7 / 0.27 / 0.13 & F 42.17 / $-0.96$ / 0; R 49.84 / $-0.38$ / 0 (PL14 peak slip)\\
-    PCX1, PCY1; PEX, PEY & 1.6, 1.5; AV-21 & 1.9, 1.9; 0 (PL14)\\
-    Steering lock & 0.6\,rad & 0.30\,rad\\
-    Heave springs & off & 1.0 / 0.25 MN/m (F / R)\\
-    Brake bias, torque & 0.50, 12\,kN\,m & 0.58, 15\,kN\,m\\
-    Footprint & 4.6\,$\times$\,2.0\,m & 5.006\,$\times$\,2.07\,m (FIA 2017 width)\\
+    $\kappa^\ast$ at 3 / 6 / 12\,kN & 0.20 / 0.14 / -- & \alert{0.27 / 0.17 / 0.10} & 0.081 / 0.075 / 0.064\\
+    $\alpha^\ast$ at 3 / 6 / 12\,kN & 5.8 / 4.4 / --\,$^\circ$ & 10.8 / 8.2 / 7.8\,$^\circ$ & 8.2 / 8.6 / 10.8\,$^\circ$\\
     \bottomrule
   \end{tabular}
-  \medskip
+\end{frame}
+
+\begin{frame}{Longitudinal force: where the peak is}
+  \centering
+  \includegraphics[width=0.95\linewidth]{fig/tyre_fx.png}\\
+  \small Same peak $\mu$ for \texttt{sf70h\_tum} and \texttt{sf70h\_f1}, but the F1 tyre reaches it at $\kappa \approx 0.08$, inside the F1 band (PL14: 0.08--0.11). \texttt{sf70h\_tum} needs 0.17--0.27, and drops off slowly after the peak. Curves: OCD's MF5.2 equations in Python; they reproduce the committed sweep exactly.
+\end{frame}
+
+\begin{frame}{Lateral force: shape changed, stiffness kept}
+  \centering
+  \includegraphics[width=0.95\linewidth]{fig/tyre_fy.png}\\
+  \small PKY (cornering stiffness) is unchanged: the AV-21 $K_y$ is already within 4\,\% of PL14 at 2--6\,kN. Only the shape changed ($C_y$ 1.5 $\to$ 1.9, $E_y \to 0$). So the peak is sharper and sits at 8--9$^\circ$ (it was 10.8$^\circ$ at 3\,kN), and the force falls faster after the peak.
+\end{frame}
+
+\begin{frame}[shrink=5]{How the F1 tyre parameters were derived (option B, approved 1 Nov)}
+  \small
+  PL14 tyre (Perantoni \& Limebeer 2014, Table 3):
+  \[
+    \mu = \mu_{\max}\sin\bigl(Q\arctan(S\rho)\bigr),\quad S = \frac{\pi}{2\arctan Q} = 1.446,\quad \rho = \sqrt{\kappa_n^2 + \alpha_n^2},\quad \kappa_n = \kappa/\kappa_{\max}
+  \]
+  \begin{enumerate}
+    \item This is MF with $C = Q = 1.9$, $E = 0$, $B = S/\kappa_{\max}$, so
+      $\displaystyle \frac{K_x}{F_z} = Q\,S\,\frac{\mu}{\kappa_{\max}} = 2.747\,\frac{\mu_{x,\text{TUM}}(F_z)}{\kappa_{\max}(F_z)}$.
+    \item $\kappa_{\max}$ is linear in load: 0.11 at 2\,kN, 0.10 at 6\,kN. $\mu$ stays TUM's.
+    \item Fit $K_x/F_z = p_{K1} + p_{K2}\,df_z$ exactly at 3 and 6\,kN, with $p_{K3} = 0$:\\
+      front $p_{K1} = 42.17$, $p_{K2} = -0.96$; rear $p_{K1} = 49.84$, $p_{K2} = -0.38$ (AV-21: 30.7, 0.27, 0.13).
+    \item PCX1 = PCY1 = 1.9; all PEX$_{1-4}$, PEY$_{1-5}$ = 0.
+  \end{enumerate}
+  \footnotesize Peak at $\rho = \tan(\pi/2Q)/S = 0.751$, i.e.\ $\kappa^\ast \approx 0.75\,\kappa_{\max} \approx 0.08$.\\
+  Option A (PL14's stiffness directly: $p_{K1} = 42.5$, $p_{K2} = -4.0$) would keep PL14's peak slips only with PL14's lower $\mu$.
+\end{frame}
+
+\begin{frame}[shrink=5]{Combined slip: what a corner exit looks like}
+  \centering
+  \includegraphics[width=0.95\linewidth]{fig/tyre_combined.png}\\[-2pt]
+  \small
+  At $\alpha = 3^\circ$, \texttt{sf70h\_tum} reaches its Fx peak only at $\kappa = 0.24$, with 0.43 of lateral force left. The F1 tyre peaks at $\kappa = 0.09$ with 0.94 left.
+  \alert{Caveat:} the combined-slip weights (RBY1 = 20.6, \ldots) are still the AV-21's in both cars. That is why lateral force falls $\approx$30\,\% by $\kappa = 0.1$, which is harsher than TUM's friction ellipse.
+\end{frame}
+
+\begin{frame}{\texttt{sf70h\_f1}: the non-tyre changes}
+  \small
   \begin{itemize}
-    \item Fx peak moves from $\kappa = 0.14$--$0.27$ to $0.075$--$0.081$. Peak $\mu$ is unchanged.
-    \item Closed-loop TUM lap: 102.87 $\to$ \textbf{101.84\,s} (101.29\,s with heave damping).
-    \item \alert{New finding:} with zero heave damping the car porpoises (4.5\,Hz heave mode) at high downforce. A heave-damping value is needed.
+    \item \textbf{Steering lock} 0.6 $\to$ \textbf{0.30\,rad} road-wheel angle. Source: ``Normally an F1 car has a steering lock of 17$^\circ$'' (Monaco spec 21--22$^\circ$). The OCP needs at most 0.27\,rad (T14), so the lock does not bind. Rate 1.5\,rad/s and $T_{PT1}$ 0.06\,s kept.
+    \item \textbf{Heave springs} (OCD patch 0001, previously off). Per-wheel rate $k = m_a(2\pi f)^2$, with $m_a$ the corner sprung mass:\\
+      front \textbf{1.0\,MN/m} = 12.95\,Hz (corner spring 107\,kN/m, so heave is 9$\times$ stiffer); rear \textbf{0.25\,MN/m} = 5.85\,Hz (corner 83\,kN/m). The front knob range was widened from 0--8 to 0--16\,Hz. Values derived from Masouleh \& Limebeer 2016.
+    \item \textbf{Brake bias} default 0.50 $\to$ \textbf{0.58} (ideal 0.58--0.60 for this car). \textbf{Torque} 15\,kN\,m car default (14.3 needed at 90\,m/s).
+    \item \textbf{Footprint} for the track check: 4.6\,$\times$\,2.0 $\to$ \textbf{5.006\,$\times$\,2.07\,m}, $x \in [-2.342, 2.664]$\,m, $y = \pm1.035$\,m.\\
+      Built from: FIA 2017 rear overhang $\le$ 0.71\,m, wheelbase 3.594\,m, length 5.0\,m, track/2 + half the 0.47\,m rear wheel.
+    \item \textbf{$I_z$}: kept at 1159.6. Variant \texttt{iz560} uses PL14's 450\,kg\,m$^2$ scaled by $mL^2$, which gives 560.3.
   \end{itemize}
 \end{frame}
 
-% ------------------------------------------------------------------
+\begin{frame}{New finding: the F1 car porpoises}
+  \begin{columns}[T]
+    \begin{column}{0.55\textwidth}
+      \small
+      \textbf{Mechanism}
+      \begin{itemize}
+        \item Stiff heave springs with \texttt{heave\_damping\_ratio} = 0 (the default) leave a lightly damped \textbf{4.5\,Hz heave mode}.
+        \item The PLACEHOLDER aero map raises $C_zA$ by \textbf{2\,\% per cm} below the reference ride height. As the car drops, downforce grows and pushes it down further.
+        \item The effect scales with $v^2$, so the oscillation grows with speed. OCD has no floor contact to stop it.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.43\textwidth}
+      \small
+      \textbf{Evidence}
+      \begin{itemize}
+        \item Front ride-height std at 90\,m/s: \textbf{9.8\,mm}, vs 3.0\,mm for \texttt{sf70h\_tum}.
+        \item Not a numerical artefact: 11.25\,mm at a 2\,ms step vs 10.80\,mm at 0.5\,ms.
+        \item Heave damping 0.3 (diagnostic) cuts it $\approx$10$\times$.
+        \item Barcelona: the 90\,m/s settle collapses (wheel lift, wheelspin), so the g-g-v is only valid up to 75\,m/s.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  \medskip
+  \alert{Decision needed:} add a heave-damping default for this car (no sourced value exists), or soften the heave springs.
+\end{frame}
+
+\begin{frame}{Effect of \texttt{sf70h\_f1}: handling and lap time}
+  \small
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \textbf{Ramp steer} (p1\_TUM knobs)\\[2pt]
+      \begin{tabular}{@{}rcc@{}}
+        \toprule
+        $v$ [m/s] & $a_{y,\max}$ [g] tum / f1 & US grad.\ [deg/g]\\
+        \midrule
+        30 & 2.29 / 2.29 & 0.28 / 0.29\\
+        45 & 3.04 / 3.05 & 0.22 / 0.25\\
+        60 & 4.03 / 3.99 & 0.17 / 0.18\\
+        75 & 5.15 / 5.10 & 0.12 / 0.07\\
+        \bottomrule
+      \end{tabular}
+      \\[3pt]
+      Same peak grip and understeer gradient. The F1 tyre is sharper past the peak.
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \textbf{Lap time} (15\,kN\,m, ERS off)\\[2pt]
+      \begin{tabular}{@{}lcc@{}}
+        \toprule
+        & \texttt{sf70h\_tum} & \texttt{sf70h\_f1}\\
+        \midrule
+        QSS Shanghai safe line & 103.56 & 102.40\\
+        QSS Shanghai raceline & 95.65 & 94.67\\
+        QSS Barcelona safe line & 82.89 & 82.44\\
+        OCP Shanghai & 94.25 & 94.62\\
+        OCP Barcelona & 78.76 & 79.38\\
+        Closed-loop Shanghai & 102.87 & 101.84\\
+        \bottomrule
+      \end{tabular}
+      \\[3pt]\footnotesize QSS gains about 1\,s, mostly from the 0.58 bias. The OCP is 0.4--0.6\,s slower because of the wider car (narrower corridor) and the wider lateral peak.
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{The controller has to match the tyre}
+  \small
+  Closed-loop TUM lap in OCD, \texttt{sf70h\_f1}, lap 2 at $f = 1.00$:\\[3pt]
+  \centering
+  \begin{tabular}{@{}lr@{}}
+    \toprule
+    Controller / car & Lap 2 [s]\\
+    \midrule
+    Old controller (TC target 0.08 = new Fx peak) & spin\\
+    TC target 0.04 / 0.05 / \textbf{0.06} / 0.07 & 103.86 / 102.65 / \textbf{101.84} / spin\\
+    + heave damping 0.3 & 101.29\\
+    \texttt{iz560} + TC 0.06 + heave damping 0.3 & 100.72\\
+    \midrule
+    \texttt{sf70h\_tum}, original controller & 102.87\\
+    \bottomrule
+  \end{tabular}
+  \raggedright
+  \begin{itemize}
+    \item The TC target alone moves the lap by $\approx$2\,s, as much as the car change itself.
+    \item \textbf{For RL on \texttt{sf70h\_f1}:} the env scales steering to 0.6\,rad and must be changed to 0.30. The demo driver's TC targets need re-tuning for the peakier tyre.
+    \item $I_z$ effect is small and depends on the method: QSS $+0.10$/$+0.23$\,s, closed loop $-0.4$ to $-0.6$\,s, OCP $+0.05$ to $+0.08$\,s.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Still AV-21 / PLACEHOLDER after \texttt{sf70h\_f1}}
+  \small
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \textbf{No F1 source found}
+      \begin{itemize}
+        \item $I_x$, $I_y$ (scaled); wheel masses 15\,kg and spin inertias 1.15 / 1.35\,kg\,m$^2$
+        \item Combined-slip weights R$^\ast$; offsets PVY/PHY/RVY ($\pm2$\,\% $\mu_y$ split)
+        \item Relaxation lengths 0.3 / 0.2\,m (hard-coded in OCD C++)
+        \item Roll / pitch centres 0.2\,m; dampers, heave damping, packers
+        \item Steering rate 1.5\,rad/s, $T_{PT1}$ 0.06\,s
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \textbf{Known modelling gaps}
+      \begin{itemize}
+        \item Aero map: $C_zA$ $\times$0.6--1.4 with aero\_level, 2\,\%/cm ride height (PLACEHOLDER until measured in Assetto Corsa)
+        \item Tyre vertical stiffness 250\,kN/m (F1 estimate 266--285)
+        \item No speed growth of the tyre radius (TUM: $+4.5$\,\% per 200\,km/h)
+        \item No ERS recuperation; DRS only in the QSS
+        \item OCD's LSD cannot represent TUM's ideal LSD
+        \item Static front ride height at $v_{\max}$ is already negative (no floor contact)
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
 \section{Verification: Limebeer-style OCP}
 
 \begin{frame}{Minimum-lap-time OCP, as in Perantoni \& Limebeer 2014}
@@ -267,7 +578,8 @@
     \item Reward: \texttt{docs/specs/R1\_time\_optimal.md}, \texttt{docs/research/reward\_redesign.md}, \texttt{rlsetup/driving/config.py}, DECISIONS \#13, \#19
     \item Runs: \texttt{docs/results/\{D2\_full1, R1\_warm, sf70h\_mac\_r1, bcn\}}, \texttt{comparison/training\_stop\_20261029\_094402Z/p1\_TUM}
     \item AV-21 diagnosis: \texttt{comparison/tum\_ocd\_debug\_20261031\_144747Z/FINDINGS.md}, \texttt{docs/research/f1\_car\_parameters.md}
-    \item New car: \texttt{docs/reports/SF70H\_F1\_UPGRADE.md}; ocd\_first\_lap branch \texttt{sf70h-f1} (\texttt{docs/SF70H\_TUM\_CAR.md})
+    \item New car: \texttt{docs/reports/SF70H\_F1\_UPGRADE.md}, \texttt{docs/results/sf70h\_f1/results.json}; ocd\_first\_lap branch \texttt{sf70h-f1}: \texttt{ocd\_lap/cars.py}, \texttt{ocd\_lap/aero\_map.py}, \texttt{docs/SF70H\_TUM\_CAR.md}, \texttt{patches/000\{1,2\}}
+    \item Tyre curves: \texttt{mf52.py} here (Python copy of OCD \texttt{lib/ocd\_tire\_models\_cpp/src/mf\_52.cpp})
     \item OCP: \texttt{docs/results/limebeer\_ocp/REPORT.md}, \texttt{docs/research/limebeer\_lap\_times.md}
     \item Real laps: \texttt{docs/research/shanghai\_lap\_records.md}, \texttt{shanghai\_sim\_and\_car\_reference.md}
   \end{itemize}
