@@ -267,9 +267,24 @@ def _bcn():
     return replace(c, preset='bcn', env=replace(c.env, track='Catalunya', setup='bcn_best', max_brake_torque_Nm=15000.))
 
 
+def _f1_sha():
+    """p1_TUM's recipe (time_pbrs from scratch, demo f (0.5, 0.8), BC gate not required, ERS off,
+    15 kN m, safe line, no step / wall cap) on Shanghai with the car sf70h_f1 (ocd_first_lap branch
+    sf70h-f1; run with PYTHONPATH=<that worktree>) and its setup p1_TUM_f1 (setups.py: car bias
+    0.58, heave damping 0.3 PLACEHOLDER). Steering action +-1 = the car's 0.30 rad lock (env.py).
+    Demo / settle traction control re-tuned for the peakier tyre (Fx peak at kappa 0.075-0.081,
+    was 0.14-0.27): cut starts at rear slip 0.06 and is complete at 0.09 (span 0.03), just past
+    the peak. PLACEHOLDER; 0.06 = the start that drove the closed-loop TUM lap on this car
+    (SF70H_F1_UPGRADE.md §3). Run name: f1_sha."""
+    c = _p1_tum()
+    return replace(c, preset='f1_sha',
+                   env=replace(c.env, car='sf70h_f1', setup='p1_TUM_f1',
+                               demo=replace(c.env.demo, traction_slip_start=.06, traction_slip_span=.03)))
+
+
 PRESETS = {'full': lambda: TrainConfig(preset='full'), 'smoke': _smoke, 'r1_warm': _r1_warm,
            'r1_warm_smoke': _r1_warm_smoke, 'p1_TUM': _p1_tum,
-           'p0_TUMref': _p0_tumref, 'bcn': _bcn}
+           'p0_TUMref': _p0_tumref, 'bcn': _bcn, 'f1_sha': _f1_sha}
 
 
 # --- dict / override helpers (JSON round trip of nested frozen dataclasses) -------------------------

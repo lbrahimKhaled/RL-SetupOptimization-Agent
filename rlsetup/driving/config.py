@@ -81,7 +81,11 @@ class ObsConfig:
     accel_scale_mps2: float = 30.
     yaw_rate_scale_radps: float = 1.
     steer_scale_rad: float = .6          # actual steer angle; = ocd_lap.env.MAX_STEER_RAD, so it is
-                                         # in action units and last_action[0] - steer = PT1 lag (A5)
+                                         # in action units and last_action[0] - steer = PT1 lag (A5).
+                                         # Kept 0.6 for cars with another lock (sf70h_f1 0.30 rad:
+                                         # actual steer / 0.6 in [-0.5, 0.5] = action / 2): the same
+                                         # rad -> input scale for every car (comparable observations,
+                                         # obs layout frozen); the lag is then last_action[0] / 2 - steer
     heading_scale_rad: float = .5        # heading error to xi_ref; wrong way (pi/2) -> 3.14 (A5)
     slip_gain: float = 5.                # rear slip ratio * gain, then clipped to +-slip_clip
     slip_clip: float = 5.
@@ -106,8 +110,9 @@ class DemoConfig:
     # the rears to slip 1.0 and the car off the track). ScriptedDriver's law on the rear slip
     # ratio: throttle *= max(0, 1 - (slip - start) / span). traction_control=False = R5 as written.
     traction_control: bool = True
-    traction_slip_start: float = .08     # = ScriptedDriver
-    traction_slip_span: float = .12      # = ScriptedDriver
+    traction_slip_start: float = .08     # = ScriptedDriver (AV-21 tyre: Fx peak at kappa 0.14-0.27)
+    traction_slip_span: float = .12      # = ScriptedDriver; throttle fully cut at start + span = 0.20.
+                                         # Preset f1_sha (sf70h_f1, Fx peak kappa 0.075-0.081): 0.06 / 0.03
 
 
 @dataclass(frozen=True)
@@ -115,10 +120,12 @@ class EnvConfig:
     track: str = 'Shanghai'
     track_vmax_mps: float = 12.          # Track(name, vmax): only its scripted speed profile; unused here
     max_brake_torque_Nm: float = 12000.  # total, DECISIONS #5. PLACEHOLDER until SF70H data
-    car: str = 'av21'                    # ocd_lap.cars name: 'av21' (OCD's shipped car) or 'sf70h_tum'
+    car: str = 'av21'                    # ocd_lap.cars name: 'av21' (OCD's shipped car), 'sf70h_tum' or
+                                         # 'sf70h_f1' (ocd_first_lap branch sf70h-f1 only)
     ers: bool = False                    # the car's ERS. Off: OCDBackend's 4 MJ is per lap, and DrivingEnv's
                                          # multi-lap, random-start episodes neither refill nor observe it
-    setup: str = 'p0'                    # car setup by name, rlsetup.driving.setups: 'p0' (Setup()) or 'p1_TUM'
+    setup: str = 'p0'                    # car setup by name, rlsetup.driving.setups: 'p0' (Setup()), 'p1_TUM',
+                                         # 'bcn_best', 'p1_TUM_f1' (sf70h_f1 only)
     reference: str = 'path'              # xi_ref: 'path' = Track.path (safe line) or 'raceline' = Track.reference
                                          # (racetrack-database raceline = TUM's). Track progress, the lap
                                          # line and the QSS profile stay on Track.path either way
