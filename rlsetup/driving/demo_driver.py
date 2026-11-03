@@ -13,7 +13,10 @@ Pedal mapping (R3), throttle and brake alike:
     pedal_deadzone=True:  pedal = clip((a + 0.5) / 1.5, 0, 1); inverse a = -0.5 + 1.5 pedal for
                           pedal > 0, a = released_pedal_action (-0.8) for pedal = 0
     pedal_deadzone=False: pedal = (a + 1) / 2 (ocd_first_lap OCDRacingEnv); inverse a = 2 pedal - 1
-Steering: steering_rad = a * 0.6 rad (MAX_STEER_RAD), positive = left (OCD yaw convention).
+Steering: steering_rad = a * lock, positive = left (OCD yaw convention); lock = `steer_lock_rad(car)`
+= the car's CarSpec.steer_max_rad (OCD's actuator limit) where the CarSpec defines one, else 0.6 rad
+(MAX_STEER_RAD). 0.6 rad for every car before sf70h_f1 (bit-identical); sf70h_f1 0.30 rad, so the
+full action range is the car's whole lock and never more.
 """
 import math
 import numpy as np
@@ -22,13 +25,21 @@ from ocd_lap import cars
 from ocd_lap.env import MAX_STEER_RAD
 
 
-def action_to_inputs(a, pedal_deadzone):
-    """Validated action array (3,) -> pedal `Inputs`."""
+def steer_lock_rad(car):
+    """Road-wheel angle [rad] of steering action +-1 for `car` (cars.CARS name or a CarSpec-like
+    object): the car's `steer_max_rad` (ocd_first_lap branch sf70h-f1 on) or MAX_STEER_RAD (0.6 rad)
+    when it has no such field."""
+    spec = cars.get(car) if isinstance(car, str) else car
+    return float(getattr(spec, 'steer_max_rad', MAX_STEER_RAD))
+
+
+def action_to_inputs(a, pedal_deadzone, steer_max_rad=MAX_STEER_RAD):
+    """Validated action array (3,) -> pedal `Inputs`; steering = a[0] * steer_max_rad [rad]."""
     if pedal_deadzone:
         pedal = lambda x: float(min(1., max(0., (x + .5) / 1.5)))
-        return Inputs(float(a[0]) * MAX_STEER_RAD, pedal(a[1]), pedal(a[2]))
-    # identical expression to OCDRacingEnv.to_inputs (bitwise-equal inputs)
-    return Inputs(float(a[0]) * MAX_STEER_RAD, (a[1] + 1) / 2, (a[2] + 1) / 2)
+        return Inputs(float(a[0]) * steer_max_rad, pedal(a[1]), pedal(a[2]))
+    # identical expression to OCDRacingEnv.to_inputs (bitwise-equal inputs at 0.6 rad)
+    return Inputs(float(a[0]) * steer_max_rad, (a[1] + 1) / 2, (a[2] + 1) / 2)
 
 
 def pedal_to_action(pedal, pedal_deadzone, released_action=-.8):
@@ -37,9 +48,10 @@ def pedal_to_action(pedal, pedal_deadzone, released_action=-.8):
     return 2. * pedal - 1.
 
 
-def inputs_to_action(steering_rad, throttle, brake, pedal_deadzone, released_action=-.8):
+def inputs_to_action(steering_rad, throttle, brake, pedal_deadzone, released_action=-.8,
+                     steer_max_rad=MAX_STEER_RAD):
     """Pedals -> env action (float32), the inverse of `action_to_inputs`."""
-    return np.array([float(np.clip(steering_rad / MAX_STEER_RAD, -1., 1.)),
+    return np.array([float(np.clip(steering_rad / steer_max_rad, -1., 1.)),
                      pedal_to_action(throttle, pedal_deadzone, released_action),
                      pedal_to_action(brake, pedal_deadzone, released_action)], dtype=np.float32)
 
@@ -51,6 +63,7 @@ class DemoDriver:
         self.ref, self.cfg = ref, cfg
         spec = cars.get(car)
         self.rear_axle_m, self.wheelbase_m = spec.rear_axle_m, spec.wheelbase_m
+        self.steer_max_rad = steer_lock_rad(spec)
         self.pedal_deadzone = pedal_deadzone
         self.dt = control_dt_s
         self.integral = 0.
@@ -66,7 +79,7 @@ class DemoDriver:
         d = self.ref.point(s_ref - self.rear_axle_m + lookahead) - rear
         alpha = math.atan2(d[1], d[0]) - yaw
         return float(np.clip(math.atan2(2. * self.wheelbase_m * math.sin(alpha), np.linalg.norm(d)),
-                             -MAX_STEER_RAD, MAX_STEER_RAD))
+                             -self.steer_max_rad, self.steer_max_rad))
 
     def pedals(self, target_mps, vx, rear_slip=0.):
         """Speed PI -> (throttle, brake) in [0, 1]; brake capped at cfg.brake_cap; throttle
@@ -85,7 +98,8 @@ class DemoDriver:
         steer = self.steering(state, s_ref)
         throttle, brake = self.pedals(target_mps, state['vx'],
                                       max(abs(state['slip_rl']), abs(state['slip_rr'])))
-        return inputs_to_action(steer, throttle, brake, self.pedal_deadzone, self.cfg.released_pedal_action)
+        return inputs_to_action(steer, throttle, brake, self.pedal_deadzone, self.cfg.released_pedal_action,
+                                self.steer_max_rad)
 
 
 class DemoPolicy:

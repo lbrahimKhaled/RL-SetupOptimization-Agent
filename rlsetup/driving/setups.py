@@ -29,6 +29,13 @@
           already below the ground at top speed, no floor contact in OCD). Flags: aero_level at
           its upper bound; understeer gradient -0.02 / -0.19 deg/g at 75 / 90 m/s (p1_TUM +0.12 /
           +0.44), i.e. mildly oversteer at top speed; front ride height at v_max -6.2 cm (p1_TUM -2.8).
+  p1_TUM_f1  car 'sf70h_f1' only (ocd_first_lap branch sf70h-f1; preset f1_sha): p1_TUM's knob changes
+          on the car's own setup class SF70HF1Setup (`for_car`: heave 12.95 / 5.85 Hz on), brake bias
+          kept at the car's 0.58 (not p1_TUM's 0.49: 0.49 was TUM's tyre-potential split for
+          sf70h_tum; 0.58 is the car's sourced default and the setup of the sf70h_f1 QSS reference,
+          102.40 s, docs/reports/SF70H_F1_UPGRADE.md §3), plus heave_damping_ratio 0.3 (PLACEHOLDER,
+          no F1 source: the diagnostic value that cuts the car's 4.5 Hz porpoising ~10x; QSS 102.53 s).
+          Built on demand (CAR_SETUPS): SF70HF1Setup does not exist on other ocd_first_lap checkouts.
 """
 from ocd_lap.car_setup import Setup
 
@@ -41,10 +48,21 @@ SETUPS = {
 }
 
 
+HEAVE_DAMPING_F1 = .3   # PLACEHOLDER heave_damping_ratio of p1_TUM_f1 (no F1 source; SF70H_F1_UPGRADE.md §3)
+# Named setups on a car's own Setup class: (named setup, car, knobs kept at the car's default, changes).
+CAR_SETUPS = {
+    'p1_TUM_f1': ('p1_TUM', 'sf70h_f1', ('brake_bias_front',), {'heave_damping_ratio': HEAVE_DAMPING_F1}),
+}
+
+
 def get(name):
-    """The Setup called `name` (a key of SETUPS)."""
+    """The Setup called `name` (a key of SETUPS or CAR_SETUPS; the latter need their car in
+    ocd_lap.cars, else ValueError)."""
+    if name in CAR_SETUPS:
+        base, car, keep, changes = CAR_SETUPS[name]
+        return for_car(base, car, keep).replace(**changes)
     if name not in SETUPS:
-        raise KeyError(f'unknown setup {name!r} (known: {sorted(SETUPS)})')
+        raise KeyError(f'unknown setup {name!r} (known: {sorted(SETUPS) + sorted(CAR_SETUPS)})')
     return SETUPS[name]
 
 

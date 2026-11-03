@@ -20,7 +20,9 @@ RewardConfig.mode selects the reward:
                Smoothness and tracking are still computed and logged (step_cost, laps), not
                rewarded; the episode return includes the shaping, so it is not a lap score.
 
-action       [steering, throttle, brake] in [-1, 1]^3, absolute; steering * 0.6 rad (+ = left);
+action       [steering, throttle, brake] in [-1, 1]^3, absolute (clipped to it); steering * the car's
+             lock `steer_max_rad` (demo_driver.steer_lock_rad: 0.6 rad = ocd_lap.env.MAX_STEER_RAD
+             for every car before sf70h_f1, 0.30 rad for sf70h_f1), + = left;
              pedals per `EnvConfig.pedal_deadzone` (see demo_driver.action_to_inputs). Each action
              is held for `action_repeat` base ticks (default 2 -> 25 Hz decisions); the decision's
              reward is the sum of the base-tick rewards; it stops early if a tick ends the episode.
@@ -77,7 +79,7 @@ from ocd_lap.backend import OCDBackend, StartPose, DT
 from ocd_lap.env import OCDRacingEnv, RewardWeights
 from ocd_lap.simulation import CONTROL_STEPS
 from .config import EnvConfig
-from .demo_driver import DemoDriver, action_to_inputs
+from .demo_driver import DemoDriver, action_to_inputs, steer_lock_rad
 from .reference import ReferenceLine, track_grid
 from . import qss_profile, setups
 
@@ -136,6 +138,7 @@ class DrivingEnv(OCDRacingEnv):
                                                             car=cfg.car, ers=cfg.ers))
         if track is not None:
             self.track = track
+        self.steer_max_rad = steer_lock_rad(cfg.car)   # action +-1 -> +-lock [rad] (= OCD's actuator limit)
         self.ref = reference if reference is not None else ReferenceLine.for_track(self.track, cfg.reference)
         self.grid = track_grid(self.track, self.ref, cfg.obs.grid_m)
         self.qss = qss if qss is not None else qss_profile.for_env(self.track, cfg)
@@ -178,7 +181,8 @@ class DrivingEnv(OCDRacingEnv):
 
     # --- actions ------------------------------------------------------------------------------
     def to_inputs(self, action):
-        return action_to_inputs(self._validate_action(action).astype(float), self.cfg.pedal_deadzone)
+        return action_to_inputs(self._validate_action(action).astype(float), self.cfg.pedal_deadzone,
+                                self.steer_max_rad)
 
     # --- geometry -------------------------------------------------------------------------------
     @property
