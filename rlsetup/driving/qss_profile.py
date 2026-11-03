@@ -116,6 +116,18 @@ def compute(track, setup=None, *, ggv_data=None, car='av21', ers=False, brake_to
     return profile, (ggv, traction, details)
 
 
+def line_lap_time(profile, track, line_path, env_cfg):
+    """QSS lap time [s] on another closed [s, x, y] line (e.g. a 'csv:' xi_ref) with the g-g-v
+    and traction limits stored in `profile` (`qss_lap.lap_time(path=line_path)`; DRS off, the
+    env's car and ERS). Metadata only: the env's start speeds keep using `profile` on
+    Track.path. Same number as scripts/sha_line_setup.py for the same setup and brake torque."""
+    from .setups import get as get_setup
+    ggv_data = (np.asarray(profile.meta['ggv'], dtype=float), np.asarray(profile.meta['traction'], dtype=float), None)
+    r = qss_lap.lap_time(get_setup(env_cfg.setup), track, ggv_data=ggv_data, car=env_cfg.car, ers=env_cfg.ers,
+                         drs=False, path=np.asarray(line_path, dtype=float))
+    return float(r['lap_time_s'])
+
+
 def default_path(track_name, tag='p0', car='av21', ers=False, brake_torque_Nm=BRAKE_TORQUE_NM):
     suffix = '' if car == 'av21' else f'_{car}' + ('_ers' if ers else '')
     if brake_torque_Nm != BRAKE_TORQUE_NM:

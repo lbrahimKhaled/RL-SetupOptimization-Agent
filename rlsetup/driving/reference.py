@@ -17,12 +17,33 @@ import math
 import numpy as np
 import trajectory_planning_helpers as tph
 from ocd_lap.track import closed_path
+from ..provenance import REPO_ROOT
 
 MATCH_RANGE_M = 15.       # = Track.match: search window around the hint
 MATCH_INTERP = 101        # = Track.match
 TANGENT_HALF_M = .5       # = OCDRacingEnv._frame
 CLOSE_TOL_M = 1e-6        # = closed_path: first/last point treated as the same point
 MIN_SEGMENT_M = 1e-6      # shorter segments count as duplicate points
+CSV_PREFIX = 'csv:'       # EnvConfig.reference = 'csv:<repo-relative path>' -> ReferenceLine.from_csv
+
+
+def csv_reference_path(which):
+    """Absolute path of a 'csv:<path>' reference (relative paths are relative to the repo root,
+    not the working directory), None for any other reference name."""
+    if not (isinstance(which, str) and which.startswith(CSV_PREFIX)):
+        return None
+    rel = which[len(CSV_PREFIX):]
+    if not rel:
+        raise ValueError(f'empty path in reference {which!r}')
+    return REPO_ROOT / rel
+
+
+def reference_source(which):
+    """Provenance of EnvConfig.reference: {'spec', 'csv_path', 'csv_sha256'} (CSV fields None for
+    'path' / 'raceline', whose geometry is in the ocd_lap track provenance)."""
+    path = csv_reference_path(which)
+    return {'spec': which, 'csv_path': None if path is None else str(path),
+            'csv_sha256': None if path is None else hashlib.sha256(path.read_bytes()).hexdigest()}
 
 
 class ReferenceLine:
@@ -63,18 +84,25 @@ class ReferenceLine:
 
     @classmethod
     def for_track(cls, track, which='path'):
-        """xi_ref named by EnvConfig.reference: 'path' (Track.path) or 'raceline' (Track.reference)."""
+        """xi_ref named by EnvConfig.reference: 'path' (Track.path), 'raceline' (Track.reference)
+        or 'csv:<path>' (`from_csv`; a path relative to the repo root, see `csv_reference_path`;
+        a string, so it reaches vector-env workers through the config dict). The CSV line must be
+        in the track's frame and run in Track.path's direction (TrackGrid checks the direction)."""
         if which == 'path':
             return cls.from_track_path(track)
         if which == 'raceline':
             return cls.from_track_raceline(track)
-        raise ValueError(f"unknown reference {which!r} (known: 'path', 'raceline')")
+        path = csv_reference_path(which)
+        if path is not None:
+            return cls.from_csv(path, name=which)
+        raise ValueError(f"unknown reference {which!r} (known: 'path', 'raceline', '{CSV_PREFIX}<path>')")
 
     @classmethod
-    def from_csv(cls, path):
-        """x, y [m] columns in the track's frame ('#' comments allowed), e.g. Jad's laps."""
+    def from_csv(cls, path, name=None):
+        """x, y [m] columns in the track's frame ('#' comments allowed), e.g. Jad's laps.
+        `name`: default the file name."""
         xy = np.loadtxt(path, delimiter=',', comments='#', ndmin=2)
-        return cls.from_xy(xy[:, :2], Path(path).name)
+        return cls.from_xy(xy[:, :2], Path(path).name if name is None else name)
 
     def point(self, s):
         """Point(s) at arc length s [m] (any real s; wraps). Scalar s -> (2,), array -> (n, 2)."""

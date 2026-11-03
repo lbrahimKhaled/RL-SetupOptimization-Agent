@@ -282,9 +282,22 @@ def _f1_sha():
                                demo=replace(c.env.demo, traction_slip_start=.06, traction_slip_span=.03)))
 
 
+LINE_IQP_W35 = 'csv:docs/results/shanghai_line_setup/line_iqp_w3.5.csv'   # ReferenceLine digest eaf1792a00be2da0
+
+
+def _f1_sha_w35():
+    """f1_sha with only xi_ref changed: the converged (iterated-QP) minimum-curvature line with
+    a 3.5 m width allowance (docs/results/shanghai_line_setup/NOTES.md: footprint fully inside,
+    min clearance +0.10 m; QSS p1_TUM_f1 96.01 s vs 102.53 s on the safe line). The start
+    placement, settle, demonstrations and evaluation start follow it (env.py drive_line);
+    progress, the lap line and the QSS start-speed profile stay on Track.path. Run name: f1_sha_w35."""
+    c = _f1_sha()
+    return replace(c, preset='f1_sha_w35', env=replace(c.env, reference=LINE_IQP_W35))
+
+
 PRESETS = {'full': lambda: TrainConfig(preset='full'), 'smoke': _smoke, 'r1_warm': _r1_warm,
            'r1_warm_smoke': _r1_warm_smoke, 'p1_TUM': _p1_tum,
-           'p0_TUMref': _p0_tumref, 'bcn': _bcn, 'f1_sha': _f1_sha}
+           'p0_TUMref': _p0_tumref, 'bcn': _bcn, 'f1_sha': _f1_sha, 'f1_sha_w35': _f1_sha_w35}
 
 
 # --- dict / override helpers (JSON round trip of nested frozen dataclasses) -------------------------

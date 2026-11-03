@@ -27,7 +27,8 @@ action       [steering, throttle, brake] in [-1, 1]^3, absolute (clipped to it);
              is held for `action_repeat` base ticks (default 2 -> 25 Hz decisions); the decision's
              reward is the sum of the base-tick rewards; it stops early if a tick ends the episode.
 progress     Track.path arc length (driver-independent; the same for every xi_ref). e and the
-             heading error are relative to xi_ref (`ReferenceLine`), e positive = left.
+             heading error are relative to xi_ref (`ReferenceLine`, EnvConfig.reference: 'path',
+             'raceline' or 'csv:<repo-relative path>'), e positive = left.
 failure      off track (4.2 x 2.0 m footprint), non-finite state, stall (speed < 3 m/s for > 2 s)
              or wrong way (|heading error| > 90 deg): terminated, reward - P,
              P = P0 + kappa (c / 0.02 s) (T_rec / 3) e_exit^2 (RewardConfig.failure_penalty).
@@ -142,10 +143,11 @@ class DrivingEnv(OCDRacingEnv):
         self.ref = reference if reference is not None else ReferenceLine.for_track(self.track, cfg.reference)
         self.grid = track_grid(self.track, self.ref, cfg.obs.grid_m)
         self.qss = qss if qss is not None else qss_profile.for_env(self.track, cfg)
-        # Line the scripted drivers follow (start placement, settle, demonstrations): xi_ref, except
-        # for the raceline, which does not fit the car everywhere; then Track.path, the safe line
-        # (whose arc length is the env's track position self.s).
-        self.drive_line = self.ref if cfg.reference == 'path' else ReferenceLine.from_track_path(self.track)
+        # Line the scripted drivers follow (start placement, settle, demonstrations, evaluation
+        # start): xi_ref ('path' or a 'csv:' line), except for the raceline, which does not fit the
+        # car everywhere; then Track.path, the safe line (whose arc length is the env's track
+        # position self.s).
+        self.drive_line = ReferenceLine.from_track_path(self.track) if cfg.reference == 'raceline' else self.ref
         self.settle_driver = DemoDriver(self.drive_line, cfg.demo, pedal_deadzone=cfg.pedal_deadzone,
                                         control_dt_s=self.decision_dt, car=cfg.car)
         o = cfg.obs

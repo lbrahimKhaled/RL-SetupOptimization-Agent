@@ -124,11 +124,13 @@ def package_versions():
 
 
 def training_provenance(track, *, n_envs, qss, reference_digest, track_sha256, config_json,
-                        argv=None, demo_sha256=None, bc_actor_sha256=None, allow_dirty=False):
+                        argv=None, demo_sha256=None, bc_actor_sha256=None, allow_dirty=False, reference=None):
     """provenance.json of a D2 training run (spec §9): `run_provenance(track.name)` plus package
     versions, machine, torch threads, n_envs, argv, UTC start, QSS cache-key sha + lap time,
     reference-line digest, track sha, demo dataset / BC actor sha (filled in as they exist) and
-    the sha256 of the config JSON text."""
+    the sha256 of the config JSON text. `reference`: optional dict about xi_ref (train.py:
+    spec, name, digest, length, CSV sha256, QSS lap on the line), stored under 'reference' only
+    when given."""
     import datetime
     import json
     import platform
@@ -146,4 +148,4 @@ def training_provenance(track, *, n_envs, qss, reference_digest, track_sha256, c
             'reference_digest': reference_digest, 'track_path_sha256': track_sha256,
             'demo_dataset_sha256': demo_sha256, 'bc_actor_sha256': bc_actor_sha256,
             'config_sha256': hashlib.sha256(config_json.encode()).hexdigest(),
-            'allow_dirty': bool(allow_dirty)}
+            'allow_dirty': bool(allow_dirty), **({} if reference is None else {'reference': reference})}
