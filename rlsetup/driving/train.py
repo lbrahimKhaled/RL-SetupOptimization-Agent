@@ -88,6 +88,22 @@ def eval_envs(cfg, track, qss):
             'probe': mk(replace(e, max_episode_s=cfg.guard.probe_s))}
 
 
+def reference_metadata(env_cfg, env, track, qss):
+    """provenance.json 'reference' for a 'csv:' xi_ref (None otherwise, so the provenance of
+    'path' / 'raceline' runs is unchanged): spec, name, digest, length, the CSV's path and sha256,
+    and the QSS lap on the line with the run's setup (the start-speed profile `qss` stays on
+    Track.path)."""
+    from .reference import csv_reference_path, reference_source
+    if csv_reference_path(env_cfg.reference) is None:
+        return None
+    from . import qss_profile
+    ref = env.ref
+    return {**reference_source(env_cfg.reference), 'name': ref.name, 'digest': ref.digest,
+            'length_m': ref.length, 'drive_line_is_reference': env.drive_line is ref,
+            'qss_lap_on_line_s': qss_profile.line_lap_time(qss, track, ref.path, env_cfg),
+            'qss_lap_on_track_path_s': float(qss.lap_time_s)}
+
+
 def _sha_file(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
@@ -318,12 +334,17 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
         (run_dir / 'config.json').write_text(cj)
         envs = eval_envs(cfg, track, qss)
         prov = training_provenance(track, n_envs=cfg.n_envs, qss=qss, reference_digest=envs['probe'].ref.digest,
-                                   track_sha256=tsha, config_json=cj, argv=argv, allow_dirty=allow_dirty)
+                                   track_sha256=tsha, config_json=cj, argv=argv, allow_dirty=allow_dirty,
+                                   reference=reference_metadata(cfg.env, envs['probe'], track, qss))
         write_json(run_dir / 'provenance.json', prov)
         run.status(phase='setup', state='running', run_name=run_name, seed=cfg.seed, preset=cfg.preset,
                    rollbacks=0, stop_reason=None)
         log(f'D2 {run_name} seed {cfg.seed} ({cfg.preset}): {cfg.n_envs} envs, UTD {cfg.utd:g}, '
             f'{cfg.total_timesteps} steps, wall limit {cfg.max_wall_h} h -> {run_dir}')
+        if prov.get('reference'):
+            r = prov['reference']
+            log(f"xi_ref {r['spec']} (digest {r['digest']}, {r['length_m']:.1f} m): QSS {r['qss_lap_on_line_s']:.3f} s "
+                f"on the line, {r['qss_lap_on_track_path_s']:.3f} s on Track.path (start speeds)")
         vec = build_vec_env(cfg.env, cfg.n_envs, track, qss, start_method=cfg.vec_start_method)
         model = build_model(cfg, vec)
         a = cfg.agent

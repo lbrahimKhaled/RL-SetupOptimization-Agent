@@ -126,8 +126,9 @@ class EnvConfig:
                                          # multi-lap, random-start episodes neither refill nor observe it
     setup: str = 'p0'                    # car setup by name, rlsetup.driving.setups: 'p0' (Setup()), 'p1_TUM',
                                          # 'bcn_best', 'p1_TUM_f1', 'sha_f1_best' (sf70h_f1 only)
-    reference: str = 'path'              # xi_ref: 'path' = Track.path (safe line) or 'raceline' = Track.reference
-                                         # (racetrack-database raceline = TUM's). Track progress, the lap
+    reference: str = 'path'              # xi_ref: 'path' = Track.path (safe line), 'raceline' = Track.reference
+                                         # (racetrack-database raceline = TUM's) or 'csv:<repo-relative path>'
+                                         # (x, y CSV, ReferenceLine.from_csv). Track progress, the lap
                                          # line and the QSS profile stay on Track.path either way
     action_repeat: int = 2               # 2 x 50 Hz base ticks -> 25 Hz decisions (R2.3)
     pedal_deadzone: bool = True          # R3, pending Ibrahim: pedal = clip((a + .5) / 1.5, 0, 1)
