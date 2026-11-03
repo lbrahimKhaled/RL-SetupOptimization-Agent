@@ -36,6 +36,18 @@
           102.40 s, docs/reports/SF70H_F1_UPGRADE.md §3), plus heave_damping_ratio 0.3 (PLACEHOLDER,
           no F1 source: the diagnostic value that cuts the car's 4.5 Hz porpoising ~10x; QSS 102.53 s).
           Built on demand (CAR_SETUPS): SF70HF1Setup does not exist on other ocd_first_lap checkouts.
+  sha_f1_best  car 'sf70h_f1' only: QSS-best setup for Shanghai, 15 kN m, ERS/DRS off
+          (scripts/sha_line_setup.py sweep, 40 g-g-v measurements, docs/results/shanghai_line_setup/
+          NOTES.md): p1_TUM_f1 + aero_front_share 0.5384, roll_stiffness_front_share 0.40,
+          roll_stiffness_Nm_per_rad 4.0e5. QSS lap [s]: IQP w2.6 line 95.507 -> 93.304, IQP w3.5
+          line 96.010 -> 93.825, safe line (Track.path) 102.532 -> 100.162. All g-g-v rows valid
+          (15-90 m/s); front ride height in a 90 m/s hold +0.43 cm (p1_TUM_f1 +1.0 cm). Flags: limit
+          oversteer in the ramp steer (spin at the end of the ramp), understeer gradient ~0 at
+          60-90 m/s (-0.08 deg/g at 90; p1_TUM_f1 +1.6 to +2.2); the aero gain rests on the
+          PLACEHOLDER aero map. Not taken: heave_freq_front_hz 10 (-0.06 s, only by lowering the
+          front to +0.09 cm at 90 m/s), aero_level 0.7 / 0.75 (-0.6 / -0.9 s, front below the
+          ground at 90 m/s with this aero balance), aero_level >= 0.9 (90 m/s settle collapses),
+          lower ride height / rake (SENSIBLE rule of scripts/bcn_setup_sweep.py).
 """
 from ocd_lap.car_setup import Setup
 
@@ -52,6 +64,9 @@ HEAVE_DAMPING_F1 = .3   # PLACEHOLDER heave_damping_ratio of p1_TUM_f1 (no F1 so
 # Named setups on a car's own Setup class: (named setup, car, knobs kept at the car's default, changes).
 CAR_SETUPS = {
     'p1_TUM_f1': ('p1_TUM', 'sf70h_f1', ('brake_bias_front',), {'heave_damping_ratio': HEAVE_DAMPING_F1}),
+    'sha_f1_best': ('p1_TUM', 'sf70h_f1', ('brake_bias_front',),
+                    {'heave_damping_ratio': HEAVE_DAMPING_F1, 'aero_front_share': .5384,
+                     'roll_stiffness_front_share': .40, 'roll_stiffness_Nm_per_rad': 4.0e5}),
 }
 
 

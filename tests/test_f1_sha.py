@@ -102,6 +102,14 @@ def test_p1_tum_f1_setup():
 
 
 @needs_f1
+def test_sha_f1_best_setup():
+    s, base = setups.get('sha_f1_best'), setups.get('p1_TUM_f1')
+    assert type(s) is cars.SF70HF1Setup
+    diff = {k: v for k, v in s.to_dict().items() if v != base.to_dict()[k]}
+    assert diff == {'aero_front_share': .5384, 'roll_stiffness_front_share': .40, 'roll_stiffness_Nm_per_rad': 4.0e5}
+
+
+@needs_f1
 def test_f1_env_steers_to_0_30_rad(track):
     cfg = PRESETS['f1_sha']().env
     qss = qss_profile.for_env(track, cfg)

@@ -125,7 +125,7 @@ class EnvConfig:
     ers: bool = False                    # the car's ERS. Off: OCDBackend's 4 MJ is per lap, and DrivingEnv's
                                          # multi-lap, random-start episodes neither refill nor observe it
     setup: str = 'p0'                    # car setup by name, rlsetup.driving.setups: 'p0' (Setup()), 'p1_TUM',
-                                         # 'bcn_best', 'p1_TUM_f1' (sf70h_f1 only)
+                                         # 'bcn_best', 'p1_TUM_f1', 'sha_f1_best' (sf70h_f1 only)
     reference: str = 'path'              # xi_ref: 'path' = Track.path (safe line) or 'raceline' = Track.reference
                                          # (racetrack-database raceline = TUM's). Track progress, the lap
                                          # line and the QSS profile stay on Track.path either way
