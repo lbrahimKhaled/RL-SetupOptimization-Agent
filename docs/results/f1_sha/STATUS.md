@@ -90,3 +90,6 @@ with p1_TUM, whose first clean deterministic lap was 110.5 s at 150k. Healthy so
 - `qss_profile.cache_key` does not hash `ocd_lap/cars.py` (known failing test). A later change to
   the f1 car values would not invalidate this QSS cache.
 - Keeper log: harmless "evals.jsonl not found" tracebacks from before the first eval.
+
+## Result (stopped by Ibrahim, 3 Nov 2026, to test a better line)
+Stopped at 5.4M steps. Best clean deterministic lap 2: **103.06 s** (step 4.95M); clean in 16 / 109 evaluations. Line: safe line (single-pass min-curvature, QSS 102.53 s). Next run: same recipe and setup with the converged w3.5 line (QSS 96.01 s), see docs/results/shanghai_line_setup/NOTES.md.
