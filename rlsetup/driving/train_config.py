@@ -295,9 +295,17 @@ def _f1_sha_w35():
     return replace(c, preset='f1_sha_w35', env=replace(c.env, reference=LINE_IQP_W35))
 
 
+def _f1_best_w35():
+    """f1_sha_w35 with only the setup changed to the QSS-best Shanghai setup sha_f1_best
+    (docs/results/shanghai_line_setup/NOTES.md; QSS 93.83 s on this line). Run name: f1_best_w35."""
+    c = _f1_sha_w35()
+    return replace(c, preset='f1_best_w35', env=replace(c.env, setup='sha_f1_best'))
+
+
 PRESETS = {'full': lambda: TrainConfig(preset='full'), 'smoke': _smoke, 'r1_warm': _r1_warm,
            'r1_warm_smoke': _r1_warm_smoke, 'p1_TUM': _p1_tum,
-           'p0_TUMref': _p0_tumref, 'bcn': _bcn, 'f1_sha': _f1_sha, 'f1_sha_w35': _f1_sha_w35}
+           'p0_TUMref': _p0_tumref, 'bcn': _bcn, 'f1_sha': _f1_sha, 'f1_sha_w35': _f1_sha_w35,
+           'f1_best_w35': _f1_best_w35}
 
 
 # --- dict / override helpers (JSON round trip of nested frozen dataclasses) -------------------------
