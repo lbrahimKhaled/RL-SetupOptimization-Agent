@@ -61,3 +61,6 @@ Stop by hand: `pkill -f "keeper_f1.sh f1_sha_w35"; pkill -INT -f "run-name f1_sh
 f1_sha at the same points: 0/10 and 0/10 stochastic clean, Q_min/MC 1.08 / 1.89, a rollback at
 40k (none here). BC gate: deterministic off_track, 0/3 stochastic (as f1_sha; gate not required).
 Healthy: phase rl, running, 0 rollbacks, keeper mirroring evals into TensorBoard.
+
+## Result (stopped by Ibrahim, 4 Nov 2026)
+Stopped at 9.0M steps, converged. Best clean deterministic lap 2: **102.57 s** (step 4.95M); clean in 57 / 181 evaluations. Line effect vs f1_sha (same car and setup): QSS 102.53 → 96.01 s, RL 103.06 → 102.57 s, clean rate 15 % → 31 %. Best model kept: `models/sha_f1car_w35line_p1TUMf1_102.57s.zip`.

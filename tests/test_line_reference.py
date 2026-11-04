@@ -96,3 +96,11 @@ def test_f1_sha_w35_settle_demos_and_qss(track):
     m = reference_metadata(cfg.env, env, track, q)
     assert m['qss_lap_on_line_s'] == pytest.approx(96.0096, abs=1e-3)
     assert m['qss_lap_on_track_path_s'] == pytest.approx(102.5315, abs=1e-3)
+
+
+def test_f1_best_w35_differs_from_f1_sha_w35_only_in_setup():
+    from dataclasses import replace
+    from rlsetup.driving.train_config import PRESETS
+    a, b = PRESETS['f1_sha_w35'](), PRESETS['f1_best_w35']()
+    assert b.env.setup == 'sha_f1_best'
+    assert replace(b, preset=a.preset, env=replace(b.env, setup=a.env.setup)) == a
