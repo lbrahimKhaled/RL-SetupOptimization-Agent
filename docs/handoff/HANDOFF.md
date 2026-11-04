@@ -214,3 +214,14 @@ platforms\windows\start_detached.ps1 -Log runs\windows\p0_TUMref_stdout.log plat
 - Commits are local (push when the network allows): `git push` on `comparison-tum-vs-rl`.
 - **Update 31 Oct ~19:20:** `bcn` training RUNNING (relaunched with `--set demos.min_clean_fraction=0.75`; first try failed the demo gate at 0.76, kept in `runs/mac/failed_demo_gate/bcn`). Keeper: `runs/mac/keeper_nostop.sh bcn` (no auto-stop). Setup `bcn_best` (p1_TUM + aero_level 1.0, aero_front_share 0.5384, brake_bias 0.55; QSS 82.89 s safe line) — see docs/results/bcn/SETUP_SELECTION.md (aero_level at bound; mild high-speed oversteer).
 - **D (OCP):** model research committed (`docs/research/limebeer_ocp_model.md`); coder building it — progress log `docs/results/limebeer_ocp/PROGRESS.md`. Assumptions: 560 kW (LPR14), brake balance 0.55/0.60/0.65, track ±(half-width − car half-width) and ±4 m sensitivity; acceptance ±1.5 % of 82.57 s.
+
+## Resume after shutdown (stopped by Ibrahim to shut down the PC)
+Run `f1_best_w35` (Shanghai, car sf70h_f1, setup sha_f1_best, converged w3.5 line, QSS 93.83 s) stopped on purpose; resume from `runs/mac/D2/f1_best_w35/seed0`:
+```sh
+F=~/Desktop/RESEARCH/ocd_first_lap-f1
+caffeinate -dimsu nohup env PYTHONPATH=$F platforms/mac/train.sh --resume --preset f1_best_w35 --seed 0 --run-name f1_best_w35 --allow-code-change >> runs/mac/f1_best_w35_stdout.log 2>&1 &
+nohup runs/mac/keeper_f1.sh f1_best_w35 >> runs/mac/keeper_f1_best_w35.log 2>&1 &
+nohup .venv/bin/tensorboard --logdir_spec "00_BEST_LAPS:runs/tb_summary/00_BEST_LAPS,A_SHA_F1car_BESTsetup_w35_TRAINING:runs/mac/D2/f1_best_w35/seed0,B_SHA_F1car_p1_w35:runs/mac/D2/f1_sha_w35/seed0,C_SHA_F1car_p1_safeline:runs/mac/D2/f1_sha/seed0,D_SHA_TUMcar_p1_BEST:runs/mac/D2/p1_TUM/seed0" --port 6006 --host 127.0.0.1 --reload_interval 30 > runs/mac/tensorboard.log 2>&1 &
+nohup cloudflared tunnel --no-autoupdate --url http://127.0.0.1:6006 > runs/mac/cloudflared.log 2>&1 &   # new public URL in that log
+```
+Best models: `models/`. Line result: RL 103.06 → 102.57 s. Judge this setup at about 5M steps.
