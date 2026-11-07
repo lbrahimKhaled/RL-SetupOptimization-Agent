@@ -10874,9 +10874,9 @@
  ],
  "lap_time_s": 93.8252937271318,
  "meta": {
-  "key": "c83c1c6895082afe9f146f8bddfe8257720895a18f0753b5d286ae9b9ad2a6bc",
+  "key": "6c61b28a4876ff540d6a715d2e980120ff480c62c44828c571c47cdbe92a9372",
   "key_dict": {
-   "corners_py_sha256": "afe1cf5d683f3d22589f055635a58c8fc02e7247665c2f9fafd1f46b892561b8",
+   "corners_py_sha256": "c2f6cb699652d6060060599ce5251a057614c90ddfdb748a09d66ef9870ad185",
    "detection": {
     "exit_after_apex_m": 150.0,
     "exit_before_brake_m": 30.0,
@@ -10940,14 +10940,14 @@
   "t_line_end_s": 93.82529372713182,
   "reference": "csv:docs/results/shanghai_line_setup/line_iqp_w3.5.csv"
  },
- "created_utc": "2026-11-07T18:45:44+00:00",
+ "created_utc": "2026-11-07T23:16:27+00:00",
  "provenance": {
   "rlsetup": {
    "path": "/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent",
-   "commit": "6e97b404891be0e779f2d89f7ee19dc590628c7e",
+   "commit": "0fc2fef6ad2cd38e64ce2790058dd4af172525b0",
    "dirty": true,
    "untracked": true,
-   "diff_sha256": "d8be606645b63a90a8d485e63f60a299fe08a0e9b4ec2815d013930ef93a49cc"
+   "diff_sha256": "3b0f9d23e388927fb62e487bd1ef4061528792aa044519519dfc9f2f2e14a265"
   },
   "rlsetup_sources_sha256": {
    "rlsetup/__init__.py": "e54c1d042ab47972bb61868a40c841a34334c935b8628225ae2029cb7799f647",
@@ -10955,9 +10955,9 @@
    "rlsetup/driving/agent.py": "e084f6409e3ad967fcf66650aebdfc1e019906262e4d60e63fcf7584b1b6ff4e",
    "rlsetup/driving/bc.py": "0ecc9d18a552d3f4a36a56cc173fb915ca291c88a5296cd2225fe76aae254c0e",
    "rlsetup/driving/buffers.py": "1ca86e1b922ed7cdca17799143de1d91dfc4380855b319b1ad5388c85cec5a08",
-   "rlsetup/driving/callbacks.py": "eff0b653f20dc0f10e4901ba685d5f1b5f78dd5cf7baf40116de645838ba3392",
+   "rlsetup/driving/callbacks.py": "3dcb739b37ce31c0951251c17c678158cee0ddd06eb7667492a0d73a93bb5341",
    "rlsetup/driving/config.py": "df82c8542900b1906c8e4c36a8738a16d58562b2f84a391b167813e1a5aa0f72",
-   "rlsetup/driving/corners.py": "afe1cf5d683f3d22589f055635a58c8fc02e7247665c2f9fafd1f46b892561b8",
+   "rlsetup/driving/corners.py": "c2f6cb699652d6060060599ce5251a057614c90ddfdb748a09d66ef9870ad185",
    "rlsetup/driving/demo_driver.py": "d429efc6287fc09aaeb78422ffa43f6adf8002d78ac557ad986c0870c605620a",
    "rlsetup/driving/demos.py": "522fcbee6ec7d448ec6bf8c0e2a631d472cb64359ab4224ff2f807fde7c015f9",
    "rlsetup/driving/env.py": "38a186fa1ba6eec98d9db8f0463e466542b669bf2a20f80bf4a6cd15f9930f59",
@@ -10967,8 +10967,8 @@
    "rlsetup/driving/reference.py": "058597d050f20f93ce104544cae0bd0902912dcb9cb9cc419e0b523e6d677d3e",
    "rlsetup/driving/relabel.py": "2d38184cd0bd0386b1038d0a277bbf4d17c23550b13ca2569e2bf9245984ed6e",
    "rlsetup/driving/setups.py": "0ac4930b721401934b498c6092cf2552d5c9c8379c0e2a8b2c0753f8b68cf5d5",
-   "rlsetup/driving/train.py": "3067be47fcdbbfa0f23d4d15f1b0bf837b7894a96109f1b0faa310b996499dbc",
-   "rlsetup/driving/train_config.py": "ad8265268b4e33224a310aa748ffb21e913821a43cb5c44cdf20da6f32d6c105",
+   "rlsetup/driving/train.py": "ab85eb115042b0a889320cf19b8c2b7c329e33ad7ae169d5147a3ddf76b29c2e",
+   "rlsetup/driving/train_config.py": "2cfc1c197b42ec032f02abb2a6c97e4f69a2456f8ced584c4b26b65550ffdf7b",
    "rlsetup/driving/vec.py": "6103f100fb4d563b48604444df5068e216cb4630cd2e5f4e922378ae4f6e2754",
    "rlsetup/ocp/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
    "rlsetup/ocp/ladder_model.py": "4d7b9567938080816528c5ab99c242bba56f34371981170c048f0173f5239c83",

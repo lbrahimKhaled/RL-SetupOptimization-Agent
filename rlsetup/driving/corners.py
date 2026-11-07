@@ -262,7 +262,8 @@ def for_env(track, env_cfg, qss, ref=None):
 class CornerTracker:
     """Once-per-pass exit crossings on the env's cumulative Track.path distance d since hand-over.
 
-    reset(s_handover): threshold_k = (exit_k - s_handover) mod L; high-water mark h = 0.
+    reset(s_handover): threshold_k = (exit_k - s_handover) mod L, L for a hand-over exactly at an
+    exit (that exit counts as passed: next pass one lap later; QA R2 MINOR); high-water mark h = 0.
     tick(d0, d1, v0, v1): for every unit whose threshold lies in (h, d1] (in order of distance):
     phi = (X - d0) / (d1 - d0) clipped to [0, 1], v_exit = v0 + phi (v1 - v0), rho = v_exit /
     v_qss_exit, bonus = B f(rho); then threshold += L (also past d1 after a projection jump of
@@ -279,6 +280,7 @@ class CornerTracker:
 
     def reset(self, s_handover):
         self.next = (self.exits - float(s_handover)) % self.L
+        self.next[self.next <= 0.] += self.L    # threshold 0 would never lie in (h, d1] with h = 0
         self.high = 0.
 
     def tick(self, d0, d1, v0, v1):

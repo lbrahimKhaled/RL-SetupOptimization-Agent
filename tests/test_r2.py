@@ -880,3 +880,248 @@ def test_resume_restores_r2_state(tmp_path, monkeypatch):
     seen.clear()
     assert T.resume_pipeline(d, ['total_timesteps=9000'], argv=['x']) == T.EXIT_OK
     assert 'callbacks' not in seen and 'model' not in seen
+
+
+# --- Fix batch (8 Nov): QA R2 MINORs + tests 1-6, Amendment 2 ---------------------------------------------
+def test_tracker_handover_exactly_at_exit():
+    """QA test 1: a hand-over exactly at s_out counts that exit as passed; the unit is paid one lap
+    later (it was never paid before the fix)."""
+    tr = tracker()
+    tr.reset(1000.)
+    assert tr.next[0] == 5000.
+    ev = drive(tr, 0., 12_000.)
+    assert len(ev) == 2 and all(e['unit'] == 0 for e in ev)
+    tr.reset(1000. + 5000.)                            # same point one lap on (mod L)
+    assert tr.next[0] == 5000.
+
+
+def test_env_stall_in_paying_decision_does_not_forfeit(make_env, monkeypatch):
+    """QA test 2: a crossing in a decision that ends in a stall (time_pbrs: truncation) is paid;
+    only terminal failures forfeit (R2-3.4)."""
+    env = make_env(EnvConfig(settle_s=0., reward=RewardConfig(mode='time_pbrs'), **ON), corners=synthetic_table())
+    env.reset(seed=3, options={'start_s': 4900., 'start_speed': 3.5})
+    fake = {'unit': 0, 'v_exit': 45., 'v_qss_exit': 50., 'rho': .9, 'bonus': 1.8}
+    monkeypatch.setattr(env._tracker, 'tick', lambda *a: [dict(fake)])
+    brake = np.array([0., -1., 1.], np.float32)
+    for _ in range(200):
+        _, r, term, trunc, info = env.step(brake)
+        if term or trunc:
+            break
+    assert trunc and not term and info['truncation'] == 'stall' and info['termination'] is None
+    assert info['corner_bonus'] >= 1.8 and {e['kind'] for e in info['corner_events']} == {'paid'}
+    assert info['step_cost']['penalty'] == 0.
+
+
+def test_learn_and_finish_report_complete(tmp_path):
+    """QA test 3: after a trigger the run stops itself at report_from; _learn_and_finish records
+    stop reason 'report_complete' (not 'completed'), exit 0."""
+    from rlsetup.driving import train as T
+    cfg, model = _sched_model(hold_until=40, fade_until=80, bonus_free_before_report=20)
+    cfg = dataclasses.replace(cfg, save_replay_buffer=False)
+    d = runs.make_run_dir(tmp_path, 'r', 0)
+    run = T.Run(cfg, d, lambda *a: None)
+    sched = BonusScheduleCallback(cfg.bonus_schedule, d / 'bonus_state.json', trigger_step=10, report_from=30,
+                                  on_event=run.event)
+    stub = SimpleNamespace(collapsed=False, triggered=False)
+    assert T._learn_and_finish(run, model, [sched], stub, stub, stub, 1_000) == T.EXIT_OK
+    st = runs.read_json(d / 'status.json')
+    assert st['stop_reason'] == st['state'] == 'report_complete' and st['num_timesteps'] == 30
+    assert [e['kind'] for e in st['events']] == ['report_complete'] and (d / 'checkpoints' / 'last.zip').exists()
+
+
+def test_keeper_pattern_does_not_match_prefix(tmp_path):
+    """QA test 4: the keeper's process pattern for f1_r2 matches only --run-name f1_r2 (followed by a
+    space or the end), never f1_r2_smoke; checked with Python's re and with the real pgrep -f."""
+    import re
+    import shutil
+    import subprocess
+    import sys
+    import time
+    K = _keeper()
+    pat = K.pattern('f1_r2')
+    cmd = '/x/.venv/bin/python -m rlsetup.driving.train --set runs_root=/r --preset {p} --seed 0 --run-name {n}{tail}'
+    for name, tail, hit in (('f1_r2', ' --init-from a.zip', True), ('f1_r2', '', True),
+                            ('f1_r2_smoke', ' --init-from a.zip', False), ('f1_r2_smoke', '', False),
+                            ('f1_r2x', '', False)):
+        assert bool(re.search(pat, cmd.format(p=name, n=name, tail=tail))) is hit, (name, tail)
+    assert K.pattern('a.b') == r'rlsetup\.driving\.train .*--run-name a\.b( |$)'
+    out = subprocess.run([sys.executable, str(REPO_ROOT / 'scripts' / 'keeper_check.py'), 'pattern', 'f1_r2'],
+                         capture_output=True, text=True, check=True)
+    assert out.stdout.strip() == pat
+    if shutil.which('pgrep') is None:
+        return
+    tag = f'kp{tmp_path.name[-12:]}'                      # unique per test run
+    script = tmp_path / 'rlsetup.driving.train'           # a sleeping process whose argv mimics train.py
+    script.write_text('import time\ntime.sleep(30)\n')
+    p = subprocess.Popen([sys.executable, str(script), '--run-name', f'{tag}_smoke', '--seed', '0'])
+    try:
+        time.sleep(.3)
+        def pgrep(name):
+            return subprocess.run(['pgrep', '-f', K.pattern(name)], capture_output=True, text=True).stdout.split()
+        assert str(p.pid) in pgrep(f'{tag}_smoke') and str(p.pid) not in pgrep(tag)
+    finally:
+        p.kill()
+        p.wait()
+
+
+def test_keeper_limit_single_source(tmp_path):
+    """QA MINOR (95 s in two places): the keeper's limit is the run's bonus_schedule.trigger_lap2_s
+    (config.json), the default for pre-R2 configs equals BonusScheduleConfig's."""
+    K = _keeper()
+    assert K.LIMIT_S_DEFAULT == BonusScheduleConfig().trigger_lap2_s == 95.
+    assert K.limit_s(tmp_path) == 95.                                          # no config.json
+    (tmp_path / 'config.json').write_text(config_json(PRESETS['f1_best_w35']()))   # pre-R2: block omitted
+    assert K.limit_s(tmp_path) == 95.
+    cfg = PRESETS['f1_r2']()
+    cfg = dataclasses.replace(cfg, bonus_schedule=dataclasses.replace(cfg.bonus_schedule, trigger_lap2_s=96.5))
+    (tmp_path / 'config.json').write_text(config_json(cfg))
+    assert K.limit_s(tmp_path) == 96.5
+    runs.append_jsonl(tmp_path / 'evals.jsonl', {'step': 9_000_000, 'det_clean': True, 'lap2_s': 96., 'reportable': True})
+    assert K.reached(tmp_path) and not K.reached(tmp_path, 95.)
+
+
+def test_focus_weights_pushed_to_subproc_workers(track, qss):
+    """QA test 5: FocusedStartCallback (default push = env_method) reaches DrivingEnvs living in
+    SubprocVecEnv workers behind VecMonitor; with fraction 1 the workers then plan focused starts."""
+    from rlsetup.driving.vec import build_vec_env
+    cfg = EnvConfig(corner_bonus=CornerBonusConfig(enabled=True), focus=FocusConfig(enabled=True, fraction=1.))
+    vec = build_vec_env(cfg, 2, track, qss, corners=synthetic_table())
+    try:
+        assert vec.get_attr('focus_weights') == [None, None]
+        vec.seed(0)
+        vec.reset()
+        cb = FocusedStartCallback(FocusUpdateConfig(), float(track.length), 50.)
+        cb.model = SimpleNamespace(num_timesteps=0, get_env=lambda: vec)
+        assert cb.training_env is vec
+        cb._on_training_start()
+        p = cb.weights()
+        for w in vec.get_attr('focus_weights'):
+            assert np.allclose(w, p) and w.shape == (108,)
+        plans = vec.env_method('_focus_plan', {})
+        assert all(q is not None and 0 <= q['bin'] < 108 for q in plans)
+    finally:
+        vec.close()
+
+
+def test_bonus_buffer_weighted_wrapped_multi_env():
+    """QA test 6: w != 0 on a wrapped (full) 3-env buffer: the n-step sums of r + w b follow the
+    ring (wrap at buffer_size, cut at done / timeout / pos - 1) per sampled env, and equal a plain
+    NStepReplayBuffer whose rewards hold r + w b (float32), bit for bit."""
+    w = .7
+    plain, bonus = _buffers(n_envs=3, rows=100)            # 64 rows per env, pos = 36, full
+    assert bonus.full and bonus.pos == 36
+    bonus.bonus_weight = w
+    size, g, n = bonus.buffer_size, bonus.gamma, bonus.n_steps
+    inds = np.concatenate([np.arange(64), np.arange(60, 64), [33, 34, 35]])   # across the wrap and pos - 1
+    got = _sample(bonus, inds, seed=5).rewards.numpy()[:, 0]
+    np.random.seed(5)
+    envs = np.random.randint(0, 3, size=inds.shape)
+    for k, (i, e) in enumerate(zip(inds, envs)):
+        tot = 0.
+        for j in range(n):
+            q = (i + j) % size
+            tot += g ** j * (bonus.rewards[q, e] + np.float32(w) * bonus.bonuses[q, e])
+            if bonus.dones[q, e] or bonus.timeouts[q, e] or q == bonus.pos - 1:
+                break
+        assert got[k] == pytest.approx(tot, rel=1e-5, abs=1e-5), (i, e)
+    plain.rewards = (plain.rewards + np.float32(w) * bonus.bonuses).astype(np.float32)
+    assert _samples_equal(_sample(plain, inds, seed=5), _sample(bonus, inds, seed=5))
+    assert len(set(envs.tolist())) == 3
+
+
+def test_result_stretch_after_trigger(tmp_path):
+    """Amendment 2: after a trigger, best.zip comes from the clean evaluations with w = 0 in
+    [trigger, report_from] (report_from included); the trigger evaluation (w > 0) only gives
+    best_aided.zip; bonus_state.json and on_result carry the result block."""
+    model = make_model(fill=0)
+    laps = {0: 101.9, 25: 94.0, 50: 96.5, 75: None, 100: 95.8, 125: 96.1}
+    cfg = BonusScheduleConfig(hold_until=40, fade_until=80, bonus_free_before_report=100)    # trigger at 25
+    results = []
+    sched = BonusScheduleCallback(cfg, tmp_path / 'bonus_state.json', on_result=results.append)
+    cb = DrivingEvalCallback(lambda m, n: {'det_clean': laps[n] is not None, 'lap2_s': laps[n]}, 25,
+                             tmp_path / 'evals.jsonl', tmp_path, schedule=sched)
+    for c in (sched, cb):
+        c.init_callback(model)
+    model.num_timesteps = 0
+    sched.on_training_start({}, {})
+    cb.on_training_start({}, {})
+    for n in range(1, 300):
+        model.num_timesteps = n
+        go = sched.on_step()
+        cb.on_step()
+        if not go:
+            break
+    cb.on_training_end()
+    recs = runs.read_jsonl(tmp_path / 'evals.jsonl')
+    assert [r['step'] for r in recs] == [0, 25, 50, 75, 100, 125] and sched.stopped and sched.report_from == 125
+    assert [r.get('result_eval') for r in recs] == [None, False, True, True, True, True]
+    assert [r['reportable'] for r in recs] == [False] * 5 + [True]
+    assert [bool(r.get('new_best')) for r in recs] == [False, False, True, False, True, False]
+    assert [bool(r.get('new_best_aided')) for r in recs] == [True, True, False, False, False, False]
+    assert cb.best_lap2 == 95.8 and cb.best_aided_lap2 == 94.
+    res = runs.read_json(tmp_path / 'bonus_state.json')['result']
+    assert res == {'trigger_step': 25, 'report_from': 125, 'n_evals': 4, 'best_lap2_s': 95.8, 'best_step': 100,
+                   'clean_laps': [{'step': 50, 'lap2_s': 96.5}, {'step': 100, 'lap2_s': 95.8},
+                                  {'step': 125, 'lap2_s': 96.1}]}
+    assert results[-1] == res and len(results) == 5                 # every evaluation from the trigger on
+    # resume: the stretch is rebuilt from the records (records written before this fix lack result_eval)
+    old = [{k: v for k, v in r.items() if k != 'result_eval'} for r in recs[:4]]
+    back = BonusScheduleCallback(cfg, trigger_step=25, report_from=125, history=old)
+    assert back.result()['clean_laps'] == res['clean_laps'][:1] and back.result()['n_evals'] == 2
+    # trigger after the fade (w already 0): the trigger evaluation itself is in the stretch
+    late = BonusScheduleCallback(BonusScheduleConfig(hold_until=10, fade_until=20, bonus_free_before_report=100))
+    rec = late.on_eval({'step': 50, 'det_clean': True, 'lap2_s': 94.5})
+    assert rec['aided_target_lap'] and rec['bonus_w'] == 0. and rec['result_eval'] and not rec['reportable']
+    assert late.result()['best_lap2_s'] == 94.5
+    # without a trigger: no result block, best.zip from reportable evaluations only (R2-5 / R2-9.3)
+    plain = BonusScheduleCallback(cfg)
+    rec = plain.on_eval({'step': 25, 'det_clean': True, 'lap2_s': 96.})
+    assert 'result_eval' not in rec and plain.result() is None and 'result' not in plain.state(25)
+
+
+def test_resume_rebuilds_best_from_result_stretch(tmp_path, monkeypatch):
+    """Amendment 2 on resume: best_lap2 from the clean w = 0 evaluations of [trigger, report_from]
+    (and reportable ones), best_aided from the others incl. the trigger; the result stretch goes
+    to the schedule as eval_history."""
+    from test_callbacks import resume_fixture
+    from rlsetup.driving import train as T
+    c = tiny_cfg()
+    cfg = dataclasses.replace(c, env=dataclasses.replace(c.env, **ON))
+    monkeypatch.setattr(T, 'corner_table', lambda *a: None)
+    d, model, seen = resume_fixture(tmp_path, monkeypatch, cfg=cfg)
+    recs = [{'step': 0, 'det_clean': True, 'lap2_s': 101., 'reportable': False, 'bonus_w': 1.},
+            {'step': 2_000, 'det_clean': True, 'lap2_s': 94.5, 'reportable': False, 'bonus_w': 1.,
+             'aided_target_lap': True},
+            {'step': 3_000, 'det_clean': True, 'lap2_s': 96., 'reportable': False, 'bonus_w': 0.},
+            {'step': 4_000, 'det_clean': True, 'lap2_s': 95.5, 'reportable': False, 'bonus_w': 0.},
+            {'step': 5_000, 'det_clean': False, 'lap2_s': None, 'reportable': False, 'bonus_w': 0.}]
+    for r in recs:
+        runs.append_jsonl(d / 'evals.jsonl', r)
+    runs.write_json(d / 'bonus_state.json', {'trigger_step': 2_000, 'report_from': 8_000})
+    assert T.resume_pipeline(d, ['total_timesteps=9000'], argv=['x']) == T.EXIT_OK
+    k = seen['callbacks']
+    assert k['bonus_state'] == (2_000, 8_000) and k['best_lap2'] == 95.5 and k['best_aided_lap2'] == 94.5
+    sched = BonusScheduleCallback(BonusScheduleConfig(), trigger_step=2_000, report_from=8_000,
+                                  history=k['eval_history'])
+    assert [x['step'] for x in sched.result()['clean_laps']] == [3_000, 4_000] and sched.result()['n_evals'] == 3
+
+
+def test_f1_r2_presets_warm_start_from_last_zip():
+    """Amendment 2: f1_r2 / f1_r2_smoke default to f1_best_w35's last.zip (absolute path)."""
+    want = REPO_ROOT / 'runs' / 'mac' / 'D2' / 'f1_best_w35' / 'seed0' / 'checkpoints' / 'last.zip'
+    for name in ('f1_r2', 'f1_r2_smoke'):
+        cfg = PRESETS[name]()
+        assert cfg.init_from == str(want) and cfg.agent.init_mode == 'warm'
+        assert train_config_from_dict(json.loads(config_json(cfg))).init_from == str(want)
+    from rlsetup.driving.train import parse_args
+    from rlsetup.driving.agent import default_init_buffer
+    assert default_init_buffer(str(want)) == str(want.parents[1] / 'replay_buffer.pkl')
+    assert parse_args(['--preset', 'f1_r2', '--run-name', 'f1_r2']).init_from is None   # preset default used
+
+
+@needs_src
+def test_f1_r2_init_is_12_35M_steps():
+    """lifetime_steps_offset = the init checkpoint's num_timesteps (train.py) = 12,350,000 for last.zip."""
+    import zipfile
+    with zipfile.ZipFile(PRESETS['f1_r2']().init_from) as z:
+        assert json.loads(z.read('data'))['num_timesteps'] == 12_350_000

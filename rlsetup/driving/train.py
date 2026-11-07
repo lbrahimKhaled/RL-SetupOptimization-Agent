@@ -53,11 +53,14 @@ table (corners.py) is built once here and handed to the vector-env workers and t
 corner_bonus -> BonusNStepReplayBuffer (a pre-R2 init buffer is adopted in place, bonus 0),
 BonusScheduleCallback first in the callback list (w(0) is set before the offline critic phase;
 state in bonus_state.json; stop reason 'report_complete' after an Amendment-1 trigger), best.zip
-only from reportable evaluations (best_aided.zip before); focus -> FocusedStartCallback seeded
+only from reportable evaluations or, after a trigger, from the bonus-free result stretch
+[trigger, report_from] (Amendment 2; 'result' block in status.json and bonus_state.json),
+best_aided.zip otherwise; focus -> FocusedStartCallback seeded
 from focus_update.seed_run (state in focus_state.json); low_noise_envs -> StagedSAC._sample_action.
 provenance.json 'r2' records the table, the configs, the focus seed and the buffer's labelled
-fraction at the start. A resume restores the schedule state, the focus counters (re-seeded with
-a warning if focus_state.json is missing) and best / best_aided from the evaluation records.
+fraction at the start. A resume restores the schedule state (incl. the result stretch), the focus
+counters (re-seeded with a warning if focus_state.json is missing) and best / best_aided from the
+evaluation records.
 """
 from dataclasses import replace
 from pathlib import Path
@@ -192,13 +195,14 @@ class Run:
 def _callbacks(run, model, envs, starts, baseline, *, unfreeze_at, guard_start=None, rollbacks=0,
                best_lap2=float('inf'), last_det_clean=None, wall0=(0., 0.), t0=None, buffer_saved_step=None,
                critic_check_at=None, critic_check_done=False, plateau_history=(), best_aided_lap2=float('inf'),
-               bonus_state=(None, None), focus_seed=None, focus_state=None):
+               bonus_state=(None, None), focus_seed=None, focus_state=None, eval_history=()):
     """`buffer_saved_step`: step of a replay-buffer save made before learn() (the prefill save at
     step 0), so the step-0 evaluation does not save the same buffer again. `critic_check_at`:
     step of the R1 critic check (None: none); `plateau_history`: PlateauStop entries of earlier
-    processes. R2: `bonus_state` = (trigger_step, report_from) of a resumed run, `focus_seed` /
-    `focus_state` initialise the FocusedStartCallback, `best_aided_lap2` the best_aided.zip
-    threshold. Returns (callbacks, guard, wall, plateau)."""
+    processes. R2: `bonus_state` = (trigger_step, report_from) of a resumed run, `eval_history` its
+    evaluation records (Amendment-2 result stretch), `focus_seed` / `focus_state` initialise the
+    FocusedStartCallback, `best_aided_lap2` the best_aided.zip threshold. Returns (callbacks, guard,
+    wall, plateau)."""
     from .callbacks import (PhaseCallback, CollapseGuard, TrainStatsCallback, DrivingEvalCallback,
                             CheckpointCallback, WallClockLimit, ReplayBufferSaver, PlateauStop,
                             BonusScheduleCallback, FocusedStartCallback)
@@ -214,7 +218,8 @@ def _callbacks(run, model, envs, starts, baseline, *, unfreeze_at, guard_start=N
     extras = []
     if cfg.env.corner_bonus.enabled:
         schedule = BonusScheduleCallback(cfg.bonus_schedule, d / 'bonus_state.json', trigger_step=bonus_state[0],
-                                         report_from=bonus_state[1], on_event=run.event)
+                                         report_from=bonus_state[1], on_event=run.event,
+                                         on_result=lambda res: run.status(result=res), history=eval_history)
         extras.append(lambda m, n: {'buffer_labelled_fraction': m.replay_buffer.labelled_fraction()})
     if cfg.env.focus.enabled:
         focus = FocusedStartCallback(cfg.focus_update, float(envs['probe'].unwrapped.track.length), cfg.env.focus.bin_m,
@@ -672,13 +677,14 @@ def resume_pipeline(run_dir, overrides=(), *, argv=None, allow_dirty=False, allo
         log(f'resume {run_dir} at {n} steps -> {cfg.total_timesteps}')
         starts = read_json(run_dir / 'probe_starts.json')
         evals = read_jsonl(run_dir / 'evals.jsonl')
-        clean = [r['lap2_s'] for r in evals if r.get('det_clean') and r.get('lap2_s') is not None
-                 and r.get('reportable', True)]                  # R2-9.3: best.zip from reportable evals only
-        aided = [r['lap2_s'] for r in evals if r.get('det_clean') and r.get('lap2_s') is not None
-                 and not r.get('reportable', True)]
-        last = evals[-1] if evals else {}
-        from .callbacks import load_bonus_state, load_focus_state
+        from .callbacks import load_bonus_state, load_focus_state, best_eligible
         bonus_state = load_bonus_state(run_dir, model) if cfg.env.corner_bonus.enabled else (None, None)
+        # R2-9.3 / Amendment 2: best.zip from reportable evals, or after a trigger from the bonus-free
+        # result stretch [trigger_step, report_from]; best_aided.zip from the others and the trigger
+        done = [r for r in evals if r.get('det_clean') and r.get('lap2_s') is not None]
+        clean = [r['lap2_s'] for r in done if best_eligible(r, *bonus_state)]
+        aided = [r['lap2_s'] for r in done if not best_eligible(r, *bonus_state) or r.get('aided_target_lap')]
+        last = evals[-1] if evals else {}
         if bonus_state[0] is not None and n >= bonus_state[1]:   # Amendment 1: ended itself after a trigger
             log(f'nothing to do: the run stopped itself at report_from {bonus_state[1]} after the trigger at '
                 f'{bonus_state[0]}')
@@ -704,7 +710,7 @@ def resume_pipeline(run_dir, overrides=(), *, argv=None, allow_dirty=False, allo
             critic_check_done=any('critic_check' in r for r in evals),
             plateau_history=[plateau_entry(r) for r in evals],
             best_aided_lap2=min(aided) if aided else float('inf'), bonus_state=bonus_state,
-            focus_seed=seed, focus_state=focus_state)
+            focus_seed=seed, focus_state=focus_state, eval_history=evals)
         remaining = cfg.total_timesteps - n
         if remaining <= 0:
             log('nothing to do: total_timesteps already reached')
