@@ -19,3 +19,14 @@ Smoke `f1_r2_smoke` in `runs/mac/R2_smoke/f1_r2_smoke/seed0`: start 21:06, `kill
 
 ## Compliance
 ocd_lap used only via `qss_lap.lap_time(path=...)` (corners.py:108-113), `Track.match/length/path`, the existing `OCDRacingEnv` subclass; no monkeypatching. Units: v_qss m/s on the w3.5 line mapped to Track.path arc length (5388.77 m), reversed line raises; exit speed hypot(vx, vy). ocd_first_lap (3945634) and ocd_first_lap-f1 (ee86683) git status clean before/after. Provenance complete (ee86683, code_version 0efddcc91634, rlsetup c2791ea, config/init sha, r2 block). TensorBoard: tb_evals (0–150k) and tb_evals_lifetime (9.20M–9.35M), 87 tags incl. all R2 tags.
+
+## Diagnostic smokes (7 Nov, 21:34–21:53, d0d9268, run in parallel, 150k each, `--set max_wall_h=1.5`)
+- **A `f1_r2_smoke_noaids`** (best.zip, all R2 aids off, plain NStepReplayBuffer) and **B `f1_r2_smoke_last`** (R2 on, warm start from last.zip 12.35M). Both completed; 0 rollbacks; 26/26 probes ok. Folders `runs/mac/R2_smoke/f1_r2_smoke_{noaids,last}/seed0`.
+- After unfreeze (25k–150k): det lap 2 clean previous 0/6, **A 2/6**, **B 3/6**; sto clean 7/18, 5/18, **9/18**; training failure/episode 0.37, 0.45, **0.24**; lap-0 hand-over crashes (s ≈ 5242–5250, 10–17 decisions) 2, **2**, **0** (source: 0 of 166 det crashes since 2M).
+- Critic: offline phase best.zip loss 56.0 → 43.5, mean Q 232.7 → 207.4, critic_check 0.105 (A); last.zip loss 13.3 → 11.4, mean Q 234.7 → 232.4, critic_check **0.036** (B, passes).
+- B step 0: last.zip det lap crashes at s = 838.494 m (bit-identical to the source's 12.35M eval). B clean laps: 102.44 (25k), 102.79 (50k), 101.92 (125k, w = 0).
+- Entropy −4.3/−4.5 and Q_min − MC^n ≈ +300 at some evals are artefacts of 3 stochastic laps all crashing ~0.5 s after start (n = 3), not policy collapse.
+- Base rate: source det clean 0.19 since 8M → P(0/6) = 0.26; det lap 2 alone cannot separate hypotheses at this length.
+- **Verdict:** R2 features not the cause (A without aids reproduces the worst signature). Warm-start critic mismatch with best.zip is clear in the critic and plausibly causes the new lap-0 hand-over crash mode (4/12 best.zip evals vs 0/6 B; p ≈ 0.16). Not conclusive on laps.
+- Next checks proposed: ~20 stochastic laps per checkpoint re-eval; replay the hand-over crash; best.zip actor + last.zip critic (coder change) or longer offline phase; seeds 1–2.
+- Parallel throughput 161–176 env steps/s each (~330–345 combined).
