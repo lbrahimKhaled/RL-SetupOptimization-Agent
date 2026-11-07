@@ -125,3 +125,72 @@ The init buffer defaults to `runs/mac/D2/f1_best_w35/seed0/replay_buffer.pkl` (1
 4. S3: paid bonus per pass (`corner_events` in eval traces; lap2_bonus_sum ~12.4 at step 0) and that VecMonitor
    returns / det_return are bonus-free.
 5. S6 critic_check at the unfreeze (q_vs_mc now uses r + w b) and S8 throughput.
+
+## Fix batch (8 Nov)
+Spec: `docs/specs/R2_review.md` Amendment 2 (wins), `docs/handoff/R2_qa_review.md` (MINORs, tests 1-6),
+DECISIONS #24. Nothing in ocd_first_lap / ocd_first_lap-f1 touched; `runs/mac/D2/f1_best_w35/` only read; no
+training launched; not committed.
+
+### Changes
+| File | What |
+|---|---|
+| `rlsetup/driving/train_config.py` | `F1_R2_INIT` = `<repo>/runs/mac/D2/f1_best_w35/seed0/checkpoints/last.zip` (absolute, like `--init-from`); presets `f1_r2` and `f1_r2_smoke` default `init_from` to it (`--init-from` still overrides). Docstrings: Amendment 2. |
+| `rlsetup/driving/callbacks.py` | Amendment 2: `result_eligible(rec, trigger_step, report_from)` (trigger_step <= step <= report_from and bonus_w == 0), `best_eligible(rec, ...)` (reportable or result stretch). `BonusScheduleCallback`: after a trigger every record gets `result_eval`; `result()` = {trigger_step, report_from, n_evals, best_lap2_s, best_step, clean_laps [{step, lap2_s}]} written to bonus_state.json `result` and passed to `on_result` at every evaluation; `history=` (resume) rebuilds the stretch from the records (also from records without `result_eval`). `DrivingEvalCallback`: best.zip from `best_eligible` records; best_aided.zip from the others and always at the trigger (a trigger with w already 0 writes both). |
+| `rlsetup/driving/train.py` | `_callbacks(eval_history=...)`, `on_result` -> status.json `result`; resume rebuilds best_lap2 from `best_eligible` records and best_aided from the others + the trigger record; passes the records to the schedule. |
+| `rlsetup/driving/corners.py` | QA MINOR (a): `CornerTracker.reset` sets a threshold of exactly 0 (hand-over at s_out) to L (exit counts as passed, paid one lap later). |
+| `data/corner_table_6c61b28a4876.json` (new) / `data/corner_table_c83c1c689508.json` (deleted) | corners.py is part of the cache key (R2-2.8), so the key changed. Rebuilt with sf70h_f1: `s`, `v`, `units`, `lap_time_s`, `length` identical to the old file (only meta key / provenance / created differ). Commit the new file and the deletion together. |
+| `scripts/keeper_check.py` | QA MINOR (b): `pattern(RUN)` / CLI `pattern RUN` prints the POSIX ERE `rlsetup\.driving\.train .*--run-name RUN( |$)` (RUN's ERE metacharacters escaped). QA MINOR (c): the limit is the run's `config.json` `bonus_schedule.trigger_lap2_s` (`limit_s`), else `LIMIT_S_DEFAULT` = 95 (pre-R2 configs omit the block), tested equal to `BonusScheduleConfig().trigger_lap2_s`; an explicit CLI limit still overrides. |
+| `runs/mac/keeper_f1.sh` (local, gitignored) | `PAT="$(.venv/bin/python scripts/keeper_check.py pattern "$RUN")"`; messages say "limit" instead of 95 s; replaced atomically (no keeper was running). |
+| `scripts/README.md` | keeper_check row. |
+| `tests/test_r2.py` | +11 tests (below). |
+
+Interpretation (flag for the lead): "w = 0 in [trigger, report_from]" is applied to the record's `bonus_w`. The
+trigger evaluation's `bonus_w` is the weight in effect up to it (deviation 6 of the R2 report), so a trigger during
+the bonus/fade (w > 0) is NOT in the result stretch (only best_aided.zip), while a trigger after the fade (w already
+0, step < report_from) IS (best.zip and best_aided.zip). Without a trigger nothing changes (R2-5 / R2-9.3).
+
+`lifetime_steps_offset` stays derived from the init checkpoint (`warm_start` -> `src_num_timesteps`); last.zip's
+`num_timesteps` = 12,350,000 (read from the zip; `test_f1_r2_init_is_12_35M_steps`). Older presets: config dicts
+unchanged (`test_config_dicts_without_aids_are_unchanged` round trip + pre-R2 key check pass).
+
+### Tests added (`tests/test_r2.py`)
+- `test_tracker_handover_exactly_at_exit` (QA 1; fails on c2791ea's corners.py, passes now)
+- `test_env_stall_in_paying_decision_does_not_forfeit` (QA 2; real env, stall truncation, crossing paid)
+- `test_learn_and_finish_report_complete` (QA 3; tiny model, trigger state -> stops at report_from, status 'report_complete')
+- `test_keeper_pattern_does_not_match_prefix` (QA 4; Python re on train.sh-style cmdlines + the real `pgrep -f` on a sleeping process with `--run-name <tag>_smoke`)
+- `test_keeper_limit_single_source`
+- `test_focus_weights_pushed_to_subproc_workers` (QA 5; `build_vec_env` = VecMonitor(SubprocVecEnv) of 2 real DrivingEnvs, forkserver; weights arrive in both workers, focused plans drawn there)
+- `test_bonus_buffer_weighted_wrapped_multi_env` (QA 6; 3 envs, wrapped, w = 0.7: per-sample ring sums + bitwise equal to a plain buffer holding r + w b)
+- `test_result_stretch_after_trigger`, `test_resume_rebuilds_best_from_result_stretch` (Amendment 2 incl. resume and late trigger)
+- `test_f1_r2_presets_warm_start_from_last_zip`, `test_f1_r2_init_is_12_35M_steps` (needs_src)
+
+### Test results (8 Nov, M4)
+- `.venv/bin/python -m pytest -q`: **349 passed, 11 skipped, 2 failed** in 159 s. The 2 failures are the known
+  pre-existing ones (`test_provenance::test_every_imported_ocd_lap_module_is_hashed`,
+  `test_qss_profile::test_cached_file_matches_fresh_computation`). Skips +1 vs 7 Nov = the new needs_src test.
+- `PYTHONPATH=/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap-f1 .venv/bin/python -m pytest -q`:
+  **356 passed, 4 skipped, 2 failed** (same 2) in 232 s, incl. `test_r2_slow.py` (still `--init-from best.zip`
+  explicitly, so S1 101.87194035987982 s stays its check).
+- `tests/test_r2.py` alone: 48 passed, 3 skipped, ~9 s (default path).
+- CLI check: `train.main(['--preset', 'f1_r2', ...])` without `--init-from` resolves init_from to
+  `<repo>/runs/mac/D2/f1_best_w35/seed0/checkpoints/last.zip`, identical to passing it explicitly.
+- ocd_first_lap and ocd_first_lap-f1: `git status` clean.
+
+### Launch (after the commit: f1_r2 has strict_provenance; the new corner-table cache must be committed with it)
+```
+cd /Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent
+PYTHONPATH=/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap-f1 caffeinate -dimsu nohup platforms/mac/train.sh \
+  --preset f1_r2 --seed 0 --run-name f1_r2 --init-from runs/mac/D2/f1_best_w35/seed0/checkpoints/last.zip \
+  >> runs/mac/f1_r2_stdout.log 2>&1 &
+# (--init-from equals the preset default; kept explicit for the record.) Init buffer =
+# runs/mac/D2/f1_best_w35/seed0/replay_buffer.pkl (12.35M, adopted in place); lifetime_steps_offset 12,350,000.
+# Start the keeper only once the training process is visible (else it would try a resume):
+pgrep -fl "$(.venv/bin/python scripts/keeper_check.py pattern f1_r2)"
+nohup runs/mac/keeper_f1.sh f1_r2 >> runs/mac/keeper_f1_r2.log 2>&1 &
+.venv/bin/tensorboard --logdir_spec f1_r2:runs/mac/D2/f1_r2/seed0/tb_evals_lifetime,f1_best_w35:runs/mac/D2/f1_best_w35/seed0/tb_evals
+```
+Stop by hand: `pkill -f "keeper_f1.sh f1_r2( |$)"; pkill -INT -f "$(.venv/bin/python scripts/keeper_check.py pattern f1_r2)"`.
+Smoke variant (if wanted): same training line with `--preset f1_r2_smoke --run-name f1_r2_smoke` (default init is
+last.zip too; strict_provenance off).
+After a trigger: `status.json` / `bonus_state.json` `result` = best clean deterministic lap 2 of
+[trigger, report_from] with w = 0 + the list of all its clean laps; best.zip is that best lap's checkpoint.

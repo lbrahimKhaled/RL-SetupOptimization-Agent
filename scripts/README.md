@@ -11,7 +11,7 @@ Command-line tools. Run from the repo root.
 | `seed_summary.py` | Per-seed progress table of a run (read-only); produces `SEEDS.md` |
 | `d2_report.py` | D2 done-criterion report (DECISIONS #12) |
 | `evals_to_tb.py` | Mirror `evals.jsonl` into TensorBoard (`tb_evals/`; warm-started runs also `tb_evals_lifetime/` on the source's step axis) |
-| `keeper_check.py` | Keeper stop / no-resume checks (reportable clean lap 2 <= 95 s; R2 run ended itself) |
+| `keeper_check.py` | Keeper stop / no-resume checks (reportable clean lap 2 <= the run's `trigger_lap2_s`, 95 s; R2 run ended itself) and the `pgrep -f` pattern of a run (`pattern RUN`, no prefix matches) |
 | `bench_env.py` | D1 env throughput and demo-driver lap benchmark |
 | `comparison/` | Data for the TUM vs OCD vs RL comparison: `export_tum_lap.py` (TUM's own lap, run in TUM's venv), `tum_pure_pursuit.py` (TUM's lap in OCD by pure pursuit), `export_rl_laps.py` (the RL driver's laps). Output and docs in [comparison/](../comparison/README.md) |
 | `bench/` | Throwaway throughput measurements (vec env, SAC speed); not part of the pipeline. Windows driver: `platforms/windows/bench.ps1` |

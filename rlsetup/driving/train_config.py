@@ -12,6 +12,7 @@ frozen driver definition (D1 config.py).
 This module must not import torch (rlsetup.driving.vec imports `config_from_dict`).
 """
 from dataclasses import dataclass, field, asdict, fields, is_dataclass, replace
+from pathlib import Path
 import ast
 import json
 import typing
@@ -363,17 +364,21 @@ def _f1_best_w35():
 
 
 F1_BEST_W35_RUN = 'runs/mac/D2/f1_best_w35/seed0'   # R2 warm-start source and focus seed
+# R2 Amendment 2 (DECISIONS #24): warm start from the source's last.zip (num_timesteps 12,350,000; its
+# critic matches the end-of-run replay buffer), not best.zip (9.2M). Absolute, like --init-from.
+F1_R2_INIT = str(Path(__file__).resolve().parents[2] / F1_BEST_W35_RUN / 'checkpoints' / 'last.zip')
 
 
 def _f1_r2():
-    """R2 (docs/specs/R2_review.md + Amendment 1; DECISIONS #22-23): f1_best_w35 (same driver
+    """R2 (docs/specs/R2_review.md + Amendments 1-2; DECISIONS #22-24): f1_best_w35 (same driver
     definition) + clean-corner exit bonus (B = 3, w = 1 until 2M, fade to 0 at 4M, reportable from
     8M; early trigger at a clean lap 2 <= 95 s) + focused starts (25 %, seeded from f1_best_w35's
-    crashes) + low-noise rollouts on env 3 (0.3 sigma); warm start from --init-from
-    (f1_best_w35 best.zip) with its replay buffer adopted unrelabelled (already time_pbrs), actor
-    lr 1e-4 from the unfreeze, guard 0.65; no step / wall cap, no plateau stop. Run name: f1_r2."""
+    crashes) + low-noise rollouts on env 3 (0.3 sigma); warm start by default from f1_best_w35
+    last.zip (F1_R2_INIT, 12.35M steps = lifetime_steps_offset; --init-from overrides) with its
+    replay buffer adopted unrelabelled (already time_pbrs), actor lr 1e-4 from the unfreeze, guard
+    0.65 (baseline = the loaded actor's probe); no step / wall cap, no plateau stop. Run name: f1_r2."""
     c = _f1_best_w35()
-    return replace(c, preset='f1_r2', total_timesteps=1_000_000_000, max_wall_h=None,
+    return replace(c, preset='f1_r2', total_timesteps=1_000_000_000, max_wall_h=None, init_from=F1_R2_INIT,
                    env=replace(c.env, corner_bonus=replace(c.env.corner_bonus, enabled=True),
                                focus=replace(c.env.focus, enabled=True)),
                    agent=replace(c.agent, init_mode='warm', low_noise_envs=(3,)),
@@ -386,7 +391,8 @@ def _f1_r2():
 def _f1_r2_smoke():
     """f1_r2 compressed to 150k env steps (R2-9.2): w = 1 until 60k, fade to 0 at 120k,
     reportable from 150k (gap 30k); eval every 25k with 3 stochastic laps, probe every 5k,
-    checkpoints every 25k, dirty tree allowed; max_wall_h 0.5 is only a safety cap."""
+    checkpoints every 25k, dirty tree allowed; max_wall_h 0.5 is only a safety cap. Same default
+    warm start as f1_r2 (last.zip)."""
     c = _f1_r2()
     return replace(c, preset='f1_r2_smoke', total_timesteps=150_000, max_wall_h=.5,
                    checkpoint_interval=25_000, strict_provenance=False,

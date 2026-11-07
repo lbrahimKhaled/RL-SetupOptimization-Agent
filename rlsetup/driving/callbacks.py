@@ -364,9 +364,10 @@ class DrivingEvalCallback(BaseCallback):
     R2: `extras` = callables (model, step) -> dict merged into the record (focus / low-noise /
     buffer statistics; they may persist their own state). `schedule` (BonusScheduleCallback):
     the record gets bonus_w, report_from, reportable (and the Amendment-1 trigger is checked);
-    best.zip is then written only from reportable evaluations and a better clean lap 2 of a
-    non-reportable one goes to best_aided.zip (never reported; also written at the trigger).
-    Without a schedule every evaluation is reportable (pre-R2 behaviour)."""
+    best.zip is then written only from best-eligible evaluations (`best_eligible`: reportable, or
+    after an Amendment-1 trigger an evaluation of the bonus-free result stretch, Amendment 2) and a
+    better clean lap 2 of any other one goes to best_aided.zip (never reported; also written at the
+    trigger). Without a schedule every evaluation is reportable (pre-R2 behaviour)."""
 
     def __init__(self, eval_fn, interval, evals_path, ckpt_dir, *, stats=None, best_lap2=math.inf,
                  last_det_clean=None, on_event=_noop, train_wall0=0., eval_wall0=0., buffer_saver=None,
@@ -452,12 +453,12 @@ class DrivingEvalCallback(BaseCallback):
         if self.buffer_saver is not None:
             self.buffer_saver(m)
         save_model_atomic(m, self.ckpt_dir / 'last.zip')
-        reportable = rec.get('reportable', True)
-        if clean and lap2 is not None and reportable and lap2 < self.best_lap2:
+        eligible = best_eligible(rec)
+        if clean and lap2 is not None and eligible and lap2 < self.best_lap2:
             self.best_lap2 = lap2
             save_model_atomic(m, self.ckpt_dir / 'best.zip')
             rec['new_best'] = True
-        elif clean and lap2 is not None and not reportable and (lap2 < self.best_aided_lap2 or rec.get('aided_target_lap')):
+        if clean and lap2 is not None and ((not eligible and lap2 < self.best_aided_lap2) or rec.get('aided_target_lap')):
             self.best_aided_lap2 = min(lap2, self.best_aided_lap2)
             save_model_atomic(m, self.ckpt_dir / 'best_aided.zip')
             rec['new_best_aided'] = True
@@ -624,17 +625,45 @@ class BonusScheduleCallback(BaseCallback):
     'aided_target_lap'. After a trigger the run stops itself (returns False, event
     'report_complete') at the first step >= report_from. State {trigger_step, report_from} goes to
     `state_path` (bonus_state.json, atomic) at the trigger and every evaluation, and to the model
-    (bonus_trigger_step / bonus_report_from, pickled in the checkpoints); a resume passes it back."""
+    (bonus_trigger_step / bonus_report_from, pickled in the checkpoints); a resume passes it back.
+    Amendment 2: after a trigger, the evaluations of the bonus-free stretch (`result_eligible`:
+    trigger_step <= step <= report_from and bonus_w == 0) get result_eval = True (best.zip comes
+    from them) and the run's `result()` = best clean deterministic lap 2 + every clean
+    deterministic lap 2 (step, lap) of the stretch goes to bonus_state.json 'result' and to
+    `on_result(result)` (train.py: status.json 'result') at every evaluation. `history`: evaluation
+    records of earlier processes (resume), from which the stretch's clean laps are rebuilt."""
 
-    def __init__(self, cfg, state_path=None, *, trigger_step=None, report_from=None, on_event=_noop):
+    def __init__(self, cfg, state_path=None, *, trigger_step=None, report_from=None, on_event=_noop,
+                 on_result=_noop, history=()):
         super().__init__()
-        self.cfg, self.on_event = cfg, on_event
+        self.cfg, self.on_event, self.on_result = cfg, on_event, on_result
         self.state_path = None if state_path is None else Path(state_path)
         self.trigger_step = None if trigger_step is None else int(trigger_step)
         self.report_from = int(report_from if report_from is not None else
                                (self.trigger_step + cfg.bonus_free_before_report if self.trigger_step is not None
                                 else cfg.report_from))
         self.stopped = False
+        self.result_evals = 0
+        self.result_laps = []                  # [(step, clean deterministic lap 2 [s])] of the result stretch
+        for r in history:
+            self._add_result(r)
+
+    def _add_result(self, rec):
+        if result_eligible(rec, self.trigger_step, self.report_from):
+            self.result_evals += 1
+            if rec.get('det_clean') and rec.get('lap2_s') is not None:
+                self.result_laps.append((int(rec['step']), float(rec['lap2_s'])))
+
+    def result(self):
+        """Amendment 2 result block (None before a trigger): trigger_step, report_from, n_evals of
+        the stretch, best clean deterministic lap 2 (best_lap2_s, best_step; None if none) and all
+        clean deterministic laps 2 [{step, lap2_s}] of [trigger_step, report_from] with w = 0."""
+        if self.trigger_step is None:
+            return None
+        best = min(self.result_laps, key=lambda x: (x[1], x[0])) if self.result_laps else (None, None)
+        return {'trigger_step': self.trigger_step, 'report_from': self.report_from, 'n_evals': self.result_evals,
+                'best_lap2_s': best[1], 'best_step': best[0],
+                'clean_laps': [{'step': n, 'lap2_s': lap} for n, lap in self.result_laps]}
 
     def weight(self, n):
         return 0. if self.trigger_step is not None else bonus_weight(self.cfg, n)
@@ -643,10 +672,13 @@ class BonusScheduleCallback(BaseCallback):
         return int(n) >= self.report_from
 
     def state(self, step=None):
-        return {'step': None if step is None else int(step), 'trigger_step': self.trigger_step,
-                'report_from': self.report_from, 'bonus_w': self.weight(step or 0) if step is not None else None,
-                'schedule': {'hold_until': self.cfg.hold_until, 'fade_until': self.cfg.fade_until,
-                             'bonus_free_before_report': self.cfg.bonus_free_before_report}}
+        st = {'step': None if step is None else int(step), 'trigger_step': self.trigger_step,
+              'report_from': self.report_from, 'bonus_w': self.weight(step or 0) if step is not None else None,
+              'schedule': {'hold_until': self.cfg.hold_until, 'fade_until': self.cfg.fade_until,
+                           'bonus_free_before_report': self.cfg.bonus_free_before_report}}
+        if self.trigger_step is not None:
+            st['result'] = self.result()
+        return st
 
     def save_state(self, step=None):
         if self.state_path is not None:
@@ -691,8 +723,28 @@ class BonusScheduleCallback(BaseCallback):
             self.trigger(n, lap2)
             rec['aided_target_lap'] = True
         rec.update(report_from=self.report_from, reportable=self.reportable(n))
+        if self.trigger_step is not None:      # Amendment 2
+            rec['result_eval'] = result_eligible(rec, self.trigger_step, self.report_from)
+            self._add_result(rec)
         self.save_state(n)
+        if self.trigger_step is not None:
+            self.on_result(self.result())
         return rec
+
+
+def result_eligible(rec, trigger_step, report_from):
+    """Amendment 2: evaluation record `rec` lies in the bonus-free result stretch after a trigger,
+    trigger_step <= step <= report_from with bonus_w == 0 (the trigger evaluation itself only if
+    the weight in effect up to it was already 0). False without a trigger."""
+    return (trigger_step is not None and int(trigger_step) <= int(rec['step']) <= int(report_from)
+            and rec.get('bonus_w') == 0.)
+
+
+def best_eligible(rec, trigger_step=None, report_from=None):
+    """best.zip may come from evaluation record `rec`: reportable (records without the key, i.e.
+    pre-R2 runs, are), or in the Amendment-2 result stretch (`result_eligible`)."""
+    return bool(rec.get('reportable', True) or rec.get('result_eval')
+                or result_eligible(rec, trigger_step, report_from))
 
 
 def load_bonus_state(run_dir, model=None):
