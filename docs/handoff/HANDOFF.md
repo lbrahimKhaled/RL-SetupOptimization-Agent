@@ -225,3 +225,12 @@ nohup .venv/bin/tensorboard --logdir_spec "00_BEST_LAPS:runs/tb_summary/00_BEST_
 nohup cloudflared tunnel --no-autoupdate --url http://127.0.0.1:6006 > runs/mac/cloudflared.log 2>&1 &   # new public URL in that log
 ```
 Best models: `models/`. Line result: RL 103.06 → 102.57 s. Judge this setup at about 5M steps.
+
+## 8 Nov 2026 — R2 run `f1_r2` RUNNING (launched ~01:28, commit 3acf74c)
+- What: sf70h_f1 / sha_f1_best / IQP w3.5, warm start from f1_best_w35 `last.zip` (12.35M) + its buffer; faded clean-corner exit bonus (B = 3, 7 corners; w = 1 to 2M, fade to 4M, reportable from 8M), focused starts (25 %), low-noise env 3 (0.3σ). Spec `docs/specs/R2_review.md` (Amendments 1–2), DECISIONS #22–24, reports `docs/handoff/R2_*.md`.
+- Ends: clean det lap 2 ≤ 95 s on a reportable eval (keeper), or early ≤ 95 s → bonus off, +4M bonus-free, stops itself (result block in status.json), or Ibrahim stops it.
+- Keeper: `nohup runs/mac/keeper_f1.sh f1_r2 >> runs/mac/keeper_f1_r2.log 2>&1 &` (start only when `pgrep -fl "$(.venv/bin/python scripts/keeper_check.py pattern f1_r2)"` shows training).
+- Stop by hand: `pkill -f "keeper_f1.sh f1_r2( |$)"; pkill -INT -f "$(.venv/bin/python scripts/keeper_check.py pattern f1_r2)"`.
+- Resume: `PYTHONPATH=/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap-f1 caffeinate -dimsu nohup platforms/mac/train.sh --resume --preset f1_r2 --seed 0 --run-name f1_r2 --allow-code-change >> runs/mac/f1_r2_stdout.log 2>&1 &`
+- TensorBoard: `.venv/bin/tensorboard --logdir_spec "f1_r2:runs/mac/D2/f1_r2/seed0/tb_evals_lifetime,f1_best_w35:runs/mac/D2/f1_best_w35/seed0/tb_evals" --port 6006 --host 127.0.0.1 --reload_interval 30`
+- Step-0 eval: det off_track (last.zip's known 838 m crash), sto clean 0.4; offline critic mean Q 232.4 (stable).
