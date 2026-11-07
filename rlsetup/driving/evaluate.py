@@ -31,6 +31,12 @@ Conventions
     over/underestimation; MC is the SAC-objective reference. Both are truncated at the episode
     end (a completed evaluation lap is NOT a terminal state of the training MDP, hence the >= 600
     decisions-left rule: gamma^600 = 0.008).
+  - R2 (corner bonus on, docs/specs/R2_review.md R2-6, R2-9.5): the critic learns r + w b
+    (buffers.py), so Q vs MC uses r + w b per decision, w = model.bonus_weight; det_return stays
+    bonus-free and det_bonus_sum is logged beside it; lap2_corners per unit {v_exit, v_qss_exit,
+    rho, bonus, kind} and lap2_bonus_sum; stochastic laps add fail_s (final s of a failed lap)
+    and sto_corners per unit {passes (exit crossings), crashes (terminal failures inside the
+    unit's window)}.
 """
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -40,7 +46,7 @@ import numpy as np
 import torch as th
 
 TRACE_KEYS = ('s', 'x', 'y', 'speed', 'e', 'gear', 'slip_rl', 'slip_rr', 'track_position',
-              'track_width', 'reward', 'lap_index', 'time_s', 'shaping', 'progress_m')
+              'track_width', 'reward', 'lap_index', 'time_s', 'shaping', 'progress_m', 'corner_bonus')
 
 
 @contextmanager
@@ -98,6 +104,7 @@ class LapReport:
     trace: dict                    # per-decision arrays (TRACE_KEYS + actions, kappa, Fz)
     obs: np.ndarray = field(repr=False, default=None)    # (T + 1, obs_dim) incl. reset obs
     logp: np.ndarray = field(repr=False, default=None)   # (T,) log pi of the taken actions (stochastic)
+    corner_events: list = field(default_factory=list)    # R2: env corner_events + 'lap_index', 'decision'
 
     def lap_time(self, k):
         """Time of lap k (1-based) or None."""
@@ -121,7 +128,7 @@ def flying_lap(policy, env, *, deterministic, seed, setup=None, threads=1):
     if setup is not None:
         options['setup'] = setup
     rec = {k: [] for k in TRACE_KEYS}
-    actions, kappa, fz, logps = [], [], [], []
+    actions, kappa, fz, logps, events = [], [], [], [], []
     with torch_threads(threads), (torch_seed(seed) if not deterministic else _null()):
         obs, _ = env.reset(seed=int(seed), options=options)
         observations = [obs]
@@ -148,6 +155,9 @@ def flying_lap(policy, env, *, deterministic, seed, setup=None, threads=1):
             rec['time_s'].append(info['time_s'])
             rec['shaping'].append(info.get('shaping', 0.))
             rec['progress_m'].append(info['progress_m'])
+            rec['corner_bonus'].append(info.get('corner_bonus', 0.))
+            for ev in info.get('corner_events', ()):
+                events.append(dict(ev, lap_index=len(info['line_crossings_s']), decision=len(actions)))
             actions.append(a)
             kappa.append([tel[f'kappa_{w}'] for w in ('FL', 'FR', 'RL', 'RR')] if tel else [math.nan] * 4)
             fz.append([tel[f'Fz_{w}_N'] for w in ('FL', 'FR', 'RL', 'RR')] if tel else [math.nan] * 4)
@@ -160,7 +170,7 @@ def flying_lap(policy, env, *, deterministic, seed, setup=None, threads=1):
     times = [l['lap_time_s'] for l in laps]
     clean = info['termination'] == 'lap_complete' and len(times) == e.cfg.eval_laps
     return LapReport(clean, times, laps, info['termination'], info['truncation'], len(actions), total,
-                     trace, np.asarray(observations, np.float32), np.asarray(logps))
+                     trace, np.asarray(observations, np.float32), np.asarray(logps), events)
 
 
 @contextmanager
@@ -356,11 +366,25 @@ def save_lap_npz(rep, path):
                         clean=rep.clean, termination=str(rep.termination))
 
 
+def lap_corners(rep, table, lap=2):
+    """R2: {unit name: {v_exit, v_qss_exit, rho, bonus, kind}} of the exit crossings in lap `lap`
+    and their bonus sum."""
+    out = {}
+    for ev in rep.corner_events:
+        if ev['lap_index'] == lap:
+            out[table.units[ev['unit']]['name']] = {k: ev[k] for k in ('v_exit', 'v_qss_exit', 'rho', 'bonus', 'kind')}
+    return out, float(sum(v['bonus'] for v in out.values()))
+
+
 def evaluate_model(model, envs, cfg, *, laps_path=None):
     """Deterministic 2-lap run on envs['eval_det'] + cfg.stochastic_laps 1-lap runs on
     envs['eval_sto'] (torch seeds cfg.seed + k) + Q vs MC on the stochastic episodes.
-    Returns a JSON-ready dict."""
+    Returns a JSON-ready dict. R2 additions when the eval env pays the corner bonus (module
+    docstring)."""
     t0 = time.perf_counter()
+    det_env = getattr(envs['eval_det'], 'unwrapped', envs['eval_det'])
+    table = getattr(det_env, 'corners', None) if getattr(det_env, '_tracker', None) is not None else None
+    w = float(getattr(model, 'bonus_weight', 0.) or 0.) if table is not None else 0.
     det = flying_lap(model, envs['eval_det'], deterministic=True, seed=cfg.seed)
     if laps_path is not None:
         save_lap_npz(det, laps_path)
@@ -369,6 +393,10 @@ def evaluate_model(model, envs, cfg, *, laps_path=None):
            'lap_diff_s': abs(det.lap1_s - det.lap2_s) if det.lap2_s is not None else None,
            'det_return': det.episode_return, 'det_decisions': det.decisions,
            'lap2': lap_metrics(det, cfg, lap=2)}
+    if table is not None:
+        corners, bsum = lap_corners(det, table)
+        out.update(det_bonus_sum=float(np.sum(det.trace['corner_bonus'])), lap2_corners=corners, lap2_bonus_sum=bsum)
+        sto_corners = {u['name']: {'passes': 0, 'crashes': 0} for u in table.units}
     critic = critic_of(model)
     alpha, gamma = float(model.alpha), float(model.gamma)
     n_steps = int(getattr(model, 'n_steps', 1) or 1)          # SB3 n-step horizon of the critic target
@@ -378,9 +406,21 @@ def evaluate_model(model, envs, cfg, *, laps_path=None):
         rep = flying_lap(model, envs['eval_sto'], deterministic=False, seed=cfg.seed + k)
         sto.append({'clean': rep.clean, 'lap_s': rep.lap1_s, 'termination': rep.termination,
                     'truncation': rep.truncation})
+        rewards = rep.trace['reward']
+        if table is not None:
+            from .env import TERMINAL_FAILURES
+            fail_s = float(rep.trace['s'][-1]) if rep.termination in TERMINAL_FAILURES and len(rep.trace['s']) else None
+            sto[-1]['fail_s'] = fail_s
+            for ev in rep.corner_events:
+                sto_corners[table.units[ev['unit']]['name']]['passes'] += 1
+            u = None if fail_s is None else table.unit_at(fail_s)
+            if u is not None:
+                sto_corners[table.units[u]['name']]['crashes'] += 1
+            if w != 0.:
+                rewards = rewards + w * rep.trace['corner_bonus']
         logps.append(rep.logp)
         with torch_threads(1):
-            pairs.append(q_vs_mc(critic, rep.obs[:-1], rep.trace['actions'], rep.trace['reward'], rep.logp,
+            pairs.append(q_vs_mc(critic, rep.obs[:-1], rep.trace['actions'], rewards, rep.logp,
                                  gamma=gamma, alpha=alpha, failed=rep.termination in FAILURES,
                                  stride=cfg.q_mc_stride, min_left=cfg.q_mc_min_left, n_steps=n_steps))
     clean_laps = [s['lap_s'] for s in sto if s['clean']]
@@ -392,4 +432,6 @@ def evaluate_model(model, envs, cfg, *, laps_path=None):
                q_vs_mc=summarize_q_mc(pairs), alpha=alpha,
                policy_entropy=float(-np.mean(np.concatenate(logps))) if logps else math.nan,
                n_updates=int(model._n_updates), eval_wall_s=time.perf_counter() - t0)
+    if table is not None:
+        out.update(sto_corners=sto_corners, q_vs_mc_bonus_w=w)
     return out

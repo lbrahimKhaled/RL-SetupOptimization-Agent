@@ -48,6 +48,16 @@ changes (exit 4) unless --allow-dirty; both flags are recorded in the 'resume' e
 with the code state. A new run with strict_provenance refuses a dirty tree the same way. Resume
 never re-applies init_from; a run resumed in its frozen phase ('bc' or 'warm') stays frozen until
 its unfreeze step.
+R2 training aids (docs/specs/R2_review.md + Amendment 1; presets f1_r2, f1_r2_smoke): the corner
+table (corners.py) is built once here and handed to the vector-env workers and the eval envs;
+corner_bonus -> BonusNStepReplayBuffer (a pre-R2 init buffer is adopted in place, bonus 0),
+BonusScheduleCallback first in the callback list (w(0) is set before the offline critic phase;
+state in bonus_state.json; stop reason 'report_complete' after an Amendment-1 trigger), best.zip
+only from reportable evaluations (best_aided.zip before); focus -> FocusedStartCallback seeded
+from focus_update.seed_run (state in focus_state.json); low_noise_envs -> StagedSAC._sample_action.
+provenance.json 'r2' records the table, the configs, the focus seed and the buffer's labelled
+fraction at the start. A resume restores the schedule state, the focus counters (re-seeded with
+a warning if focus_state.json is missing) and best / best_aided from the evaluation records.
 """
 from dataclasses import replace
 from pathlib import Path
@@ -78,10 +88,11 @@ class _Tee:
             st.flush()
 
 
-def eval_envs(cfg, track, qss):
-    """Evaluation / probe envs in the main process, all from the run's EnvConfig (spec §2, §6)."""
+def eval_envs(cfg, track, qss, corners=None):
+    """Evaluation / probe envs in the main process, all from the run's EnvConfig (spec §2, §6);
+    `corners`: the run's corner table (R2), shared with the training envs."""
     from .env import DrivingEnv
-    mk = lambda c: DrivingEnv(c, track=track, qss=qss)
+    mk = lambda c: DrivingEnv(c, track=track, qss=qss, corners=corners)
     e = cfg.env
     return {'eval_det': mk(replace(e, evaluation=True, record_telemetry=True)),
             'eval_sto': mk(replace(e, evaluation=True, eval_laps=1)),
@@ -106,6 +117,39 @@ def reference_metadata(env_cfg, env, track, qss):
 
 def _sha_file(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def corner_table(cfg, track, qss):
+    """The run's corner table (R2-2; cached in data/), None unless corner_bonus or focus is on."""
+    if not (cfg.env.corner_bonus.enabled or cfg.env.focus.enabled):
+        return None
+    from . import corners
+    return corners.for_env(track, cfg.env, qss)
+
+
+def focus_seed_for(cfg, track):
+    """FocusUpdateConfig seed histogram (callbacks.focus_seed) of cfg.focus_update.seed_run, or None."""
+    u = cfg.focus_update
+    if not cfg.env.focus.enabled or u.seed_run is None:
+        return None
+    length_m = float(track.length)
+    from ..provenance import REPO_ROOT
+    from .callbacks import focus_seed
+    p = Path(u.seed_run)
+    return focus_seed(p if p.is_absolute() else REPO_ROOT / p, u, cfg.env.focus.bin_m, length_m)
+
+
+def r2_provenance(cfg, table, seed, labelled_fraction):
+    """provenance.json 'r2' (R2-9.7), None for runs without R2 aids."""
+    if not cfg.r2_aids:
+        return None
+    from dataclasses import asdict
+    return {'corner_table': None if table is None else table.summary(),
+            'corner_bonus': asdict(cfg.env.corner_bonus), 'focus': asdict(cfg.env.focus),
+            'bonus_schedule': dict(asdict(cfg.bonus_schedule), report_from=cfg.bonus_schedule.report_from),
+            'focus_update': asdict(cfg.focus_update), 'focus_seed': seed,
+            'low_noise': {'envs': list(cfg.agent.low_noise_envs), 'std_scale': cfg.agent.low_noise_std_scale},
+            'labelled_fraction_at_start': labelled_fraction}
 
 
 class Run:
@@ -136,6 +180,10 @@ class Run:
             self.status(stop_reason='wall_clock_limit')
         elif kind == 'plateau':
             self.status(stop_reason='plateau')
+        elif kind == 'aided_target_lap':
+            self.status(aided_target_step=data['step'], report_from=data['report_from'])
+        elif kind == 'report_complete':
+            self.status(stop_reason='report_complete')
         elif kind == 'critic_not_converged':
             _warn(self, data['step'], f"critic check {data['critic_check']} above tol {data['tol']} at the first "
                                       f"evaluation after the critic-only phase (critic_not_converged)")
@@ -143,20 +191,37 @@ class Run:
 
 def _callbacks(run, model, envs, starts, baseline, *, unfreeze_at, guard_start=None, rollbacks=0,
                best_lap2=float('inf'), last_det_clean=None, wall0=(0., 0.), t0=None, buffer_saved_step=None,
-               critic_check_at=None, critic_check_done=False, plateau_history=()):
+               critic_check_at=None, critic_check_done=False, plateau_history=(), best_aided_lap2=float('inf'),
+               bonus_state=(None, None), focus_seed=None, focus_state=None):
     """`buffer_saved_step`: step of a replay-buffer save made before learn() (the prefill save at
     step 0), so the step-0 evaluation does not save the same buffer again. `critic_check_at`:
     step of the R1 critic check (None: none); `plateau_history`: PlateauStop entries of earlier
-    processes. Returns (callbacks, guard, wall, plateau)."""
+    processes. R2: `bonus_state` = (trigger_step, report_from) of a resumed run, `focus_seed` /
+    `focus_state` initialise the FocusedStartCallback, `best_aided_lap2` the best_aided.zip
+    threshold. Returns (callbacks, guard, wall, plateau)."""
     from .callbacks import (PhaseCallback, CollapseGuard, TrainStatsCallback, DrivingEvalCallback,
-                            CheckpointCallback, WallClockLimit, ReplayBufferSaver, PlateauStop)
+                            CheckpointCallback, WallClockLimit, ReplayBufferSaver, PlateauStop,
+                            BonusScheduleCallback, FocusedStartCallback)
     from .evaluate import probe, evaluate_model
     cfg, d = run.cfg, run.dir
     saver = ReplayBufferSaver(d / 'replay_buffer.pkl', lambda n: run.status(replay_buffer_step=int(n)),
                               last_step=buffer_saved_step) if cfg.buffer_save_interval else None
     e = cfg.eval
     stats = TrainStatsCallback(d / 'train_stats.jsonl', e.stats_window, slow_mps=e.stats_slow_mps,
-                               wide_m=e.stats_wide_m, low_v0_mps=e.stats_low_v0_mps)
+                               wide_m=e.stats_wide_m, low_v0_mps=e.stats_low_v0_mps, groups=cfg.r2_aids,
+                               low_noise_envs=cfg.agent.low_noise_envs, bin_m=cfg.env.focus.bin_m)
+    schedule = focus = None
+    extras = []
+    if cfg.env.corner_bonus.enabled:
+        schedule = BonusScheduleCallback(cfg.bonus_schedule, d / 'bonus_state.json', trigger_step=bonus_state[0],
+                                         report_from=bonus_state[1], on_event=run.event)
+        extras.append(lambda m, n: {'buffer_labelled_fraction': m.replay_buffer.labelled_fraction()})
+    if cfg.env.focus.enabled:
+        focus = FocusedStartCallback(cfg.focus_update, float(envs['probe'].unwrapped.track.length), cfg.env.focus.bin_m,
+                                     d / 'focus_state.json', seed=focus_seed, state=focus_state)
+        extras.append(focus.eval_extra)
+    if cfg.r2_aids:
+        extras.append(lambda m, n: {'train_groups': stats.eval_groups()})
     guard = CollapseGuard(lambda m: probe(m, envs['probe'], starts).mean_progress_m, baseline, cfg.guard,
                           start_step=guard_start, rollbacks=rollbacks, on_event=run.event,
                           log_path=d / 'probes.jsonl', last_path=d / 'checkpoints' / 'last.zip')
@@ -165,19 +230,21 @@ def _callbacks(run, model, envs, starts, baseline, *, unfreeze_at, guard_start=N
         cfg.eval.interval, d / 'evals.jsonl', d / 'checkpoints', stats=stats, best_lap2=best_lap2,
         last_det_clean=last_det_clean, on_event=run.event, train_wall0=wall0[0], eval_wall0=wall0[1],
         buffer_saver=saver, critic_check_at=critic_check_at, critic_check_tol=cfg.warm.critic_check_tol,
-        critic_check_done=critic_check_done)
+        critic_check_done=critic_check_done, extras=extras, schedule=schedule, best_aided_lap2=best_aided_lap2)
     plateau = PlateauStop(cfg.stop, evalcb, history=plateau_history, on_event=run.event)
     wall = WallClockLimit(cfg.max_wall_h, t0=t0, on_event=run.event)
     ckpt = CheckpointCallback(cfg.checkpoint_interval, d / 'checkpoints', buffer_every=cfg.buffer_save_interval,
                               buffer_saver=saver)
-    cbs = [PhaseCallback(unfreeze_at, on_event=run.event), guard, stats, evalcb, plateau, ckpt, wall]
+    cbs = ([schedule] if schedule else []) + [PhaseCallback(unfreeze_at, on_event=run.event), guard, stats] \
+        + ([focus] if focus else []) + [evalcb, plateau, ckpt, wall]
     return cbs, guard, wall, plateau
 
 
 def _learn_and_finish(run, model, cbs, guard, wall, plateau, total):
     from ..runs import record_phase
-    from .callbacks import save_model_atomic, save_replay_buffer_atomic
+    from .callbacks import save_model_atomic, save_replay_buffer_atomic, BonusScheduleCallback
     cfg, d = run.cfg, run.dir
+    schedule = next((c for c in cbs if isinstance(c, BonusScheduleCallback)), None)
     run.t_learn, run.step0 = time.time(), model.num_timesteps
     run.t_unfreeze = run.step_unfreeze = None
     run.status(phase='rl' if not model.freeze_actor else 'online_warmup', state='running')
@@ -195,6 +262,7 @@ def _learn_and_finish(run, model, cbs, guard, wall, plateau, total):
         record_phase(d, 'online_warmup', wall_s=now - run.t_learn, env_steps=model.num_timesteps - run.step0)
     save_model_atomic(model, d / 'checkpoints' / 'last.zip')
     reason = ('collapsed' if guard.collapsed else 'plateau' if plateau.triggered
+              else 'report_complete' if schedule is not None and schedule.stopped
               else 'wall_clock_limit' if wall.triggered else 'completed')
     if cfg.save_replay_buffer:
         save_replay_buffer_atomic(model, d / 'replay_buffer.pkl')
@@ -332,7 +400,8 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
         tsha = track_sha256(track)
         cj = config_json(cfg)
         (run_dir / 'config.json').write_text(cj)
-        envs = eval_envs(cfg, track, qss)
+        table = corner_table(cfg, track, qss)
+        envs = eval_envs(cfg, track, qss, table)
         prov = training_provenance(track, n_envs=cfg.n_envs, qss=qss, reference_digest=envs['probe'].ref.digest,
                                    track_sha256=tsha, config_json=cj, argv=argv, allow_dirty=allow_dirty,
                                    reference=reference_metadata(cfg.env, envs['probe'], track, qss))
@@ -345,9 +414,13 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
             r = prov['reference']
             log(f"xi_ref {r['spec']} (digest {r['digest']}, {r['length_m']:.1f} m): QSS {r['qss_lap_on_line_s']:.3f} s "
                 f"on the line, {r['qss_lap_on_track_path_s']:.3f} s on Track.path (start speeds)")
-        vec = build_vec_env(cfg.env, cfg.n_envs, track, qss, start_method=cfg.vec_start_method)
+        vec = build_vec_env(cfg.env, cfg.n_envs, track, qss, start_method=cfg.vec_start_method, corners=table)
         model = build_model(cfg, vec)
         a = cfg.agent
+        seed = focus_seed_for(cfg, track)
+        if table is not None:
+            log('corner table ' + ', '.join(f"{u['name']} [{u['start_m']:.0f}, {u['exit_m']:.0f}] m v_exit "
+                                            f"{u['v_qss_exit']:.1f}" for u in table.units))
         if a.init_mode != 'warm':   # warm: the loaded actor, no output-bias init (R1 §2.5 step 6)
             init_output_bias(model.actor, pedal_deadzone=cfg.env.pedal_deadzone, action=a.init_action,
                              log_std=a.init_log_std, weight_scale=a.init_weight_scale)
@@ -449,16 +522,26 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
                        init_buffer=buf, lifetime_steps_offset=init['src_num_timesteps'])
             run.status(phase='offline_warmup')
             t = time.time()
+            if cfg.env.corner_bonus.enabled:      # R2-5.2: w(0) before the offline critic phase
+                from .callbacks import bonus_weight
+                model.replay_buffer.bonus_weight = model.bonus_weight = bonus_weight(cfg.bonus_schedule, 0)
             _offline_critic(run, model)
             record_phase(run_dir, 'offline_warmup', wall_s=time.time() - t, env_steps=0,
                          grad_steps=int(model._n_updates))
             unfreeze_at = critic_check_at = cfg.warm.critic_warmup_steps
         else:
             raise ValueError(f'unknown init_mode {a.init_mode!r}')
+        r2 = r2_provenance(cfg, table, seed, model.replay_buffer.labelled_fraction()
+                           if hasattr(model.replay_buffer, 'labelled_fraction') else None)
+        if r2 is not None:
+            prov['r2'] = r2
+            write_json(run_dir / 'provenance.json', prov)
+            run.status(report_from=cfg.bonus_schedule.report_from if cfg.env.corner_bonus.enabled else None,
+                       labelled_fraction_at_start=r2['labelled_fraction_at_start'])
         # --- steps 4b + 5 ---
         cbs, guard, wall, plateau = _callbacks(run, model, envs, starts, baseline, unfreeze_at=unfreeze_at,
                                                t0=run.t0, buffer_saved_step=buffer_saved_step,
-                                               critic_check_at=critic_check_at)
+                                               critic_check_at=critic_check_at, focus_seed=seed)
         return _learn_and_finish(run, model, cbs, guard, wall, plateau, cfg.total_timesteps)
     except BaseException as e:
         run.status(state='error', stop_reason=f'{type(e).__name__}: {e}', traceback=traceback.format_exc())
@@ -552,8 +635,9 @@ def resume_pipeline(run_dir, overrides=(), *, argv=None, allow_dirty=False, allo
         if overrides:
             (run_dir / 'config.json').write_text(config_json(cfg))
         qss = qss_profile.for_env(track, cfg.env)
-        envs = eval_envs(cfg, track, qss)
-        vec = build_vec_env(cfg.env, cfg.n_envs, track, qss, start_method=cfg.vec_start_method)
+        table = corner_table(cfg, track, qss)
+        envs = eval_envs(cfg, track, qss, table)
+        vec = build_vec_env(cfg.env, cfg.n_envs, track, qss, start_method=cfg.vec_start_method, corners=table)
         model = StagedSAC.load(last_zip, env=vec, device=cfg.device)
         n = int(model.num_timesteps)
         buffer_step = status.get('replay_buffer_step')
@@ -588,8 +672,23 @@ def resume_pipeline(run_dir, overrides=(), *, argv=None, allow_dirty=False, allo
         log(f'resume {run_dir} at {n} steps -> {cfg.total_timesteps}')
         starts = read_json(run_dir / 'probe_starts.json')
         evals = read_jsonl(run_dir / 'evals.jsonl')
-        clean = [r['lap2_s'] for r in evals if r.get('det_clean') and r.get('lap2_s') is not None]
+        clean = [r['lap2_s'] for r in evals if r.get('det_clean') and r.get('lap2_s') is not None
+                 and r.get('reportable', True)]                  # R2-9.3: best.zip from reportable evals only
+        aided = [r['lap2_s'] for r in evals if r.get('det_clean') and r.get('lap2_s') is not None
+                 and not r.get('reportable', True)]
         last = evals[-1] if evals else {}
+        from .callbacks import load_bonus_state, load_focus_state
+        bonus_state = load_bonus_state(run_dir, model) if cfg.env.corner_bonus.enabled else (None, None)
+        if bonus_state[0] is not None and n >= bonus_state[1]:   # Amendment 1: ended itself after a trigger
+            log(f'nothing to do: the run stopped itself at report_from {bonus_state[1]} after the trigger at '
+                f'{bonus_state[0]}')
+            return EXIT_OK
+        focus_state = load_focus_state(run_dir) if cfg.env.focus.enabled else None
+        seed = None
+        if cfg.env.focus.enabled and focus_state is None:
+            seed = focus_seed_for(cfg, track)
+            _warn(run, n, 'focus_state.json missing: focus counters re-seeded from '
+                          f'{cfg.focus_update.seed_run} (training-time counts lost)')
         from .callbacks import plateau_entry
         warm = cfg.agent.init_mode == 'warm'
         frozen_phase = cfg.agent.init_mode in ('bc', 'warm') and status.get('unfrozen_at') is None
@@ -603,7 +702,9 @@ def resume_pipeline(run_dir, overrides=(), *, argv=None, allow_dirty=False, allo
             buffer_saved_step=buffer_step if buffer_step == n else None,
             critic_check_at=cfg.warm.critic_warmup_steps if warm else None,
             critic_check_done=any('critic_check' in r for r in evals),
-            plateau_history=[plateau_entry(r) for r in evals])
+            plateau_history=[plateau_entry(r) for r in evals],
+            best_aided_lap2=min(aided) if aided else float('inf'), bonus_state=bonus_state,
+            focus_seed=seed, focus_state=focus_state)
         remaining = cfg.total_timesteps - n
         if remaining <= 0:
             log('nothing to do: total_timesteps already reached')

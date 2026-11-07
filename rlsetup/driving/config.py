@@ -116,6 +116,41 @@ class DemoConfig:
 
 
 @dataclass(frozen=True)
+class CornerBonusConfig:
+    """R2 clean-corner exit bonus (docs/specs/R2_review.md §R2-2, R2-3; DECISIONS #22-23). A
+    TRAINING AID: the env's reward stays time_pbrs bit for bit; the env only reports
+    info['corner_bonus'] (unweighted, per decision) and the replay buffer adds w(t) x bonus at
+    sampling time (buffers.py). bonus = B f(rho), f = clip((rho - floor_ratio) / (1 - floor_ratio),
+    0, 1), rho = exit speed / v_qss at the exit. The detection fields (prominence .. grid_m) define
+    the corner table (corners.py, cache key)."""
+    enabled: bool = False
+    bonus: float = 3.                    # B per corner [reward units] (Amendment 1 F4)
+    floor_ratio: float = .75             # f = 0 at or below this exit-speed ratio [J]
+    prominence_mps: float = 5.           # apex = local minimum of v_qss with at least this prominence [J]
+    merge_m: float = 150.                # apexes closer than this form one unit [J]
+    exit_after_apex_m: float = 150.      # exit point = last apex + this ...
+    exit_before_brake_m: float = 30.     # ... but at least this before the next unit's braking point [J]
+    grid_m: float = 1.                   # Track.path grid of the mapped v_qss
+
+
+@dataclass(frozen=True)
+class FocusConfig:
+    """R2 focused starts (§R2-7): with probability `fraction` a training reset (not evaluation,
+    no explicit start option) starts lead_m before the window start of a corner drawn from the
+    focus weights (FocusedStartCallback), settled at f ~ U(speed_fraction) of v_qss. A TRAINING
+    AID (start distribution only; the reward is unchanged)."""
+    enabled: bool = False
+    fraction: float = .25                # share of training resets that are focused [P: TAV18, FLOR17]
+    bin_m: float = 50.                   # Track.path bins of the focus weights
+    lead_m: tuple = (50., 300.)          # hand-over target d ~ U(lo, hi) before the target [m]
+    speed_fraction: tuple = (.5, .8)     # settle speed fraction f ~ U(lo, hi)
+    max_attempts: int = 5                # focused settle attempts before a uniform start
+
+
+TRAINING_AID_KEYS = ('corner_bonus', 'focus')   # EnvConfig blocks that are not part of the driver definition
+
+
+@dataclass(frozen=True)
 class EnvConfig:
     track: str = 'Shanghai'
     track_vmax_mps: float = 12.          # Track(name, vmax): only its scripted speed profile; unused here
@@ -150,6 +185,15 @@ class EnvConfig:
     reward: RewardConfig = field(default_factory=RewardConfig)
     obs: ObsConfig = field(default_factory=ObsConfig)
     demo: DemoConfig = field(default_factory=DemoConfig)
+    corner_bonus: CornerBonusConfig = field(default_factory=CornerBonusConfig)   # R2 training aid
+    focus: FocusConfig = field(default_factory=FocusConfig)                      # R2 training aid
 
     def to_dict(self):
-        return asdict(self)
+        """asdict without the TRAINING_AID_KEYS blocks that equal their default (disabled), so
+        configs, demo keys and hashes written before R2 do not change (R2-6); a missing block
+        loads as its default."""
+        d = asdict(self)
+        for k in TRAINING_AID_KEYS:
+            if getattr(self, k) == type(getattr(self, k))():
+                del d[k]
+        return d

@@ -60,6 +60,22 @@ info         s_track, s_ref, e_ref, heading_error, speed, progress_m (since hand
              track_position (-1 right ... +1 left edge) and track_width_m (finite states only);
              telemetry (backend.get_telemetry()) only with record_telemetry. On a non-finite
              state e_ref, heading_error and speed are NaN.
+R2 training aids (docs/specs/R2_review.md; both off by default, and then nothing here changes):
+  corner_bonus  the returned reward stays exactly the configured reward (bit-identical with the
+             bonus on or off). The env adds info corner_bonus (unweighted bonus paid by this
+             decision, 0 if none), episode_corner_bonus and, only when an exit is crossed,
+             corner_events [{unit, kind 'paid' | 'forfeit' | 'exit_unpaid', v_exit, v_qss_exit, rho,
+             bonus}] (corners.CornerTracker, crossings per 50 Hz tick, at most one payment per
+             unit and pass; a decision ending in a terminal failure forfeits its crossings).
+             Evaluation envs report the same (logging only).
+  focus      training resets without explicit start options: with probability focus.fraction
+             (once FocusedStartCallback has pushed weights via set_focus_weights; before that no
+             extra random draw, so the start stream is unchanged) a 50 m bin
+             b ~ P, target x = window start of the corner unit containing the bin centre (else the
+             bin start), hand-over target s_h = x - d, d ~ U(lead_m), f ~ U(speed_fraction),
+             s0 = s_h - f v_qss(s_h) settle_s, v0 by the usual rule; up to focus.max_attempts
+             settles, then a uniform start (focus_fallback). Reset info start adds focused,
+             focus_bin, focus_target_s, handover_to_target_m (signed, - = before x), focus_fallback.
 Observation (fixed scales, clipped to +-ObsConfig.clip; ObsConfig documents the scales):
     ego (9): speed, v_x, v_y, yaw rate, a_x, a_y (body frame: a_x = dv_x/dt - r v_y,
              a_y = dv_y/dt + r v_x over the last decision, r and v at the interval midpoint),
@@ -83,6 +99,7 @@ from .config import EnvConfig
 from .demo_driver import DemoDriver, action_to_inputs, steer_lock_rad
 from .reference import ReferenceLine, track_grid
 from . import qss_profile, setups
+from .corners import CornerTracker, settle_events
 
 EGO_SIZE = 9
 NO_LAP_PROGRESS_M = -1e7       # training: base progress start, lap completion out of reach
@@ -106,13 +123,14 @@ def _zero_costs():
 
 
 class DrivingEnv(OCDRacingEnv):
-    def __init__(self, config=EnvConfig(), *, setup=None, track=None, reference=None, qss=None):
+    def __init__(self, config=EnvConfig(), *, setup=None, track=None, reference=None, qss=None, corners=None):
         """`setup`: default car setup (None = the named setup `config.setup`, p0 = `Setup()` by
         default); `track`: optional prebuilt
         `ocd_lap.track.Track` (build it once in the main process before vector-env workers
         start, R1; OCDRacingEnv.__init__ still loads the track by name, which only reads the
         safe-line cache once it is valid); `reference`: `ReferenceLine` (default: config.reference);
-        `qss`: `QSSProfile` (default: the cached p0 profile)."""
+        `qss`: `QSSProfile` (default: the cached p0 profile); `corners`: `corners.CornerTable`
+        (R2; built here from the caches if None and corner_bonus or focus is enabled)."""
         cfg = self.cfg = config
         if not (isinstance(cfg.action_repeat, int) and cfg.action_repeat >= 1):
             raise ValueError('action_repeat must be a positive integer')
@@ -163,6 +181,15 @@ class DrivingEnv(OCDRacingEnv):
         self._err_key = None
         self.obs_clipped_total = self.obs_values_total = 0
         self.evaluation = cfg.evaluation
+        # R2 training aids (None / unused when disabled)
+        self.corners = None
+        if cfg.corner_bonus.enabled or cfg.focus.enabled:
+            from . import corners as corners_mod
+            self.corners = corners if corners is not None else corners_mod.for_env(self.track, cfg, self.qss, self.ref)
+        cb = cfg.corner_bonus
+        self._tracker = CornerTracker(self.corners, cb.bonus, cb.floor_ratio) if cb.enabled else None
+        self.focus_weights = None
+        self.n_focus_bins = int(math.ceil(float(self.track.length) / cfg.focus.bin_m))
 
     # --- run metadata ---------------------------------------------------------------------------
     def env_metadata(self):
@@ -270,9 +297,53 @@ class DrivingEnv(OCDRacingEnv):
         return np.clip(raw, -o.clip, o.clip).astype(np.float32)
 
     # --- reset ------------------------------------------------------------------------------------
-    def _sample_start(self, options):
-        """(s0 on Track.path, f, v0, explicit pose or None). Draws s0 then f from np_random."""
+    def set_focus_weights(self, p):
+        """Focus bin weights P (n_focus_bins, sum 1) from FocusedStartCallback (R2-7.3); None = none."""
+        if p is None:
+            self.focus_weights = None
+            return
+        p = np.asarray(p, dtype=float)
+        if p.shape != (self.n_focus_bins,) or not np.all(p >= 0) or not abs(p.sum() - 1.) < 1e-6:
+            raise ValueError(f'focus weights must be {self.n_focus_bins} nonnegative numbers summing to 1')
+        self.focus_weights = p / p.sum()
+
+    def focus_target(self, b):
+        """Target x [m] of focus bin b: window start of the unit containing the bin centre, else the bin start."""
+        L, w = float(self.track.length), self.cfg.focus.bin_m
+        k = self.corners.unit_at(min((b + .5) * w, (b * w + L) / 2.))
+        return float(self.corners.units[k]['start_m']) if k is not None else float(b * w)
+
+    def _focus_plan(self, options):
+        """R2-7.1: None (uniform start) or {'bin', 'target'}. Draws from np_random only if focus
+        is enabled, weights have been pushed (before that: the uniform start, unchanged stream) and
+        the reset has no explicit start option and is not an evaluation."""
+        fc = self.cfg.focus
+        if (not fc.enabled or self.evaluation or self.focus_weights is None
+                or any(k in options for k in ('start_pose', 'start_s', 'start_speed'))):
+            return None
+        if self.np_random.uniform() >= fc.fraction:
+            return None
+        b = int(self.np_random.choice(self.n_focus_bins, p=self.focus_weights))
+        return {'bin': b, 'target': self.focus_target(b)}
+
+    def focus_start(self, target):
+        """Focused start for target x [m] (R2-7.1), drawing d then f from np_random: {'d', 'f',
+        's_handover' = x - d, 's0' = s_h - f v_qss(s_h) settle_s, 'v0' (usual rule)} (wrapped to [0, L))."""
+        fc, cfg, L = self.cfg.focus, self.cfg, float(self.track.length)
+        d = float(self.np_random.uniform(*fc.lead_m))
+        f = float(self.np_random.uniform(*fc.speed_fraction))
+        s_h = (target - d) % L
+        s0 = float((s_h - f * float(self.qss.speed(s_h)) * cfg.settle_s) % L)
+        window = f * float(self.qss.speed(s0)) * cfg.settle_s + cfg.settle_window_margin_m
+        return {'d': d, 'f': f, 's_handover': float(s_h), 's0': s0, 'v0': f * self.qss.min_speed(s0, window)}
+
+    def _sample_start(self, options, focus=None):
+        """(s0 on Track.path, f, v0, explicit pose or None). Draws s0 then f from np_random
+        (focused start: d then f, see the module docstring)."""
         L, cfg = self.track.length, self.cfg
+        if focus:
+            st = self.focus_start(focus['target'])
+            return st['s0'], st['f'], st['v0'], None
         if 'start_pose' in options:
             pose = options['start_pose']
             return float(self.track.match([pose.x, pose.y])[0]), None, float(pose.speed), pose
@@ -334,8 +405,12 @@ class DrivingEnv(OCDRacingEnv):
         setup = options.get('setup')
         setup = self.setup if setup is None else setup   # N1: None must never reach backend.reset
         self.evaluation = bool(options.get('evaluation', self.cfg.evaluation))
+        focus = self._focus_plan(options)
+        fallback = False
         for attempt in range(1, self.cfg.max_start_attempts + 1):
-            s0, f, v0, pose = self._sample_start(options)
+            if focus and attempt > self.cfg.focus.max_attempts:     # R2-7.1: then a uniform start
+                focus, fallback = None, True
+            s0, f, v0, pose = self._sample_start(options, focus)
             trace = [] if options.get('settle_trace') else None
             if self._start_and_settle(setup, s0, v0, pose, trace):
                 break
@@ -366,6 +441,9 @@ class DrivingEnv(OCDRacingEnv):
         self._dist = 0.
         self._laps, self._lap_cost = [], _zero_costs()
         self._episode_cost = _zero_costs()
+        if self._tracker is not None:
+            self._tracker.reset(self.s)
+            self._episode_bonus = 0.
         obs = self._decision_observation()
         e, heading = self._line_errors()
         info = {'setup': setup, 'setup_warnings': self.backend.run_metadata().get('warnings', []),
@@ -376,6 +454,11 @@ class DrivingEnv(OCDRacingEnv):
                 'phi': self._phi, 'reward_mode': rw.mode}
         if trace is not None:
             info['settle_sum_fz_N'] = trace
+        if self.cfg.focus.enabled and not self.evaluation:
+            x = focus.get('target') if focus else None
+            info['start'].update(focused=bool(focus), focus_bin=focus.get('bin') if focus else None,
+                                 focus_target_s=x, focus_fallback=fallback,
+                                 handover_to_target_m=None if x is None else float((self.s - x + L / 2) % L - L / 2))
         return obs, info
 
     # --- step -------------------------------------------------------------------------------------
@@ -418,10 +501,13 @@ class DrivingEnv(OCDRacingEnv):
         cause = None
         self._trunc_cause = None
         decision_dt = 0.
+        tracker, crossings = self._tracker, []
         self._in_step = True
         try:
             for _ in range(cfg.action_repeat):
                 prev_action, d0, t0, s0 = self.last_action, self._dist, self.time_s, self.s
+                if tracker is not None:
+                    v_tick0 = math.hypot(self.state['vx'], self.state['vy'])
                 _, r, terminated, truncated, base = super().step(action)
                 dt = base['transition_dt_s']
                 decision_dt += dt
@@ -429,6 +515,9 @@ class DrivingEnv(OCDRacingEnv):
                 if not nonfinite:  # same ds as OCDRacingEnv.step
                     L = float(self.track.length)
                     self._dist += (self.s - s0 + L / 2) % L - L / 2
+                    if tracker is not None:   # R2-3: exit crossings inside this 50 Hz tick
+                        crossings += tracker.tick(d0, self._dist, v_tick0,
+                                                  math.hypot(self.state['vx'], self.state['vy']))
                 # QA MINOR 1 (kept, as OCDRacingEnv): actual dt -> a shortened terminal tick inflates smoothness.
                 du = (action - prev_action) / dt
                 costs = dict(progress=rw.a * (self._dist - d0), time=rw.b * dt,
@@ -506,4 +595,10 @@ class DrivingEnv(OCDRacingEnv):
             info.update(e_ref=math.nan, heading_error=math.nan, speed=math.nan)
         if self.evaluation:
             info.update(line_crossings_s=list(self._crossings), laps=[dict(l) for l in self._laps])
+        if tracker is not None:   # R2-3.4: a terminal failure in this decision forfeits its crossings
+            bonus, events = settle_events(crossings, terminated and cause in TERMINAL_FAILURES)
+            self._episode_bonus += bonus
+            info.update(corner_bonus=bonus, episode_corner_bonus=self._episode_bonus)
+            if events:
+                info['corner_events'] = events
         return obs, float(total), bool(terminated), bool(truncated), info
