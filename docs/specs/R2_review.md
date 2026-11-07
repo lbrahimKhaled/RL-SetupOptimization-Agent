@@ -144,3 +144,10 @@ New module `rlsetup/driving/buffers.py`, class `BonusNStepReplayBuffer(NStepRepl
 
 ## R2-13. Implementation size
 ~900 lines of source (corners.py 150, env.py 90, buffers.py 90, agent.py 60, callbacks.py 220, train.py 70, configs 90, evaluate.py 50, evals_to_tb.py 50, keeper 5) + ~600 lines of tests; ~2 coder-days + ~0.5 day QA and smoke. First reportable lap after ≥ 8M steps (~9.3 h at 263 steps/s incl. evals).
+
+## Amendment 1 — Ibrahim's answers to F1–F5 (7 Nov 2026; wins over everything above)
+- **F1 → "Stop, then 4M bonus-free".** Trigger: the first eval with a clean deterministic lap 2 ≤ 95 s while w(t) > 0 or step < report_from. At that eval: save `best_aided.zip`, set w = 0 immediately for the rest of the run (no fade), set report_from = trigger_step + 4.0M, log event `aided_target_lap`. The run then stops itself at report_from (the result = reportable evals in [trigger_step + 4M] and the median of the last 5 clean deterministic lap 2, R2-12.8). Without a trigger, R2-5 holds (w schedule, report_from 8.0M) and the keeper stops on a reportable clean lap 2 ≤ 95 s or when Ibrahim stops it. w is therefore no longer a pure function of num_timesteps: persist `{trigger_step, report_from}` in `bonus_state.json` (atomic, written at the trigger and every eval) and in the checkpoint; resume reads it (test: resume after a trigger keeps w = 0 and the new report_from). The keeper (`keeper_f1.sh`) must not resume a run that stopped itself at report_from after a trigger (reads `status.json`/`bonus_state.json`).
+- **F2 → pay if the exit is crossed after hand-over** (R2-3.3 as written).
+- **F3** acknowledged: no control run; f1_best_w35's 9.2M→12.35M continuation is the comparison (R2-9.6).
+- **F4 → B = 3.**
+- **F5 → focused starts and low-noise rollouts stay on in the bonus-free phase.**
