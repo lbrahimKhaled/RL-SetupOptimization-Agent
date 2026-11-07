@@ -151,3 +151,7 @@ New module `rlsetup/driving/buffers.py`, class `BonusNStepReplayBuffer(NStepRepl
 - **F3** acknowledged: no control run; f1_best_w35's 9.2M→12.35M continuation is the comparison (R2-9.6).
 - **F4 → B = 3.**
 - **F5 → focused starts and low-noise rollouts stay on in the bonus-free phase.**
+
+## Amendment 2 — after the smokes (8 Nov 2026; Ibrahim; wins over everything above)
+- **Warm start from `runs/mac/D2/f1_best_w35/seed0/checkpoints/last.zip` (12.35M)**, not best.zip (9.2M): its critic matches the 12.35M replay buffer (smoke B: critic_check 0.036, mean Q 234.7 → 232.4; best.zip: 0.105, 232.7 → 207.4 and a new lap-0 hand-over crash mode). `docs/handoff/R2_sim_runner.md`. The 101.87 s best.zip stays the reference. Guard baseline = last.zip's own probe. `lifetime_steps_offset` = 12,350,000 (f1_r2 continues f1_best_w35's step axis).
+- **Result after an early trigger (Amendment 1):** the run still stops at report_from = trigger + 4M. The result is the **best clean deterministic lap 2 plus every clean deterministic lap 2 from the bonus-free stretch [trigger, report_from]** (w = 0 there). `best.zip` is written from those evals (not only at report_from). Without a trigger, R2-5/R2-9.3 hold (best.zip from reportable evals, step ≥ 8M from this run's start).
