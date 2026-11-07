@@ -15,12 +15,20 @@ StagedSAC relies on SB3 2.9.0 `SAC.train()` internals (pinned in pyproject; test
     empty buffer (TrainConfig.resume_empty_buffer_min_batches); 0 = always train.
 The freeze flags, actor_lr and min_train_transitions are pickled with the model;
 `_setup_model` re-applies requires_grad after `load()`.
+R2-8 low-noise rollouts: `low_noise_envs` (env indices) act with a = tanh(mean + scale sigma eps),
+eps ~ N(0, I) from the global torch RNG, scale = `low_noise_std_scale` (0 = the deterministic
+action exactly); `_sample_action` overwrites those rows after SB3's own sample, passing them
+through SB3's unscale / scale steps, so the stored action is the executed action. Empty
+`low_noise_envs` (default) = SB3's _sample_action, untouched. `bonus_weight` mirrors the replay
+buffer's corner-bonus weight (audit only); `bonus_trigger_step` / `bonus_report_from` are the
+Amendment-1 schedule state (also in bonus_state.json). All are pickled with the model.
 
 `warm_start` (R1 spec §2.5, Amendment 1 §B) copies actor, critics, target critics, log alpha
 and (WarmStartConfig.load_optimizers) the Adam states of a trained model into a freshly built
 one (step counters stay 0) and freezes actor + alpha for the critic phases. `preload_buffer`
 loads the source's replay buffer, relabels it to the new reward (relabel.py) and cuts the
-n-step chain at its last row.
+n-step chain at its last row. R2 (corner_bonus on): the model uses buffers.BonusNStepReplayBuffer
+and a pre-R2 NStepReplayBuffer is adopted in place (bonus 0, unlabelled).
 """
 from pathlib import Path
 import hashlib
@@ -47,6 +55,11 @@ class StagedSAC(SAC):
         self.freeze_ent_coef = False
         self.actor_lr = None
         self.min_train_transitions = 0
+        self.low_noise_envs = ()
+        self.low_noise_std_scale = .3
+        self.bonus_weight = 0.
+        self.bonus_trigger_step = None
+        self.bonus_report_from = None
         super().__init__(*args, **kwargs)
 
     def _setup_model(self):
@@ -63,6 +76,23 @@ class StagedSAC(SAC):
         if self.actor_lr is not None:
             update_learning_rate(self.actor.optimizer, self.actor_lr)
             self.logger.record('train/actor_lr', self.actor_lr)
+
+    def _sample_action(self, learning_starts, action_noise=None, n_envs=1):
+        action, buffer_action = super()._sample_action(learning_starts, action_noise, n_envs)
+        rows = [i for i in self.low_noise_envs if i < n_envs]
+        if not rows or self.num_timesteps < learning_starts:
+            return action, buffer_action
+        obs = self.policy.obs_to_tensor(self._last_obs)[0]      # whole batch, as predict() (same kernels)
+        with th.no_grad():
+            mean, log_std, _ = self.actor.get_action_dist_params(obs)
+            mean, log_std = mean[rows], log_std[rows]
+            a = th.tanh(mean + self.low_noise_std_scale * th.exp(log_std) * th.randn_like(mean))
+        unscaled = self.policy.unscale_action(a.cpu().numpy().reshape((-1, *self.action_space.shape)))
+        scaled = self.policy.scale_action(unscaled)            # the same chain as SB3 for its rows
+        action, buffer_action = action.copy(), buffer_action.copy()
+        buffer_action[rows] = scaled
+        action[rows] = self.policy.unscale_action(scaled)
+        return action, buffer_action
 
     def buffer_transitions(self):
         """Transitions in the replay buffer (rows x n_envs)."""
@@ -105,12 +135,22 @@ def build_model(cfg, vec_env):
     policy_kwargs = dict(net_arch=dict(pi=arch, qf=list(arch)), activation_fn=nn.ReLU,
                          n_critics=a.n_critics, share_features_extractor=False)
     policy = LNSACPolicy if a.critic_layernorm else 'MlpPolicy'
-    return StagedSAC(policy, vec_env, learning_rate=a.learning_rate, buffer_size=a.buffer_size,
-                     learning_starts=a.learning_starts, batch_size=a.batch_size, tau=a.tau,
-                     gamma=cfg.env.reward.gamma, train_freq=(a.train_freq, 'step'),
-                     gradient_steps=cfg.gradient_steps, n_steps=a.n_steps, ent_coef=a.ent_coef,
-                     target_entropy=a.target_entropy, use_sde=False, policy_kwargs=policy_kwargs,
-                     seed=cfg.seed, device=cfg.device, verbose=0)
+    rb = {}
+    if cfg.env.corner_bonus.enabled:   # R2-4.3: SB3 adds n_steps / gamma only for its own buffer class
+        from .buffers import BonusNStepReplayBuffer
+        rb = dict(replay_buffer_class=BonusNStepReplayBuffer,
+                  replay_buffer_kwargs={'n_steps': a.n_steps, 'gamma': cfg.env.reward.gamma})
+    if any(not (isinstance(i, int) and 0 <= i < vec_env.num_envs) for i in a.low_noise_envs):
+        raise ValueError(f'low_noise_envs {a.low_noise_envs} not in range(n_envs = {vec_env.num_envs})')
+    model = StagedSAC(policy, vec_env, learning_rate=a.learning_rate, buffer_size=a.buffer_size,
+                      learning_starts=a.learning_starts, batch_size=a.batch_size, tau=a.tau,
+                      gamma=cfg.env.reward.gamma, train_freq=(a.train_freq, 'step'),
+                      gradient_steps=cfg.gradient_steps, n_steps=a.n_steps, ent_coef=a.ent_coef,
+                      target_entropy=a.target_entropy, use_sde=False, policy_kwargs=policy_kwargs,
+                      seed=cfg.seed, device=cfg.device, verbose=0, **rb)
+    model.low_noise_envs = tuple(int(i) for i in a.low_noise_envs)
+    model.low_noise_std_scale = float(a.low_noise_std_scale)
+    return model
 
 
 def init_output_bias(actor, *, pedal_deadzone, action=(0., -.275, -.8), log_std=-1., weight_scale=.01):
@@ -141,7 +181,11 @@ def param_digest(obj):
 
 
 def _env_without_reward(env):
-    return json.loads(json.dumps({k: v for k, v in env.items() if k != 'reward'}, sort_keys=True))
+    """Env config dict without `reward` and the R2 training-aid blocks (TRAINING_AID_KEYS): the
+    part that must equal the source's for a warm start (missing aid blocks = defaults)."""
+    from .config import TRAINING_AID_KEYS
+    skip = ('reward', *TRAINING_AID_KEYS)
+    return json.loads(json.dumps({k: v for k, v in env.items() if k not in skip}, sort_keys=True))
 
 
 def warm_start(model, init_from, cfg):
@@ -149,8 +193,8 @@ def warm_start(model, init_from, cfg):
     `init_from` (R1 spec §2.5). Refuses (InitMismatch) unless observation / action space, gamma,
     n_steps, target_entropy, policy class, net_arch, n_critics and critic LayerNorm are equal, and
     the source run's
-    config.json (at Path(init_from).parents[1]) has the same EnvConfig apart from `reward`,
-    with an equal reward.gamma. Copies the policy state (actor, critic, critic_target; only
+    config.json (at Path(init_from).parents[1]) has the same EnvConfig apart from `reward` and
+    the R2 training-aid blocks (corner_bonus, focus), with an equal reward.gamma. Copies the policy state (actor, critic, critic_target; only
     actor.* with cfg.warm.load_critics=False) and, with cfg.warm.load_alpha, log_ent_coef in
     place. Optimizers, replay buffer, num_timesteps and _n_updates stay fresh; no output-bias
     init. cfg.warm.load_optimizers: also the actor / critic / ent_coef optimizer state_dicts.
@@ -236,18 +280,34 @@ def preload_buffer(model, path, init_from, cfg):
     """Amendment 1 §B step 3: load the replay buffer at `path` into `model`; refuse (InitMismatch)
     unless buffer class, buffer_size, n_envs, n_steps, gamma, observation and action shapes equal
     the model's own buffer; with cfg.warm.relabel relabel it from the source env config (config.json
-    of init_from's run folder) to cfg.env (relabel.relabel_to_time_pbrs); mark the last row of every
-    env column as an episode end (callbacks.cut_nstep_chains); min_train_transitions = 0.
-    Returns {'path', 'sha256', 'rows', 'transitions', 'full', 'cut_row', 'relabel' (stats or None)}."""
+    of init_from's run folder) to cfg.env (relabel.relabel_to_time_pbrs; refused unless the source
+    reward is ref_tracking); mark the last row of every env column as an episode end
+    (callbacks.cut_nstep_chains); min_train_transitions = 0. R2-4.4: a plain NStepReplayBuffer is
+    accepted for a BonusNStepReplayBuffer model and adopted in place (bonus 0, labelled False).
+    Returns {'path', 'sha256', 'rows', 'transitions', 'full', 'cut_row', 'relabel' (stats or None),
+    'adopted', 'labelled_fraction' (None without the bonus buffer)}."""
     from stable_baselines3.common.save_util import load_from_pkl
     from .callbacks import cut_nstep_chains
     from .config import EnvConfig
     from .relabel import relabel_to_time_pbrs
     from .train_config import config_from_dict
+    from .buffers import BonusNStepReplayBuffer
+    from stable_baselines3.common.buffers import NStepReplayBuffer
     path = Path(path).resolve()
     if not path.is_file():
         raise InitMismatch(f'init_buffer {path} missing')
+    src_env = None
+    if cfg.warm.relabel:     # R2-10.10: refuse before loading the 1.3 GB file
+        cfg_path = Path(init_from).resolve().parents[1] / 'config.json'
+        src_env = config_from_dict(EnvConfig, json.loads(cfg_path.read_text())['env'])
+        if src_env.reward.mode != 'ref_tracking':
+            raise InitMismatch(f'cannot relabel {path}: the source reward is already {src_env.reward.mode!r} '
+                               '(relabel needs ref_tracking; set warm.relabel=False)')
     rb, cur = load_from_pkl(path), model.replay_buffer
+    adopted = False
+    if isinstance(cur, BonusNStepReplayBuffer) and type(rb) is NStepReplayBuffer:
+        BonusNStepReplayBuffer.adopt(rb)
+        adopted = True
     bad = []
     if type(rb) is not type(cur):
         bad.append(f'buffer class {type(rb).__name__} != {type(cur).__name__}')
@@ -259,8 +319,6 @@ def preload_buffer(model, path, init_from, cfg):
         raise InitMismatch(f'cannot preload {path}: ' + '; '.join(bad))
     stats = None
     if cfg.warm.relabel:
-        cfg_path = Path(init_from).resolve().parents[1] / 'config.json'
-        src_env = config_from_dict(EnvConfig, json.loads(cfg_path.read_text())['env'])
         stats = relabel_to_time_pbrs(rb, src_env, cfg.env)
     rb.device = model.device
     model.replay_buffer = rb
@@ -270,5 +328,7 @@ def preload_buffer(model, path, init_from, cfg):
     with path.open('rb') as f:
         for chunk in iter(lambda: f.read(1 << 24), b''):
             h.update(chunk)
+    lab = rb.labelled_fraction() if isinstance(rb, BonusNStepReplayBuffer) else None
     return {'path': str(path), 'sha256': h.hexdigest(), 'rows': int(rb.size()), 'transitions': int(rb.size() * rb.n_envs),
-            'full': bool(rb.full), 'cut_row': None if cut is None else int(cut), 'relabel': stats}
+            'full': bool(rb.full), 'cut_row': None if cut is None else int(cut), 'relabel': stats,
+            'adopted': adopted, 'labelled_fraction': lab}

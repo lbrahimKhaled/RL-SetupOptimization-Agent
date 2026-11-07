@@ -21,5 +21,7 @@ Pipeline: demo driver collects data, behaviour cloning (BC) initialises the acto
 | `evaluate.py` | Flying-lap evaluation, probe episodes, Q vs Monte Carlo, lap metrics |
 | `vec.py` | Subprocess vector env (must not import torch) |
 | `relabel.py` | Relabel an old replay buffer to the R1 reward |
+| `corners.py` | R2: corner table (QSS on ξref, exit points, cached in `data/`) and the clean-corner exit bonus tracker |
+| `buffers.py` | R2: `BonusNStepReplayBuffer` (stored corner bonus, weighted by w(t) at sampling time) |
 
 Siblings in [rlsetup/](..): `runs.py` (run folders and JSON files), `provenance.py` (code hashes recorded with each result).

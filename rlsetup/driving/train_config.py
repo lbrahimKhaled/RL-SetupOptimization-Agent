@@ -1,7 +1,8 @@
 """All numbers of D2 (SAC driving-agent training). Nothing numeric lives in train.py.
 
 Spec: docs/specs/D2_agent.md (binding); warm start, stop rule and the r1_* presets:
-docs/specs/R1_time_optimal.md §2.4. Step counts are transitions summed over envs (SB3
+docs/specs/R1_time_optimal.md §2.4; R2 training aids (bonus schedule, focus weights, low-noise
+rollouts, presets f1_r2*): docs/specs/R2_review.md incl. Amendment 1. Step counts are transitions summed over envs (SB3
 `num_timesteps`); one transition = one 25 Hz decision of one env. Times in s unless the name
 says otherwise. PLACEHOLDER marks numbers not yet justified by data or a decision.
 
@@ -38,6 +39,8 @@ class AgentConfig:
                                          # straight, 15 % throttle, brake in the deadzone
     init_log_std: float = -1.            # log_std bias -> sigma ~ 0.37 (pre-tanh)
     init_weight_scale: float = .01       # mu / log_std output weights scaled by this
+    low_noise_envs: tuple = ()           # R2-8: env indices that act with tanh(mean + scale sigma eps)
+    low_noise_std_scale: float = .3      # ... scale (0 = the deterministic action) [P: research C.3]
 
 
 @dataclass(frozen=True)
@@ -145,6 +148,45 @@ class StopConfig:
 
 
 @dataclass(frozen=True)
+class BonusScheduleConfig:
+    """R2-5 / Amendment 1: corner-bonus weight w(t), t = this run's num_timesteps: 1 for
+    t < hold_until, linear 1 -> 0 on [hold_until, fade_until], 0 after; reportable from
+    report_from = fade_until + bonus_free_before_report (8M). Trigger (Amendment 1): the first
+    evaluation with a clean deterministic lap 2 <= trigger_lap2_s while w > 0 or t < report_from
+    sets w = 0 for the rest of the run and report_from = trigger step + bonus_free_before_report;
+    the run then stops itself at report_from."""
+    hold_until: int = 2_000_000
+    fade_until: int = 4_000_000
+    bonus_free_before_report: int = 4_000_000   # Decision 2 (DECISIONS #22)
+    trigger_lap2_s: float = 95.          # Decision 5: clean deterministic lap 2 <= this
+
+    @property
+    def report_from(self):
+        return self.fade_until + self.bonus_free_before_report
+
+
+@dataclass(frozen=True)
+class FocusUpdateConfig:
+    """R2-7.3/7.4: FocusedStartCallback (main process). Counters per focus bin: passes n_b and
+    crashes c_b (off_track / wrong_way / nonfinite), decayed every update_every steps by
+    0.5^(update_every / half_life); r_b = c_b / n_b; P = (1 - hot_floor_share) r / sum r +
+    hot_floor_share Uniform(H0). Seed: crashes of the failed deterministic eval laps with
+    step >= seed_min_step in <seed_run>/laps/step_*_det.npz: n_b = prior_passes,
+    c_b = prior_passes crashes_b / N_evals; H0 = bins with >= hot_min_crashes seed crashes."""
+    update_every: int = 10_000
+    half_life: int = 1_000_000
+    prior_passes: float = 200.
+    seed_run: str | None = None          # seed folder (relative to the repo root unless absolute)
+    seed_min_step: int = 2_000_000
+    hot_min_crashes: int = 5
+    hot_floor_share: float = .2
+
+
+R2_TRAIN_KEYS = ('bonus_schedule', 'focus_update')      # TrainConfig blocks of the R2 training aids
+R2_AGENT_KEYS = ('low_noise_envs', 'low_noise_std_scale')
+
+
+@dataclass(frozen=True)
 class TrainConfig:
     preset: str = 'full'
     seed: int = 0
@@ -157,6 +199,8 @@ class TrainConfig:
     eval: EvalConfig = field(default_factory=EvalConfig)
     warm: WarmStartConfig = field(default_factory=WarmStartConfig)
     stop: StopConfig = field(default_factory=StopConfig)
+    bonus_schedule: BonusScheduleConfig = field(default_factory=BonusScheduleConfig)   # R2 (corner_bonus)
+    focus_update: FocusUpdateConfig = field(default_factory=FocusUpdateConfig)         # R2 (focus)
     init_from: str | None = None         # model .zip for init_mode 'warm' (absolute; CLI --init-from);
                                          # its run folder (zip's parents[1]) must hold config.json
     strict_provenance: bool = True       # refuse a run / resume with uncommitted tracked rlsetup changes
@@ -185,8 +229,24 @@ class TrainConfig:
     runs_root: str = 'runs/D2'           # relative to the repo root unless absolute
     vec_start_method: str = 'forkserver'
 
+    @property
+    def r2_aids(self):
+        """True if any R2 training aid is on (corner bonus, focused starts, low-noise envs)."""
+        return bool(self.env.corner_bonus.enabled or self.env.focus.enabled or self.agent.low_noise_envs)
+
     def to_dict(self):
-        return asdict(self)
+        """asdict with EnvConfig.to_dict for `env`; without any R2 aid on, the R2 blocks that equal
+        their defaults are left out too, so pre-R2 configs (and their JSON) are unchanged."""
+        d = asdict(self)
+        d['env'] = self.env.to_dict()
+        if not self.r2_aids:
+            for k in R2_TRAIN_KEYS:
+                if getattr(self, k) == type(getattr(self, k))():
+                    del d[k]
+            for k in R2_AGENT_KEYS:
+                if getattr(self.agent, k) == getattr(AgentConfig(), k):
+                    del d['agent'][k]
+        return d
 
     @property
     def buffer_save_interval(self):
@@ -302,10 +362,44 @@ def _f1_best_w35():
     return replace(c, preset='f1_best_w35', env=replace(c.env, setup='sha_f1_best'))
 
 
+F1_BEST_W35_RUN = 'runs/mac/D2/f1_best_w35/seed0'   # R2 warm-start source and focus seed
+
+
+def _f1_r2():
+    """R2 (docs/specs/R2_review.md + Amendment 1; DECISIONS #22-23): f1_best_w35 (same driver
+    definition) + clean-corner exit bonus (B = 3, w = 1 until 2M, fade to 0 at 4M, reportable from
+    8M; early trigger at a clean lap 2 <= 95 s) + focused starts (25 %, seeded from f1_best_w35's
+    crashes) + low-noise rollouts on env 3 (0.3 sigma); warm start from --init-from
+    (f1_best_w35 best.zip) with its replay buffer adopted unrelabelled (already time_pbrs), actor
+    lr 1e-4 from the unfreeze, guard 0.65; no step / wall cap, no plateau stop. Run name: f1_r2."""
+    c = _f1_best_w35()
+    return replace(c, preset='f1_r2', total_timesteps=1_000_000_000, max_wall_h=None,
+                   env=replace(c.env, corner_bonus=replace(c.env.corner_bonus, enabled=True),
+                               focus=replace(c.env.focus, enabled=True)),
+                   agent=replace(c.agent, init_mode='warm', low_noise_envs=(3,)),
+                   warm=replace(c.warm, relabel=False, actor_lr=1e-4),
+                   guard=replace(c.guard, threshold=.65),
+                   focus_update=replace(c.focus_update, seed_run=F1_BEST_W35_RUN),
+                   stop=replace(c.stop, plateau=False))
+
+
+def _f1_r2_smoke():
+    """f1_r2 compressed to 150k env steps (R2-9.2): w = 1 until 60k, fade to 0 at 120k,
+    reportable from 150k (gap 30k); eval every 25k with 3 stochastic laps, probe every 5k,
+    checkpoints every 25k, dirty tree allowed; max_wall_h 0.5 is only a safety cap."""
+    c = _f1_r2()
+    return replace(c, preset='f1_r2_smoke', total_timesteps=150_000, max_wall_h=.5,
+                   checkpoint_interval=25_000, strict_provenance=False,
+                   bonus_schedule=replace(c.bonus_schedule, hold_until=60_000, fade_until=120_000,
+                                          bonus_free_before_report=30_000),
+                   eval=replace(c.eval, interval=25_000, stochastic_laps=3),
+                   guard=replace(c.guard, interval=5_000))
+
+
 PRESETS = {'full': lambda: TrainConfig(preset='full'), 'smoke': _smoke, 'r1_warm': _r1_warm,
            'r1_warm_smoke': _r1_warm_smoke, 'p1_TUM': _p1_tum,
            'p0_TUMref': _p0_tumref, 'bcn': _bcn, 'f1_sha': _f1_sha, 'f1_sha_w35': _f1_sha_w35,
-           'f1_best_w35': _f1_best_w35}
+           'f1_best_w35': _f1_best_w35, 'f1_r2': _f1_r2, 'f1_r2_smoke': _f1_r2_smoke}
 
 
 # --- dict / override helpers (JSON round trip of nested frozen dataclasses) -------------------------
@@ -365,5 +459,6 @@ def _replace_path(obj, keys, value):
 
 
 def config_json(cfg):
-    """Canonical JSON text of a TrainConfig (sorted keys; hashed into provenance)."""
+    """Canonical JSON text of a TrainConfig (sorted keys; hashed into provenance). R2 blocks that
+    are off and at their defaults are omitted (TrainConfig.to_dict)."""
     return json.dumps(cfg.to_dict(), sort_keys=True, indent=1)

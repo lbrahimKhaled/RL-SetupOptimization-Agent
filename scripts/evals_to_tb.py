@@ -1,5 +1,6 @@
 """Mirror a seed's evals.jsonl (lap times, clean rates, Q vs MC, alpha, throughput, lap-2 line / cost
-metrics, critic check) into TensorBoard.
+metrics, critic check; R2: corner bonus, per-corner exit ratios, focus, low-noise and buffer
+statistics) into TensorBoard.
 
     .venv/bin/python scripts/evals_to_tb.py runs/D2/full1/seed0
 
@@ -8,6 +9,10 @@ mirrored (kept in tb_evals/last_step.txt) into a new event file in the same fold
 merges the files of a folder; deleting and rewriting them instead leaves a running TensorBoard
 on the stale, deleted file. Point TensorBoard at the seed folder to see these next to SB3's own
 losses in sb3/.
+A warm-started run (status.json 'lifetime_steps_offset' = the source model's steps) also gets
+<seed_dir>/tb_evals_lifetime/ with the same scalars at step + offset, so it overlays its source
+run's curves on one step axis (R2-9.6):
+    tensorboard --logdir_spec f1_r2:runs/mac/D2/f1_r2/seed0/tb_evals_lifetime,f1_best_w35:runs/mac/D2/f1_best_w35/seed0/tb_evals
 """
 import calendar
 import json
@@ -18,13 +23,77 @@ from pathlib import Path
 from torch.utils.tensorboard import SummaryWriter
 
 
-def main(seed_dir):
+def scalars_of(e):
+    """{tag: value or None} of one evaluation record."""
+    scalars = {
+        'lap/deterministic_lap2_s': e.get('lap2_s') if e.get('det_clean') else None,
+        'lap/deterministic_clean': float(bool(e.get('det_clean'))),
+        'lap/stochastic_mean_lap_s': e.get('sto_lap_mean_s'),
+        'lap/stochastic_clean_rate': e.get('sto_clean_rate'),
+        'train/alpha': e.get('alpha'),
+        'train/policy_entropy': e.get('policy_entropy'),
+        'speed/env_steps_per_s': e.get('env_steps_per_s'),
+        'speed/grad_steps_per_s': e.get('grad_steps_per_s'),
+    }
+    lap2 = e.get('lap2') or {}          # metrics of the deterministic lap 2 (None if not reached)
+    scalars.update({
+        'line/mean_abs_e_m': lap2.get('mean_abs_e'),
+        'line/max_abs_e_m': lap2.get('max_abs_e'),
+        'line/share_abs_e_gt_3m': lap2.get('share_abs_e_gt_3m'),
+        'lap/min_edge_margin_m': lap2.get('min_edge_margin_m'),
+        'cost/lap2_legacy': lap2.get('cost'),                     # time + smoothness + tracking
+        'cost/lap2_tracking': lap2.get('tracking'),
+        'cost/lap2_smoothness': lap2.get('smoothness'),
+        'cost/lap2_r1': lap2.get('cost_r1', lap2.get('time')),   # = lap time (pre-R1 records: 'time')
+        'diag/progress_jumps': lap2.get('progress_jumps'),
+        'critic/critic_check': e.get('critic_check'),
+    })
+    q = e.get('q_vs_mc') or {}
+    if q.get('mc_mean'):
+        scalars['critic/q_min_over_mc'] = q['q_min_mean'] / q['mc_mean']
+    if q.get('mc_nstep_mean'):
+        scalars['critic/q_min_over_mc_nstep'] = q['q_min_mean'] / q['mc_nstep_mean']
+        scalars['critic/q_min_minus_mc_nstep'] = q.get('q_min_minus_mc_nstep')
+    for k, v in (e.get('train_causes_total') or {}).items():
+        scalars[f'failures_cumulative/{k}'] = v
+    # --- R2 (docs/specs/R2_review.md R2-9.6); absent keys -> nothing written ---
+    if 'bonus_w' in e:
+        scalars.update({'bonus/w': e.get('bonus_w'), 'bonus/reportable': float(bool(e.get('reportable'))),
+                        'bonus/lap2_sum': e.get('lap2_bonus_sum'), 'bonus/det_sum': e.get('det_bonus_sum')})
+    for unit, c in (e.get('lap2_corners') or {}).items():
+        scalars[f'corner/rho_{unit}'] = c.get('rho')
+    for unit, c in (e.get('sto_corners') or {}).items():
+        scalars[f'corner/sto_crash_{unit}'] = c.get('crashes')
+        scalars[f'corner/sto_pass_{unit}'] = c.get('passes')
+    f = e.get('focus') or {}
+    for k in ('share_resets', 'share_transitions', 'fallback_rate', 'handover_mean_m', 'handover_median_m'):
+        if k in f:
+            scalars[f'focus/{k}'] = f[k]
+    for i, (b, p) in enumerate(f.get('top5') or []):
+        scalars[f'focus/top{i + 1}_P'] = p
+        scalars[f'focus/top{i + 1}_bin_m'] = b
+    for b, r in (f.get('r_hot') or {}).items():
+        scalars[f'focus/r_hot_{b}'] = r
+    groups = e.get('train_groups') or {}
+    for g, v in groups.items():
+        prefix = 'lownoise' if g == 'low_noise' else f'groups_{g}'
+        scalars[f'{prefix}/failure_rate'] = v.get('failure_rate')
+        scalars[f'{prefix}/episodes'] = v.get('episodes')
+        scalars[f'{prefix}/bonus_per_episode'] = v.get('bonus_per_episode')
+    if 'buffer_labelled_fraction' in e:
+        scalars['buffer/labelled_fraction'] = e['buffer_labelled_fraction']
+    return scalars
+
+
+def mirror(seed_dir, out_name='tb_evals', offset=0):
+    """Write the evaluations newer than <out>/last_step.txt to a new event file in
+    <seed_dir>/<out_name> at step + offset. Returns the number of evaluations written."""
     seed_dir = Path(seed_dir)
-    out = seed_dir / 'tb_evals'
+    out = seed_dir / out_name
     out.mkdir(exist_ok=True)
     marker = out / 'last_step.txt'
     last = int(marker.read_text()) if marker.exists() else -1
-    writer = None
+    writer, written = None, 0
     for line in (seed_dir / 'evals.jsonl').read_text().splitlines():
         try:
             e = json.loads(line)
@@ -35,43 +104,24 @@ def main(seed_dir):
             continue
         writer = writer or SummaryWriter(str(out))
         wall = calendar.timegm(time.strptime(e['utc'], '%Y-%m-%dT%H:%M:%SZ')) if e.get('utc') else None
-        scalars = {
-            'lap/deterministic_lap2_s': e.get('lap2_s') if e.get('det_clean') else None,
-            'lap/deterministic_clean': float(bool(e.get('det_clean'))),
-            'lap/stochastic_mean_lap_s': e.get('sto_lap_mean_s'),
-            'lap/stochastic_clean_rate': e.get('sto_clean_rate'),
-            'train/alpha': e.get('alpha'),
-            'train/policy_entropy': e.get('policy_entropy'),
-            'speed/env_steps_per_s': e.get('env_steps_per_s'),
-            'speed/grad_steps_per_s': e.get('grad_steps_per_s'),
-        }
-        lap2 = e.get('lap2') or {}          # metrics of the deterministic lap 2 (None if not reached)
-        scalars.update({
-            'line/mean_abs_e_m': lap2.get('mean_abs_e'),
-            'line/max_abs_e_m': lap2.get('max_abs_e'),
-            'line/share_abs_e_gt_3m': lap2.get('share_abs_e_gt_3m'),
-            'lap/min_edge_margin_m': lap2.get('min_edge_margin_m'),
-            'cost/lap2_legacy': lap2.get('cost'),                     # time + smoothness + tracking
-            'cost/lap2_tracking': lap2.get('tracking'),
-            'cost/lap2_smoothness': lap2.get('smoothness'),
-            'cost/lap2_r1': lap2.get('cost_r1', lap2.get('time')),   # = lap time (pre-R1 records: 'time')
-            'diag/progress_jumps': lap2.get('progress_jumps'),
-            'critic/critic_check': e.get('critic_check'),
-        })
-        q = e.get('q_vs_mc') or {}
-        if q.get('mc_mean'):
-            scalars['critic/q_min_over_mc'] = q['q_min_mean'] / q['mc_mean']
-        if q.get('mc_nstep_mean'):
-            scalars['critic/q_min_over_mc_nstep'] = q['q_min_mean'] / q['mc_nstep_mean']
-        for k, v in (e.get('train_causes_total') or {}).items():
-            scalars[f'failures_cumulative/{k}'] = v
-        for tag, value in scalars.items():
+        for tag, value in scalars_of(e).items():
             if value is not None:
-                writer.add_scalar(tag, float(value), step, walltime=wall)
+                writer.add_scalar(tag, float(value), step + offset, walltime=wall)
         last = step
+        written += 1
     if writer:
         writer.close()
         marker.write_text(str(last))
+    return written
+
+
+def main(seed_dir):
+    seed_dir = Path(seed_dir)
+    mirror(seed_dir)
+    status = seed_dir / 'status.json'
+    offset = json.loads(status.read_text()).get('lifetime_steps_offset') if status.exists() else None
+    if offset is not None:
+        mirror(seed_dir, 'tb_evals_lifetime', int(offset))
 
 
 if __name__ == '__main__':

@@ -1,9 +1,11 @@
 """SB3 callbacks of D2 training (spec §4 step 5, §6, §7).
 
-Order in `learn(callback=[...])`: PhaseCallback, CollapseGuard, TrainStatsCallback,
-DrivingEvalCallback, PlateauStop (R1 §2.6), CheckpointCallback, WallClockLimit. SB3 calls `on_step` after every vector
-step (num_timesteps already advanced by n_envs) and before the transition is stored; returning
-False ends `learn()` (SB3 still calls `on_training_end`).
+Order in `learn(callback=[...])`: [BonusScheduleCallback (R2, first)], PhaseCallback,
+CollapseGuard, TrainStatsCallback, [FocusedStartCallback (R2)], DrivingEvalCallback,
+PlateauStop (R1 §2.6), CheckpointCallback, WallClockLimit. SB3 calls `on_step` after every vector
+step (num_timesteps already advanced by n_envs) and before the transition is stored and before
+train(); returning False ends `learn()` (SB3 still calls every callback of that step and then
+`on_training_end`).
 `on_event(kind, **data)` hooks let train.py record events in status.json.
 """
 import copy
@@ -14,8 +16,8 @@ from pathlib import Path
 import numpy as np
 import torch as th
 from stable_baselines3.common.callbacks import BaseCallback
-from ..runs import append_jsonl
-from .env import FAILURES
+from ..runs import append_jsonl, write_json
+from .env import FAILURES, TERMINAL_FAILURES
 from .vec import base_venv
 
 
@@ -210,19 +212,71 @@ class TrainStatsCallback(BaseCallback):
     return and length (VecMonitor) and the mean episode shaping (info 'episode_shaping'; in
     time_pbrs the VecMonitor return includes it, R1 §6 #5). Thresholds: EvalConfig.stats_*
     (train.py passes them). `totals` keeps cumulative cause counts for the eval records (cause =
-    termination, else truncation: a time_pbrs stall counts as 'stall' in both modes)."""
+    termination, else truncation: a time_pbrs stall counts as 'stall' in both modes).
+    R2-8.4 (`groups=True`): the record adds 'groups' {normal, low_noise (env index in
+    low_noise_envs), focused, uniform (focused flag of the episode's reset)}: episodes, failures,
+    failure_rate, crash_bins {bin start m: terminal failures} (bins of `bin_m` on Track.path) and
+    bonus_per_episode (info 'episode_corner_bonus'); `eval_groups()` returns the same since its
+    previous call (eval records)."""
 
-    def __init__(self, path, window, *, slow_mps=15., wide_m=3., low_v0_mps=5.):
+    GROUPS = ('normal', 'low_noise', 'focused', 'uniform')
+
+    def __init__(self, path, window, *, slow_mps=15., wide_m=3., low_v0_mps=5., groups=False, low_noise_envs=(),
+                 bin_m=50.):
         super().__init__()
         self.path, self.window = path, int(window)
         self.slow_mps, self.wide_m, self.low_v0_mps = float(slow_mps), float(wide_m), float(low_v0_mps)
+        self.groups, self.low_noise_envs, self.bin_m = bool(groups), tuple(low_noise_envs), float(bin_m)
         self.totals = {}
         self.v0 = None
+        self.focused = None
+        self._eval_groups = self._empty_groups()
         self._reset_window()
+
+    @classmethod
+    def _empty_groups(cls):
+        return {g: {'episodes': 0, 'failures': 0, 'crash_bins': {}, 'bonus': []} for g in cls.GROUPS}
+
+    @staticmethod
+    def _summarize_groups(groups):
+        out = {}
+        for g, v in groups.items():
+            out[g] = {'episodes': v['episodes'], 'failures': v['failures'],
+                      'failure_rate': v['failures'] / v['episodes'] if v['episodes'] else None,
+                      'crash_bins': dict(sorted(v['crash_bins'].items())),
+                      'bonus_per_episode': float(np.mean(v['bonus'])) if v['bonus'] else None}
+        return out
+
+    def eval_groups(self):
+        """Group statistics since the previous call (None without groups)."""
+        if not self.groups:
+            return None
+        out, self._eval_groups = self._summarize_groups(self._eval_groups), self._empty_groups()
+        return out
+
+    def _focused(self, i):
+        info = base_venv(self.training_env).reset_infos[i] or {}
+        return bool(info.get('start', {}).get('focused', False))
+
+    def _add_group(self, i, info, cause):
+        names = ('low_noise' if i in self.low_noise_envs else 'normal', 'focused' if self.focused[i] else 'uniform')
+        crash = cause in TERMINAL_FAILURES
+        for target in (self.w['groups'], self._eval_groups):
+            for g in names:
+                v = target[g]
+                v['episodes'] += 1
+                v['failures'] += cause in FAILURES
+                if crash and info.get('s_track') is not None:
+                    b = f"{int(float(info['s_track']) // self.bin_m * self.bin_m)}"
+                    v['crash_bins'][b] = v['crash_bins'].get(b, 0) + 1
+                if 'episode_corner_bonus' in info:
+                    v['bonus'].append(float(info['episode_corner_bonus']))
 
     def _reset_window(self):
         self.w = {'episodes': 0, 'causes': {}, 'fail_speed': [], 'fail_e': [], 'low_v0': 0,
                   'low_v0_stall': 0, 'returns': [], 'lengths': [], 'shaping': []}
+        if self.groups:
+            self.w['groups'] = self._empty_groups()
 
     def _v0(self, i):
         info = base_venv(self.training_env).reset_infos[i] or {}
@@ -231,6 +285,8 @@ class TrainStatsCallback(BaseCallback):
     def _on_training_start(self):
         n = self.training_env.num_envs
         self.v0 = [self._v0(i) for i in range(n)]
+        if self.groups:
+            self.focused = [self._focused(i) for i in range(n)]
         self.next_dump = (self.model.num_timesteps // self.window + 1) * self.window
 
     def _on_step(self):
@@ -256,6 +312,9 @@ class TrainStatsCallback(BaseCallback):
             if 'episode' in info:
                 w['returns'].append(info['episode']['r'])
                 w['lengths'].append(info['episode']['l'])
+            if self.groups:
+                self._add_group(i, info, cause)
+                self.focused[i] = self._focused(i)
             self.v0[i] = self._v0(i)
         if self.model.num_timesteps >= self.next_dump:
             self.dump()
@@ -276,6 +335,8 @@ class TrainStatsCallback(BaseCallback):
                'ep_return_mean': float(np.mean(w['returns'])) if w['returns'] else None,
                'ep_length_mean': float(np.mean(w['lengths'])) if w['lengths'] else None,
                'ep_shaping_mean': float(np.mean(w['shaping'])) if w['shaping'] else None}
+        if self.groups:
+            rec['groups'] = self._summarize_groups(w['groups'])
         append_jsonl(self.path, rec)
         self._reset_window()
         return rec
@@ -299,12 +360,20 @@ class DrivingEvalCallback(BaseCallback):
     with step >= critic_check_at gets critic_check = |Q_min - MC^n| / |MC^n| (q_vs_mc, n-step-consistent soft MC;
     per-step MC if the n-step values are absent) and critic_check_tol; above the tol (or not
     computable / non-finite) -> event 'critic_not_converged' (training continues). `records` keeps every record
-    of this process (PlateauStop reads it)."""
+    of this process (PlateauStop reads it).
+    R2: `extras` = callables (model, step) -> dict merged into the record (focus / low-noise /
+    buffer statistics; they may persist their own state). `schedule` (BonusScheduleCallback):
+    the record gets bonus_w, report_from, reportable (and the Amendment-1 trigger is checked);
+    best.zip is then written only from reportable evaluations and a better clean lap 2 of a
+    non-reportable one goes to best_aided.zip (never reported; also written at the trigger).
+    Without a schedule every evaluation is reportable (pre-R2 behaviour)."""
 
     def __init__(self, eval_fn, interval, evals_path, ckpt_dir, *, stats=None, best_lap2=math.inf,
                  last_det_clean=None, on_event=_noop, train_wall0=0., eval_wall0=0., buffer_saver=None,
-                 critic_check_at=None, critic_check_tol=None, critic_check_done=False):
+                 critic_check_at=None, critic_check_tol=None, critic_check_done=False, extras=(), schedule=None,
+                 best_aided_lap2=math.inf):
         super().__init__()
+        self.extras, self.schedule, self.best_aided_lap2 = tuple(extras), schedule, best_aided_lap2
         self.critic_check_at, self.critic_check_tol = critic_check_at, critic_check_tol
         self.critic_check_done = bool(critic_check_done)
         self.records = []
@@ -366,6 +435,10 @@ class DrivingEvalCallback(BaseCallback):
             rec['train_obs_clip_fraction'] = None
         if self.stats is not None:
             rec['train_causes_total'] = dict(self.stats.totals)
+        for extra in self.extras:
+            rec.update(extra(m, n))
+        if self.schedule is not None:
+            self.schedule.on_eval(rec)
         if self.critic_check_at is not None and not self.critic_check_done and n >= self.critic_check_at:
             self.critic_check_done = True
             value = critic_check_value(rec.get('q_vs_mc'))
@@ -379,13 +452,18 @@ class DrivingEvalCallback(BaseCallback):
         if self.buffer_saver is not None:
             self.buffer_saver(m)
         save_model_atomic(m, self.ckpt_dir / 'last.zip')
-        if clean and lap2 is not None and lap2 < self.best_lap2:
+        reportable = rec.get('reportable', True)
+        if clean and lap2 is not None and reportable and lap2 < self.best_lap2:
             self.best_lap2 = lap2
             save_model_atomic(m, self.ckpt_dir / 'best.zip')
             rec['new_best'] = True
+        elif clean and lap2 is not None and not reportable and (lap2 < self.best_aided_lap2 or rec.get('aided_target_lap')):
+            self.best_aided_lap2 = min(lap2, self.best_aided_lap2)
+            save_model_atomic(m, self.ckpt_dir / 'best_aided.zip')
+            rec['new_best_aided'] = True
         append_jsonl(self.evals_path, rec)
         self.records.append(rec)
-        for k in ('lap2_s', 'sto_clean_rate', 'alpha', 'policy_entropy', 'critic_check'):
+        for k in ('lap2_s', 'sto_clean_rate', 'alpha', 'policy_entropy', 'critic_check', 'bonus_w'):
             if isinstance(rec.get(k), (int, float)):
                 self.logger.record(f'eval/{k}', rec[k])
         self.last_step = n
@@ -521,3 +599,282 @@ class WallClockLimit(BaseCallback):
             self.on_event('wall_clock_limit', step=self.model.num_timesteps)
             return False
         return True
+
+
+# --- R2 training aids (docs/specs/R2_review.md §R2-5, R2-7, Amendment 1) -------------------------
+def bonus_weight(cfg, n):
+    """Scheduled corner-bonus weight w(n) of BonusScheduleConfig `cfg` at this run's step n:
+    1 before hold_until, linear 1 -> 0 on [hold_until, fade_until], 0 from fade_until on."""
+    if n < cfg.hold_until:
+        return 1.
+    if n >= cfg.fade_until:
+        return 0.
+    return 1. - (n - cfg.hold_until) / (cfg.fade_until - cfg.hold_until)
+
+
+class BonusScheduleCallback(BaseCallback):
+    """First callback of an R2 run. Sets `model.replay_buffer.bonus_weight` (and the audit mirror
+    model.bonus_weight) to w(num_timesteps) at the start of learn() and at every on_step (SB3
+    calls on_step before train()), so every gradient step uses the current weight.
+    Amendment 1: `on_eval(rec)` (called by DrivingEvalCallback with each record) adds bonus_w
+    (weight in effect up to this evaluation), report_from and reportable (step >= report_from);
+    the first evaluation with a clean deterministic lap 2 <= cfg.trigger_lap2_s while w > 0 or
+    step < report_from is the trigger: w = 0 for the rest of the run (no fade), report_from =
+    trigger step + cfg.bonus_free_before_report, record flag aided_target_lap, event
+    'aided_target_lap'. After a trigger the run stops itself (returns False, event
+    'report_complete') at the first step >= report_from. State {trigger_step, report_from} goes to
+    `state_path` (bonus_state.json, atomic) at the trigger and every evaluation, and to the model
+    (bonus_trigger_step / bonus_report_from, pickled in the checkpoints); a resume passes it back."""
+
+    def __init__(self, cfg, state_path=None, *, trigger_step=None, report_from=None, on_event=_noop):
+        super().__init__()
+        self.cfg, self.on_event = cfg, on_event
+        self.state_path = None if state_path is None else Path(state_path)
+        self.trigger_step = None if trigger_step is None else int(trigger_step)
+        self.report_from = int(report_from if report_from is not None else
+                               (self.trigger_step + cfg.bonus_free_before_report if self.trigger_step is not None
+                                else cfg.report_from))
+        self.stopped = False
+
+    def weight(self, n):
+        return 0. if self.trigger_step is not None else bonus_weight(self.cfg, n)
+
+    def reportable(self, n):
+        return int(n) >= self.report_from
+
+    def state(self, step=None):
+        return {'step': None if step is None else int(step), 'trigger_step': self.trigger_step,
+                'report_from': self.report_from, 'bonus_w': self.weight(step or 0) if step is not None else None,
+                'schedule': {'hold_until': self.cfg.hold_until, 'fade_until': self.cfg.fade_until,
+                             'bonus_free_before_report': self.cfg.bonus_free_before_report}}
+
+    def save_state(self, step=None):
+        if self.state_path is not None:
+            write_json(self.state_path, self.state(step))
+
+    def apply(self):
+        m = self.model
+        w = self.weight(m.num_timesteps)
+        if hasattr(m.replay_buffer, 'bonus_weight'):
+            m.replay_buffer.bonus_weight = w
+        m.bonus_weight = w
+        m.bonus_trigger_step, m.bonus_report_from = self.trigger_step, self.report_from
+        return w
+
+    def _on_training_start(self):
+        self.apply()
+
+    def _on_step(self):
+        w = self.apply()
+        self.logger.record('bonus/w', w)
+        if self.trigger_step is not None and self.model.num_timesteps >= self.report_from and not self.stopped:
+            self.stopped = True
+            self.on_event('report_complete', step=int(self.model.num_timesteps), trigger_step=self.trigger_step,
+                          report_from=self.report_from)
+        return not self.stopped
+
+    def trigger(self, step, lap2_s=None):
+        self.trigger_step = int(step)
+        self.report_from = self.trigger_step + int(self.cfg.bonus_free_before_report)
+        if getattr(self, 'model', None) is not None:
+            self.apply()
+        self.save_state(step)
+        self.on_event('aided_target_lap', step=int(step), lap2_s=lap2_s, report_from=self.report_from)
+
+    def on_eval(self, rec):
+        n = int(rec['step'])
+        w = self.weight(n)
+        rec['bonus_w'] = w
+        lap2 = rec.get('lap2_s')
+        if (self.trigger_step is None and rec.get('det_clean') and lap2 is not None
+                and lap2 <= self.cfg.trigger_lap2_s and (w > 0 or n < self.report_from)):
+            self.trigger(n, lap2)
+            rec['aided_target_lap'] = True
+        rec.update(report_from=self.report_from, reportable=self.reportable(n))
+        self.save_state(n)
+        return rec
+
+
+def load_bonus_state(run_dir, model=None):
+    """(trigger_step, report_from) from <run_dir>/bonus_state.json, else from the model's pickled
+    attributes, else (None, None)."""
+    from ..runs import read_json
+    st = read_json(Path(run_dir) / 'bonus_state.json')
+    if st:
+        return st.get('trigger_step'), st.get('report_from')
+    if model is not None and getattr(model, 'bonus_report_from', None) is not None:
+        return model.bonus_trigger_step, model.bonus_report_from
+    return None, None
+
+
+def focus_bin(s, bin_m, n_bins):
+    return min(int(float(s) // bin_m), n_bins - 1)
+
+
+def focus_seed(seed_dir, ucfg, bin_m, length_m):
+    """R2-7.4: crash histogram of `seed_dir`'s deterministic evaluations (laps/step_<n>_det.npz with
+    n >= ucfg.seed_min_step): N_evals = number of those files, crashes_b = failed laps (termination
+    off_track / wrong_way / nonfinite) whose final s lies in bin b. Returns a JSON-ready dict:
+    n_evals, crashes (list per bin), hot (bins with >= ucfg.hot_min_crashes), total_crashes."""
+    import re
+    n_bins = int(math.ceil(length_m / bin_m))
+    crashes = np.zeros(n_bins, dtype=int)
+    n_evals = 0
+    for f in sorted(Path(seed_dir, 'laps').glob('step_*_det.npz')):
+        m = re.fullmatch(r'step_(\d+)_det\.npz', f.name)
+        if m is None or int(m.group(1)) < ucfg.seed_min_step:
+            continue
+        n_evals += 1
+        with np.load(f) as z:
+            if bool(z['clean']) or str(z['termination']) not in TERMINAL_FAILURES or len(z['s']) == 0:
+                continue
+            crashes[focus_bin(z['s'][-1], bin_m, n_bins)] += 1
+    hot = [int(b) for b in np.flatnonzero(crashes >= ucfg.hot_min_crashes)]
+    return {'seed_dir': str(seed_dir), 'n_evals': n_evals, 'crashes': crashes.tolist(), 'hot': hot,
+            'total_crashes': int(crashes.sum()), 'min_step': int(ucfg.seed_min_step)}
+
+
+class FocusedStartCallback(BaseCallback):
+    """R2-7.3 (main process): per focus bin of `bin_m` on Track.path, decayed passes n_b and
+    crashes c_b of the training envs. A pass is counted when the bin of info['s_track'] changes
+    (the first bin of an episode comes from the reset info); a crash at the bin of the final
+    s_track of an episode that terminated off_track / wrong_way / nonfinite. Every
+    ucfg.update_every steps both decay by 0.5^(update_every / half_life), then
+    P = (1 - hot_floor_share) r / sum r + hot_floor_share Uniform(H0), r_b = c_b / n_b (uniform
+    instead of r / sum r while sum r = 0, and instead of Uniform(H0) while H0 is empty) is pushed
+    to every env (`push(P)`, default env_method('set_focus_weights', P)); also at the start of learn().
+    Initial counters: `state` (resume, focus_state.json) or `seed` (focus_seed: n = prior_passes,
+    c = prior_passes crashes_b / N_evals, H0 = seed hot bins) or n = prior_passes, c = 0.
+    `eval_extra(model, step)` (a DrivingEvalCallback extra) writes focus_state.json atomically and
+    returns {'focus': stats since the previous evaluation}: share_resets, share_transitions,
+    fallback_rate (fallbacks / resets drawn as focused), handover mean / median [m] (signed, hand-over minus target), top-5 bins with P,
+    r_b of the H0 bins."""
+
+    def __init__(self, ucfg, length_m, bin_m, state_path=None, *, seed=None, state=None, push=None):
+        super().__init__()
+        self.ucfg, self.bin_m, self.length = ucfg, float(bin_m), float(length_m)
+        self.n_bins = int(math.ceil(self.length / self.bin_m))
+        self.state_path = None if state_path is None else Path(state_path)
+        self.push_fn = push
+        self.seed = seed
+        if state is not None:
+            self.n, self.c = np.asarray(state['n'], float), np.asarray(state['c'], float)
+            self.hot = [int(b) for b in state['hot']]
+            self.updates = int(state.get('updates', 0))
+        else:
+            self.n = np.full(self.n_bins, float(ucfg.prior_passes))
+            if seed is not None and seed['n_evals']:
+                self.c = ucfg.prior_passes * np.asarray(seed['crashes'], float) / seed['n_evals']
+                self.hot = list(seed['hot'])
+            else:
+                self.c = np.zeros(self.n_bins)
+                self.hot = list(seed['hot']) if seed else []
+            self.updates = 0
+        if len(self.n) != self.n_bins:
+            raise ValueError(f'focus state has {len(self.n)} bins, track needs {self.n_bins}')
+        self.decay = .5 ** (ucfg.update_every / ucfg.half_life)
+        self._reset_counts()
+
+    def _reset_counts(self):
+        self.k = {'resets': 0, 'focused': 0, 'fallback': 0, 'transitions': 0, 'focused_transitions': 0,
+                  'handover_m': []}
+
+    def bin(self, s):
+        return focus_bin(s, self.bin_m, self.n_bins)
+
+    def weights(self):
+        r = self.c / self.n
+        base = r / r.sum() if r.sum() > 0 else np.full(self.n_bins, 1. / self.n_bins)
+        floor = np.zeros(self.n_bins)
+        if self.hot:
+            floor[self.hot] = 1. / len(self.hot)
+        else:
+            floor[:] = 1. / self.n_bins
+        h = self.ucfg.hot_floor_share
+        p = (1. - h) * base + h * floor
+        return p / p.sum()
+
+    def push(self):
+        p = self.weights()
+        if self.push_fn is not None:
+            self.push_fn(p)
+        else:
+            self.training_env.env_method('set_focus_weights', p)
+        return p
+
+    def _reset_info(self, i):
+        return base_venv(self.training_env).reset_infos[i] or {}
+
+    def _new_episode(self, i):
+        info = self._reset_info(i)
+        st = info.get('start', {}) or {}
+        self.last[i] = None if info.get('s_track') is None else self.bin(info['s_track'])
+        self.focused[i] = bool(st.get('focused', False))
+        self.k['resets'] += 1
+        self.k['focused'] += self.focused[i]
+        self.k['fallback'] += bool(st.get('focus_fallback', False))
+        if st.get('handover_to_target_m') is not None:
+            self.k['handover_m'].append(float(st['handover_to_target_m']))
+
+    def _on_training_start(self):
+        n = self.training_env.num_envs
+        self.last, self.focused = [None] * n, [False] * n
+        for i in range(n):
+            self._new_episode(i)
+        self.next_update = (self.model.num_timesteps // self.ucfg.update_every + 1) * self.ucfg.update_every
+        self.push()
+
+    def _on_step(self):
+        infos, dones = self.locals['infos'], self.locals['dones']
+        for i, info in enumerate(infos):
+            self.k['transitions'] += 1
+            self.k['focused_transitions'] += self.focused[i]
+            s = info.get('s_track')
+            if s is not None and math.isfinite(s):
+                b = self.bin(s)
+                if b != self.last[i]:
+                    self.n[b] += 1.
+                    self.last[i] = b
+            if dones[i]:
+                if info.get('termination') in TERMINAL_FAILURES and s is not None and math.isfinite(s):
+                    self.c[self.bin(s)] += 1.
+                self._new_episode(i)
+        n = self.model.num_timesteps
+        if n >= self.next_update:
+            while n >= self.next_update:
+                self.n *= self.decay
+                self.c *= self.decay
+                self.updates += 1
+                self.next_update += self.ucfg.update_every
+            self.push()
+        return True
+
+    def state(self, step=None):
+        return {'step': None if step is None else int(step), 'n': self.n.tolist(), 'c': self.c.tolist(),
+                'hot': list(self.hot), 'updates': self.updates, 'bin_m': self.bin_m, 'n_bins': self.n_bins,
+                'seed': None if self.seed is None else {k: self.seed[k] for k in ('seed_dir', 'n_evals', 'total_crashes', 'hot')}}
+
+    def save_state(self, step=None):
+        if self.state_path is not None:
+            write_json(self.state_path, self.state(step))
+
+    def eval_extra(self, model, step):
+        self.save_state(step)
+        k, p = self.k, self.weights()
+        r = self.c / self.n
+        top = np.argsort(-p)[:5]
+        ho = np.asarray(k['handover_m'], float)
+        out = {'resets': k['resets'], 'share_resets': k['focused'] / k['resets'] if k['resets'] else None,
+               'share_transitions': k['focused_transitions'] / k['transitions'] if k['transitions'] else None,
+               'fallback_rate': k['fallback'] / (k['focused'] + k['fallback']) if k['focused'] + k['fallback'] else None,
+               'handover_mean_m': float(ho.mean()) if ho.size else None,
+               'handover_median_m': float(np.median(ho)) if ho.size else None,
+               'top5': [[int(b * self.bin_m), float(p[b])] for b in top],
+               'r_hot': {str(int(b * self.bin_m)): float(r[b]) for b in self.hot}}
+        self._reset_counts()
+        return {'focus': out}
+
+
+def load_focus_state(run_dir):
+    from ..runs import read_json
+    return read_json(Path(run_dir) / 'focus_state.json')

@@ -3,7 +3,7 @@ factories are unpickled in fresh processes.
 
 The main process builds `Track(name)` once (it validates / rewrites the safe-line cache single
 process, D1_signoff A3), loads the p0 QSS profile, and passes sha256(Track.path) and the
-(picklable) `QSSProfile` to every worker; `Track` itself is not picklable, so each worker's
+(picklable) `QSSProfile` and, for the R2 training aids, the (picklable) `corners.CornerTable` to every worker; `Track` itself is not picklable, so each worker's
 `DrivingEnv` loads the track by name and asserts that its path hash matches.
 Seeding: SB3 `set_random_seed(seed)` seeds env i with seed + i at the first reset.
 """
@@ -19,27 +19,28 @@ def track_sha256(track):
     return hashlib.sha256(np.ascontiguousarray(track.path).tobytes()).hexdigest()
 
 
-def make_env(env_cfg_dict, rank, track_sha, qss):
+def make_env(env_cfg_dict, rank, track_sha, qss, corners=None):
     """DrivingEnv for worker `rank` (module level, so `partial(make_env, ...)` pickles by
     reference). Raises if the worker's Track.path differs from the main process's."""
     from .env import DrivingEnv
-    env = DrivingEnv(config_from_dict(EnvConfig, env_cfg_dict), qss=qss)
+    env = DrivingEnv(config_from_dict(EnvConfig, env_cfg_dict), qss=qss, corners=corners)
     sha = track_sha256(env.track)
     if sha != track_sha:
         raise RuntimeError(f'worker {rank}: Track.path sha256 {sha[:12]} != main process {str(track_sha)[:12]}')
     return env
 
 
-def env_fns(env_cfg, n_envs, track, qss):
+def env_fns(env_cfg, n_envs, track, qss, corners=None):
     sha = track_sha256(track)
-    return [partial(make_env, env_cfg.to_dict(), i, sha, qss) for i in range(n_envs)]
+    extra = {} if corners is None else {'corners': corners}
+    return [partial(make_env, env_cfg.to_dict(), i, sha, qss, **extra) for i in range(n_envs)]
 
 
-def build_vec_env(env_cfg, n_envs, track, qss, *, start_method='forkserver', subprocess=True):
+def build_vec_env(env_cfg, n_envs, track, qss, *, start_method='forkserver', subprocess=True, corners=None):
     """VecMonitor(SubprocVecEnv) of `n_envs` DrivingEnvs (DummyVecEnv if not `subprocess`).
     Call from inside `if __name__ == '__main__':` (forkserver re-imports the main module)."""
     from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecMonitor
-    fns = env_fns(env_cfg, n_envs, track, qss)
+    fns = env_fns(env_cfg, n_envs, track, qss, corners)
     venv = SubprocVecEnv(fns, start_method=start_method) if subprocess else DummyVecEnv(fns)
     return VecMonitor(venv)
 
