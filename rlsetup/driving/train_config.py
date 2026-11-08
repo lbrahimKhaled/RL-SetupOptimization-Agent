@@ -3,7 +3,9 @@
 Spec: docs/specs/D2_agent.md (binding); warm start, stop rule and the r1_* presets:
 docs/specs/R1_time_optimal.md §2.4; R2 training aids (bonus schedule, focus weights, low-noise
 rollouts, presets f1_r2*): docs/specs/R2_review.md incl. Amendment 1; R3 (preset f1_r3: B = 30, floor
-0.85, never-fade schedule, bonus relabel, focus init_state): docs/specs/R3_review.md. Step counts are transitions summed over envs (SB3
+0.85, never-fade schedule, bonus relabel, focus init_state): docs/specs/R3_review.md; R4 (preset f1_r4:
+speed-profile potential, corner entry / exit terms, speed relabel of the init buffer, fresh-buffer
+fallback): docs/specs/R4_review.md. Step counts are transitions summed over envs (SB3
 `num_timesteps`); one transition = one 25 Hz decision of one env. Times in s unless the name
 says otherwise. PLACEHOLDER marks numbers not yet justified by data or a decision.
 
@@ -116,6 +118,9 @@ class EvalConfig:
     stats_slow_mps: float = 15.          # TrainStats: failure counted "slow" below this speed ...
     stats_wide_m: float = 3.             # ... or "wide" above this |e| (fail_share_slow_or_wide)
     stats_low_v0_mps: float = 5.         # TrainStats: stalls counted among episodes starting below this
+    # R4 eval logging (review req 6; written to config.json only for R4 runs or when changed):
+    full_throttle_pedal: float = .95     # full-throttle share per straight: throttle pedal >= this
+    brake_pedal: float = .1              # brake share / brake onset: brake pedal >= this. PLACEHOLDER
 
 
 @dataclass(frozen=True)
@@ -143,6 +148,15 @@ class WarmStartConfig:
     pre_exit_horizon: int = 30
     pre_exit_warn_q: float = .5
     pre_exit_warn_blocks: int = 5
+    # R4 (docs/specs/R4_review.md req 4-5): relabel the preloaded time_pbrs buffer to the speed potential
+    # and the corner entry / exit terms (relabel.relabel_speed_profile); more than
+    # speed_relabel_max_unresolved of the stored transitions unresolved -> fresh buffer: fallback_steps
+    # transitions from the frozen actor, then the offline critic phase and the usual warm-up. The
+    # offline phase probes mean Q_min on rows <= probe_before_m before an entry / exit (recovered s).
+    speed_relabel: bool = False
+    speed_relabel_max_unresolved: float = .001
+    fallback_steps: int = 200_000
+    probe_before_m: float = 150.
 
 
 @dataclass(frozen=True)
@@ -207,6 +221,8 @@ class FocusUpdateConfig:
 R2_TRAIN_KEYS = ('bonus_schedule', 'focus_update')      # TrainConfig blocks of the R2 training aids
 R2_AGENT_KEYS = ('low_noise_envs', 'low_noise_std_scale')
 R3_WARM_KEYS = ('pre_exit_horizon', 'pre_exit_warn_q', 'pre_exit_warn_blocks')   # omitted like the R2 blocks
+R4_WARM_KEYS = ('speed_relabel', 'speed_relabel_max_unresolved', 'fallback_steps', 'probe_before_m')
+R4_EVAL_KEYS = ('full_throttle_pedal', 'brake_pedal')   # omitted (at defaults) unless an R4 term is on
 
 
 @dataclass(frozen=True)
@@ -259,9 +275,16 @@ class TrainConfig:
 
     def to_dict(self):
         """asdict with EnvConfig.to_dict for `env`; without any R2 aid on, the R2 blocks that equal
-        their defaults are left out too, so pre-R2 configs (and their JSON) are unchanged."""
+        their defaults are left out too, so pre-R2 configs (and their JSON) are unchanged. Without
+        an R4 term (EnvConfig.r4) and without warm.speed_relabel, the R4 warm / eval fields at their
+        defaults are left out (pre-R4 configs round-trip byte-equal)."""
         d = asdict(self)
         d['env'] = self.env.to_dict()
+        if not (self.env.r4 or self.warm.speed_relabel):
+            for block, keys, default in (('warm', R4_WARM_KEYS, WarmStartConfig()), ('eval', R4_EVAL_KEYS, EvalConfig())):
+                for k in keys:
+                    if getattr(getattr(self, block), k) == getattr(default, k):
+                        del d[block][k]
         if not self.r2_aids:
             for k in R2_TRAIN_KEYS:
                 if getattr(self, k) == type(getattr(self, k))():
@@ -435,6 +458,28 @@ def _f1_r3():
                    focus_update=replace(c.focus_update, seed_run=None, init_state=f'{F1_R2_RUN}/focus_state.json'))
 
 
+def _f1_r4():
+    """R4 (docs/specs/R4_speed_profile.md + binding R4_review.md; DECISIONS #26): f1_r2's recipe with the
+    R2/R3 exit bonus replaced by (a) the speed-profile potential Phi_v = 20 g(v, v_qss(s)), sigma 0.3,
+    in the env reward (potential-based, gamma Phi_v' - Phi_v) and (b) corner entry + exit terms
+    B_in = B_out = 10 per unit (sigma 0.3; entry = window start, paid at the entry crossing, taken back
+    on a terminal failure before the unit's exit; exit paid at the exit), stored as the buffer bonus
+    with w = 1 (never fade: hold_until None, no trigger, nothing reportable, only best_aided.zip).
+    Warm start from f1_best_w35 last.zip (F1_R2_INIT, 12.35M = lifetime offset 0 + 12,350,000) with its
+    pre-R2 replay buffer adopted and relabelled exactly (warm.speed_relabel; fallback: fresh buffer of
+    200k frozen-actor transitions); offline critic 50k grad steps with pre-entry / pre-exit probes
+    (rows <= 150 m before, recovered s); focused starts seeded from f1_best_w35's crashes; low-noise
+    env 3, actor lr 1e-4, guard 0.65, no plateau stop, no step / wall cap. Run name: f1_r4."""
+    c = _f1_r2()
+    return replace(c, preset='f1_r4', init_from=F1_R2_INIT,
+                   env=replace(c.env, reward=replace(c.env.reward, speed_k=20., speed_sigma=.3),
+                               corner_bonus=replace(c.env.corner_bonus, mode='entry_exit', bonus_in=10., bonus_out=10.,
+                                                    sigma=.3)),
+                   warm=replace(c.warm, relabel=False, speed_relabel=True, offline_critic_grad_steps=50_000),
+                   bonus_schedule=replace(c.bonus_schedule, hold_until=None),
+                   focus_update=replace(c.focus_update, seed_run=F1_BEST_W35_RUN, init_state=None))
+
+
 def _f1_r2_smoke():
     """f1_r2 compressed to 150k env steps (R2-9.2): w = 1 until 60k, fade to 0 at 120k,
     reportable from 150k (gap 30k); eval every 25k with 3 stochastic laps, probe every 5k,
@@ -452,7 +497,8 @@ def _f1_r2_smoke():
 PRESETS = {'full': lambda: TrainConfig(preset='full'), 'smoke': _smoke, 'r1_warm': _r1_warm,
            'r1_warm_smoke': _r1_warm_smoke, 'p1_TUM': _p1_tum,
            'p0_TUMref': _p0_tumref, 'bcn': _bcn, 'f1_sha': _f1_sha, 'f1_sha_w35': _f1_sha_w35,
-           'f1_best_w35': _f1_best_w35, 'f1_r2': _f1_r2, 'f1_r2_smoke': _f1_r2_smoke, 'f1_r3': _f1_r3}
+           'f1_best_w35': _f1_best_w35, 'f1_r2': _f1_r2, 'f1_r2_smoke': _f1_r2_smoke, 'f1_r3': _f1_r3,
+           'f1_r4': _f1_r4}
 
 
 # --- dict / override helpers (JSON round trip of nested frozen dataclasses) -------------------------

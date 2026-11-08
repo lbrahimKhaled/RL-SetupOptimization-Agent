@@ -1,6 +1,7 @@
 """SB3 callbacks of D2 training (spec §4 step 5, §6, §7).
 
-Order in `learn(callback=[...])`: [BonusScheduleCallback (R2, first)], PhaseCallback,
+Order in `learn(callback=[...])`: [BonusScheduleCallback (R2, first)], [DeferredOfflineCritic (R4
+fallback)], PhaseCallback,
 CollapseGuard, TrainStatsCallback, [FocusedStartCallback (R2)], DrivingEvalCallback,
 PlateauStop (R1 §2.6), CheckpointCallback, WallClockLimit. SB3 calls `on_step` after every vector
 step (num_timesteps already advanced by n_envs) and before the transition is stored and before
@@ -217,7 +218,11 @@ class TrainStatsCallback(BaseCallback):
     low_noise_envs), focused, uniform (focused flag of the episode's reset)}: episodes, failures,
     failure_rate, crash_bins {bin start m: terminal failures} (bins of `bin_m` on Track.path) and
     bonus_per_episode (info 'episode_corner_bonus'); `eval_groups()` returns the same since its
-    previous call (eval records)."""
+    previous call (eval records).
+    R4 (env info 'episode_shaping_v' / 'episode_corner_taken_back' present): the record adds
+    ep_shaping_v_mean (Phi_v shaping per episode), ep_corner_terms_mean (net entry / exit terms per
+    episode), ep_taken_back_mean, takebacks (count) and episodes_with_takeback; `eval_r4()` returns
+    the same since its previous call (None if no such episode)."""
 
     GROUPS = ('normal', 'low_noise', 'focused', 'uniform')
 
@@ -231,6 +236,7 @@ class TrainStatsCallback(BaseCallback):
         self.v0 = None
         self.focused = None
         self._eval_groups = self._empty_groups()
+        self._eval_r4 = self._empty_r4()
         self._reset_window()
 
     @classmethod
@@ -245,6 +251,34 @@ class TrainStatsCallback(BaseCallback):
                       'failure_rate': v['failures'] / v['episodes'] if v['episodes'] else None,
                       'crash_bins': dict(sorted(v['crash_bins'].items())),
                       'bonus_per_episode': float(np.mean(v['bonus'])) if v['bonus'] else None}
+        return out
+
+    @staticmethod
+    def _empty_r4():
+        return {'shaping_v': [], 'terms': [], 'taken_back': [], 'takebacks': 0, 'with_takeback': 0}
+
+    @staticmethod
+    def _add_r4(acc, info):
+        if 'episode_shaping_v' in info:
+            acc['shaping_v'].append(float(info['episode_shaping_v']))
+        if 'episode_corner_taken_back' in info:
+            acc['terms'].append(float(info.get('episode_corner_bonus', 0.)))
+            acc['taken_back'].append(float(info['episode_corner_taken_back']))
+            acc['takebacks'] += int(info.get('episode_corner_takebacks', 0))
+            acc['with_takeback'] += int(info.get('episode_corner_takebacks', 0) > 0)
+
+    @staticmethod
+    def _summarize_r4(acc):
+        if not (acc['shaping_v'] or acc['terms']):
+            return None
+        mean = lambda x: float(np.mean(x)) if x else None
+        return {'episodes': max(len(acc['shaping_v']), len(acc['terms'])), 'ep_shaping_v_mean': mean(acc['shaping_v']),
+                'ep_corner_terms_mean': mean(acc['terms']), 'ep_taken_back_mean': mean(acc['taken_back']),
+                'takebacks': acc['takebacks'], 'episodes_with_takeback': acc['with_takeback']}
+
+    def eval_r4(self):
+        """R4 training-episode statistics since the previous call (None without R4 info)."""
+        out, self._eval_r4 = self._summarize_r4(self._eval_r4), self._empty_r4()
         return out
 
     def eval_groups(self):
@@ -274,7 +308,7 @@ class TrainStatsCallback(BaseCallback):
 
     def _reset_window(self):
         self.w = {'episodes': 0, 'causes': {}, 'fail_speed': [], 'fail_e': [], 'low_v0': 0,
-                  'low_v0_stall': 0, 'returns': [], 'lengths': [], 'shaping': []}
+                  'low_v0_stall': 0, 'returns': [], 'lengths': [], 'shaping': [], 'r4': self._empty_r4()}
         if self.groups:
             self.w['groups'] = self._empty_groups()
 
@@ -309,6 +343,8 @@ class TrainStatsCallback(BaseCallback):
                 w['low_v0_stall'] += cause == 'stall'
             if 'episode_shaping' in info:
                 w['shaping'].append(info['episode_shaping'])
+            for acc in (w['r4'], self._eval_r4):
+                self._add_r4(acc, info)
             if 'episode' in info:
                 w['returns'].append(info['episode']['r'])
                 w['lengths'].append(info['episode']['l'])
@@ -337,6 +373,9 @@ class TrainStatsCallback(BaseCallback):
                'ep_shaping_mean': float(np.mean(w['shaping'])) if w['shaping'] else None}
         if self.groups:
             rec['groups'] = self._summarize_groups(w['groups'])
+        r4 = self._summarize_r4(w['r4'])
+        if r4 is not None:
+            rec.update({k: v for k, v in r4.items() if k != 'episodes'})
         append_jsonl(self.path, rec)
         self._reset_window()
         return rec
@@ -599,6 +638,25 @@ class WallClockLimit(BaseCallback):
             self.triggered = True
             self.on_event('wall_clock_limit', step=self.model.num_timesteps)
             return False
+        return True
+
+
+class DeferredOfflineCritic(BaseCallback):
+    """R4 fallback (docs/specs/R4_review.md req 4): once num_timesteps >= `at`, set
+    model.min_train_transitions = 0 and run `fn()` (the offline critic phase) once, before the
+    next train() call (SB3 calls on_step before train()); then `on_done(step)`."""
+
+    def __init__(self, at, fn, on_done=_noop):
+        super().__init__()
+        self.at, self.fn, self.on_done = int(at), fn, on_done
+        self.done = False
+
+    def _on_step(self):
+        if not self.done and self.model.num_timesteps >= self.at:
+            self.model.min_train_transitions = 0
+            self.fn()
+            self.done = True
+            self.on_done(self.model.num_timesteps)
         return True
 
 

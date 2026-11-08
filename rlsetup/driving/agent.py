@@ -28,7 +28,10 @@ and (WarmStartConfig.load_optimizers) the Adam states of a trained model into a 
 one (step counters stay 0) and freezes actor + alpha for the critic phases. `preload_buffer`
 loads the source's replay buffer, relabels it to the new reward (relabel.py) and cuts the
 n-step chain at its last row. R2 (corner_bonus on): the model uses buffers.BonusNStepReplayBuffer
-and a pre-R2 NStepReplayBuffer is adopted in place (bonus 0, unlabelled).
+and a pre-R2 NStepReplayBuffer is adopted in place (bonus 0, unlabelled). R4 (warm.speed_relabel):
+after the adoption the buffer is relabelled to the speed potential and the corner entry / exit terms
+(relabel.relabel_speed_profile); too many unresolved rows -> RelabelUnresolved (train.py then
+starts from a fresh buffer).
 """
 from pathlib import Path
 import hashlib
@@ -47,6 +50,16 @@ SB3_VERSION = '2.9.0'
 class InitMismatch(ValueError):
     """init_from cannot initialize this model (spaces, gamma, architecture or env config differ,
     or the source run's config.json is missing)."""
+
+
+class RelabelUnresolved(RuntimeError):
+    """R4: the speed relabel could not recover s for more than warm.speed_relabel_max_unresolved of
+    the stored transitions; nothing was written and the model keeps its own (empty) buffer.
+    `stats` = relabel_speed_profile stats ('aborted': True)."""
+
+    def __init__(self, stats):
+        super().__init__(f"speed relabel: {stats['unresolved_fraction']:.4%} of the transitions unresolved")
+        self.stats = stats
 
 
 class StagedSAC(SAC):
@@ -282,7 +295,7 @@ def default_init_buffer(init_from):
     return str(Path(init_from).resolve().parents[1] / 'replay_buffer.pkl')
 
 
-def preload_buffer(model, path, init_from, cfg):
+def preload_buffer(model, path, init_from, cfg, *, table=None, grid=None, aux=None):
     """Amendment 1 §B step 3: load the replay buffer at `path` into `model`; refuse (InitMismatch)
     unless buffer class, buffer_size, n_envs, n_steps, gamma, observation and action shapes equal
     the model's own buffer; with cfg.warm.relabel relabel it from the source env config (config.json
@@ -295,11 +308,16 @@ def preload_buffer(model, path, init_from, cfg):
     (buffers.relabel_bonuses); refused (InitMismatch) if the new floor is below the source floor or a
     stored bonus exceeds the source B. Returns {'path', 'sha256', 'rows', 'transitions', 'full',
     'cut_row', 'relabel' (stats or None), 'adopted', 'labelled_fraction' (None without the bonus
-    buffer), 'bonus_relabel' (relabel_bonuses stats or None)}."""
+    buffer), 'bonus_relabel' (relabel_bonuses stats or None), 'speed_relabel' (stats or None)}.
+    R4 (cfg.warm.speed_relabel; review req 4): after the adoption, relabel.relabel_speed_profile with
+    the run's corner `table` and xi_ref TrackGrid `grid`; the source must be time_pbrs without the
+    speed potential (refused before the load otherwise); an unresolved share above
+    cfg.warm.speed_relabel_max_unresolved raises RelabelUnresolved (model buffer untouched).
+    `aux` (dict): receives 's', the recovered Track.path s of every stored row (NaN: unresolved)."""
     from stable_baselines3.common.save_util import load_from_pkl
     from .callbacks import cut_nstep_chains
     from .config import EnvConfig
-    from .relabel import relabel_to_time_pbrs
+    from .relabel import relabel_to_time_pbrs, relabel_speed_profile, _check_speed_relabel
     from .train_config import config_from_dict
     from .buffers import BonusNStepReplayBuffer, relabel_bonuses, check_bonus_relabel
     from stable_baselines3.common.buffers import NStepReplayBuffer
@@ -307,13 +325,25 @@ def preload_buffer(model, path, init_from, cfg):
     if not path.is_file():
         raise InitMismatch(f'init_buffer {path} missing')
     src_env = None
-    if cfg.warm.relabel or isinstance(model.replay_buffer, BonusNStepReplayBuffer):
+    speed = cfg.warm.speed_relabel
+    if cfg.warm.relabel or speed or isinstance(model.replay_buffer, BonusNStepReplayBuffer):
         cfg_path = Path(init_from).resolve().parents[1] / 'config.json'
         src_env = config_from_dict(EnvConfig, json.loads(cfg_path.read_text())['env'])
+    if speed:                # R4: refuse before loading the 1.3 GB file
+        if table is None or grid is None:
+            raise ValueError('warm.speed_relabel needs the corner table and the track grid')
+        if cfg.warm.relabel:
+            raise InitMismatch('warm.relabel (R1) and warm.speed_relabel (R4) cannot be combined')
+        try:
+            _check_speed_relabel(src_env, cfg.env)
+        except ValueError as e:
+            raise InitMismatch(f'cannot speed-relabel {path}: {e}') from None
+    if cfg.env.entry_exit_on and not speed and src_env.corner_bonus.enabled:
+        raise InitMismatch(f'{path} holds exit bonuses; the R4 entry / exit terms need warm.speed_relabel')
     pair = lambda cb: (float(cb.bonus), float(cb.floor_ratio))
     bonus_src = bonus_dst = None
     if (isinstance(model.replay_buffer, BonusNStepReplayBuffer) and src_env.corner_bonus.enabled
-            and pair(src_env.corner_bonus) != pair(cfg.env.corner_bonus)):
+            and cfg.env.corner_bonus.mode == 'exit' and pair(src_env.corner_bonus) != pair(cfg.env.corner_bonus)):
         bonus_src, bonus_dst = pair(src_env.corner_bonus), pair(cfg.env.corner_bonus)
         try:                 # config-level refusal before loading the 1.3 GB file
             check_bonus_relabel(bonus_src, bonus_dst)
@@ -346,6 +376,14 @@ def preload_buffer(model, path, init_from, cfg):
     stats = None
     if cfg.warm.relabel:
         stats = relabel_to_time_pbrs(rb, src_env, cfg.env)
+    speed_stats = None
+    if speed:
+        speed_stats, s_rec = relabel_speed_profile(rb, src_env, cfg.env, table, grid,
+                                                   max_unresolved=cfg.warm.speed_relabel_max_unresolved)
+        if speed_stats['aborted']:
+            raise RelabelUnresolved(speed_stats)
+        if aux is not None:
+            aux['s'] = s_rec
     rb.device = model.device
     model.replay_buffer = rb
     cut = cut_nstep_chains(rb)
@@ -357,4 +395,4 @@ def preload_buffer(model, path, init_from, cfg):
     lab = rb.labelled_fraction() if isinstance(rb, BonusNStepReplayBuffer) else None
     return {'path': str(path), 'sha256': h.hexdigest(), 'rows': int(rb.size()), 'transitions': int(rb.size() * rb.n_envs),
             'full': bool(rb.full), 'cut_row': None if cut is None else int(cut), 'relabel': stats,
-            'adopted': adopted, 'labelled_fraction': lab, 'bonus_relabel': bonus_stats}
+            'adopted': adopted, 'labelled_fraction': lab, 'bonus_relabel': bonus_stats, 'speed_relabel': speed_stats}

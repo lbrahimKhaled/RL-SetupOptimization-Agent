@@ -69,6 +69,17 @@ offset + its num_timesteps (chained warm starts, both parts in provenance.json i
 offline critic phase also logs mean Q_min on a fixed batch of pre-exit rows (warning if it still
 moves); focus_update.init_state continues the focus counters of an earlier run (provenance 'r2'
 focus_init_state).
+R4 (docs/specs/R4_review.md; preset f1_r4): the corner table is also built for the speed potential
+(reward.speed_k > 0); warm.speed_relabel relabels the adopted init buffer (agent.preload_buffer ->
+relabel.relabel_speed_profile, stats in status.json / provenance.json init_buffer.speed_relabel) and
+the offline critic phase probes mean Q_min on rows <= warm.probe_before_m before an entry / exit
+(recovered s; 'mean_q_pre_entry' / 'mean_q_pre_exit', warning if still moving). More than
+warm.speed_relabel_max_unresolved unresolved -> fallback (event 'relabel_fallback'): the model keeps
+its fresh buffer, no gradient step until warm.fallback_steps transitions from the frozen actor, then
+the offline critic phase (callbacks.DeferredOfflineCritic) and the usual online critic phase; the
+unfreeze moves to fallback_steps + critic_warmup_steps (status 'planned_unfreeze_at'; a resume
+continues the fallback). provenance.json 'r4' records the terms, the entry / exit points and the
+fallback flag.
 """
 from dataclasses import replace
 from pathlib import Path
@@ -131,8 +142,9 @@ def _sha_file(path):
 
 
 def corner_table(cfg, track, qss):
-    """The run's corner table (R2-2; cached in data/), None unless corner_bonus or focus is on."""
-    if not (cfg.env.corner_bonus.enabled or cfg.env.focus.enabled):
+    """The run's corner table (R2-2; cached in data/), None unless corner_bonus, focus or the R4
+    speed potential is on."""
+    if not (cfg.env.corner_bonus.enabled or cfg.env.focus.enabled or cfg.env.speed_on):
         return None
     from . import corners
     return corners.for_env(track, cfg.env, qss)
@@ -186,6 +198,20 @@ def r2_provenance(cfg, table, seed, labelled_fraction, focus_init=None):
             'labelled_fraction_at_start': labelled_fraction, 'focus_init_state': focus_init}
 
 
+def r4_provenance(cfg, table, fallback=False):
+    """provenance.json 'r4' (R4_review req 5-6), None without an R4 term."""
+    if not cfg.env.r4:
+        return None
+    from .speed_profile import entry_points
+    rw, cb = cfg.env.reward, cfg.env.corner_bonus
+    pts = [{'name': name, 'entry_m': s_in, 'v_qss_entry': v_in, 'exit_m': float(u['exit_m']),
+            'v_qss_exit': float(u['v_qss_exit'])} for (name, s_in, v_in), u in zip(entry_points(table), table.units)]
+    return {'speed_potential': {'speed_k': rw.speed_k, 'speed_sigma': rw.speed_sigma},
+            'entry_exit': {'on': cfg.env.entry_exit_on, 'bonus_in': cb.bonus_in, 'bonus_out': cb.bonus_out,
+                           'sigma': cb.sigma}, 'points': pts, 'corner_table_key': table.meta.get('key'),
+            'relabel_fallback': bool(fallback)}
+
+
 class Run:
     """State shared by the pipeline steps of one seed."""
 
@@ -226,13 +252,14 @@ class Run:
 def _callbacks(run, model, envs, starts, baseline, *, unfreeze_at, guard_start=None, rollbacks=0,
                best_lap2=float('inf'), last_det_clean=None, wall0=(0., 0.), t0=None, buffer_saved_step=None,
                critic_check_at=None, critic_check_done=False, plateau_history=(), best_aided_lap2=float('inf'),
-               bonus_state=(None, None), focus_seed=None, focus_state=None, eval_history=()):
+               bonus_state=(None, None), focus_seed=None, focus_state=None, eval_history=(), pre=()):
     """`buffer_saved_step`: step of a replay-buffer save made before learn() (the prefill save at
     step 0), so the step-0 evaluation does not save the same buffer again. `critic_check_at`:
     step of the R1 critic check (None: none); `plateau_history`: PlateauStop entries of earlier
     processes. R2: `bonus_state` = (trigger_step, report_from) of a resumed run, `eval_history` its
     evaluation records (Amendment-2 result stretch), `focus_seed` / `focus_state` initialise the
-    FocusedStartCallback, `best_aided_lap2` the best_aided.zip threshold. Returns (callbacks, guard,
+    FocusedStartCallback, `best_aided_lap2` the best_aided.zip threshold. `pre`: extra callbacks
+    placed right after the schedule (R4 fallback: DeferredOfflineCritic). Returns (callbacks, guard,
     wall, plateau)."""
     from .callbacks import (PhaseCallback, CollapseGuard, TrainStatsCallback, DrivingEvalCallback,
                             CheckpointCallback, WallClockLimit, ReplayBufferSaver, PlateauStop,
@@ -258,6 +285,8 @@ def _callbacks(run, model, envs, starts, baseline, *, unfreeze_at, guard_start=N
         extras.append(focus.eval_extra)
     if cfg.r2_aids:
         extras.append(lambda m, n: {'train_groups': stats.eval_groups()})
+    if cfg.env.r4:
+        extras.append(lambda m, n: {'train_r4': stats.eval_r4()})
     guard = CollapseGuard(lambda m: probe(m, envs['probe'], starts).mean_progress_m, baseline, cfg.guard,
                           start_step=guard_start, rollbacks=rollbacks, on_event=run.event,
                           log_path=d / 'probes.jsonl', last_path=d / 'checkpoints' / 'last.zip')
@@ -271,7 +300,7 @@ def _callbacks(run, model, envs, starts, baseline, *, unfreeze_at, guard_start=N
     wall = WallClockLimit(cfg.max_wall_h, t0=t0, on_event=run.event)
     ckpt = CheckpointCallback(cfg.checkpoint_interval, d / 'checkpoints', buffer_every=cfg.buffer_save_interval,
                               buffer_saver=saver)
-    cbs = ([schedule] if schedule else []) + [PhaseCallback(unfreeze_at, on_event=run.event), guard, stats] \
+    cbs = ([schedule] if schedule else []) + list(pre) + [PhaseCallback(unfreeze_at, on_event=run.event), guard, stats] \
         + ([focus] if focus else []) + [evalcb, plateau, ckpt, wall]
     return cbs, guard, wall, plateau
 
@@ -360,7 +389,7 @@ def _offline_warmup(run, model, demos, val_episodes):
     return rows, summary
 
 
-def _offline_critic(run, model):
+def _offline_critic(run, model, s_rec=None, table=None):
     """Amendment 1 §B step 4: actor + alpha frozen, cfg.warm.offline_critic_grad_steps critic
     grad steps on the preloaded buffer in blocks of cfg.warm.offline_block; per block the critic
     loss and mean Q_min on a fixed batch of buffer rows (warmup.q_probe_batch) -> warmup.jsonl.
@@ -368,9 +397,12 @@ def _offline_critic(run, model):
     (buffers.pre_exit_cells, horizon warm.pre_exit_horizon) per block ('mean_q_pre_exit'); if its
     range over the last warm.pre_exit_warn_blocks blocks exceeds warm.pre_exit_warn_q, a status
     warning (the global critic_check cannot see a critic still moving just before the exits).
+    R4 (`s_rec` = recovered Track.path s of the stored rows, `table` = corner table): instead, fixed
+    batches of rows <= warm.probe_before_m before an entry ('mean_q_pre_entry') and before an exit
+    ('mean_q_pre_exit') (buffers.pre_point_cells), same warning rule for each.
     Returns the warmup.jsonl block records."""
     from ..runs import append_jsonl
-    from .buffers import BonusNStepReplayBuffer, pre_exit_cells
+    from .buffers import BonusNStepReplayBuffer, pre_exit_cells, pre_point_cells
     from .evaluate import q_values
     cfg, w = run.cfg, run.cfg.warm
     rb = model.replay_buffer
@@ -378,14 +410,22 @@ def _offline_critic(run, model):
     idx = np.random.default_rng(cfg.seed).choice(n, size=min(cfg.warmup.q_probe_batch, n), replace=False)
     rows, cols = idx // rb.n_envs, idx % rb.n_envs
     obs, act = rb.observations[rows, cols], rb.actions[rows, cols]
-    pre = None
-    if isinstance(rb, BonusNStepReplayBuffer):
-        pr, pc = pre_exit_cells(rb, w.pre_exit_horizon)
+    probes = {}            # record key -> (obs, actions) of a fixed batch
+
+    def add_probe(key, pr, pc, seed, what):
         if len(pr):
-            k = np.random.default_rng(cfg.seed + 1).choice(len(pr), size=min(cfg.warmup.q_probe_batch, len(pr)),
-                                                           replace=False)
-            pre = (rb.observations[pr[k], pc[k]], rb.actions[pr[k], pc[k]])
-            run.log(f'pre-exit probe: {len(k)} of {len(pr)} rows with a bonus within {w.pre_exit_horizon} decisions')
+            k = np.random.default_rng(seed).choice(len(pr), size=min(cfg.warmup.q_probe_batch, len(pr)), replace=False)
+            probes[key] = (rb.observations[pr[k], pc[k]], rb.actions[pr[k], pc[k]])
+            run.log(f'{key} probe: {len(k)} of {len(pr)} rows {what}')
+    if s_rec is not None and table is not None:     # R4: by recovered s
+        L, before = float(table.length), w.probe_before_m
+        add_probe('mean_q_pre_exit', *pre_point_cells(s_rec, [u['exit_m'] for u in table.units], L, before),
+                  cfg.seed + 1, f'<= {before:g} m before an exit')
+        add_probe('mean_q_pre_entry', *pre_point_cells(s_rec, [u['start_m'] for u in table.units], L, before),
+                  cfg.seed + 2, f'<= {before:g} m before an entry')
+    elif isinstance(rb, BonusNStepReplayBuffer):
+        add_probe('mean_q_pre_exit', *pre_exit_cells(rb, w.pre_exit_horizon), cfg.seed + 1,
+                  f'with a bonus within {w.pre_exit_horizon} decisions')
     out = []
     done, b = 0, 0
     while done < w.offline_critic_grad_steps:
@@ -396,9 +436,9 @@ def _offline_critic(run, model):
         rec = {'block': b, 'grad_steps': done,
                'critic_loss': float(model.logger.name_to_value.get('train/critic_loss', np.nan)),
                'mean_q_fixed_batch': float(q_min.mean())}
-        if pre is not None:
-            rec['mean_q_pre_exit'] = float(q_values(model.critic, *pre)[0].mean())
-            model.logger.record('warmup/mean_q_pre_exit', rec['mean_q_pre_exit'])
+        for key, batch in probes.items():
+            rec[key] = float(q_values(model.critic, *batch)[0].mean())
+            model.logger.record(f'warmup/{key}', rec[key])
         append_jsonl(run.dir / 'warmup.jsonl', rec)
         out.append(rec)
         model.logger.record('warmup/critic_loss', rec['critic_loss'])
@@ -406,14 +446,17 @@ def _offline_critic(run, model):
         model.logger.dump(step=b)
         run.log(f"offline critic block {b}: {done} grad steps, critic loss {rec['critic_loss']:.3f}, "
                 f"mean Q {rec['mean_q_fixed_batch']:.1f}"
-                + (f", pre-exit mean Q {rec['mean_q_pre_exit']:.2f}" if pre is not None else ''))
+                + ''.join(f", {key[7:].replace('_', '-')} mean Q {rec[key]:.2f}" for key in probes))
         b += 1
-    if pre is not None and len(out) >= w.pre_exit_warn_blocks:
-        last = [r['mean_q_pre_exit'] for r in out[-w.pre_exit_warn_blocks:]]
+    for key in probes:
+        if len(out) < w.pre_exit_warn_blocks:
+            break
+        last = [r[key] for r in out[-w.pre_exit_warn_blocks:]]
         moved = max(last) - min(last)
         if moved > w.pre_exit_warn_q:
-            _warn(run, 0, f'pre-exit mean Q_min moved {moved:.2f} (> {w.pre_exit_warn_q:g}) over the last '
-                          f'{w.pre_exit_warn_blocks} offline critic blocks: critic not settled near the exits')
+            where = 'exits' if key == 'mean_q_pre_exit' else 'entries'
+            _warn(run, 0, f"{key[7:].replace('_', '-')} mean Q_min moved {moved:.2f} (> {w.pre_exit_warn_q:g}) over "
+                          f'the last {w.pre_exit_warn_blocks} offline critic blocks: critic not settled near the {where}')
     return out
 
 
@@ -496,6 +539,7 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
         starts = make_probe_starts(envs['probe'], cfg.guard)
         write_json(run_dir / 'probe_starts.json', starts)
         unfreeze_at, buffer_saved_step, critic_check_at = 0, None, None
+        fallback, pre_cbs = None, []
         if a.init_mode == 'bc':
             # --- step 2: demos ---
             run.status(phase='demos')
@@ -567,11 +611,19 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
             baseline = pr.mean_progress_m
             run.status(bc_baseline_m=baseline, bc_probe=pr.progress_m, baseline_source='bias_only')
         elif a.init_mode == 'warm':
-            from .agent import warm_start, preload_buffer, InitMismatch
+            from .agent import warm_start, preload_buffer, InitMismatch, RelabelUnresolved
+            aux = {}
             try:
                 init = warm_start(model, cfg.init_from, cfg)
                 t = time.time()
-                buf = preload_buffer(model, cfg.warm.init_buffer, cfg.init_from, cfg)
+                try:
+                    buf = preload_buffer(model, cfg.warm.init_buffer, cfg.init_from, cfg, table=table,
+                                         grid=envs['probe'].grid if cfg.warm.speed_relabel else None, aux=aux)
+                except RelabelUnresolved as e:     # R4 fallback: fresh buffer from the frozen actor
+                    fallback = e.stats
+                    buf = {'path': str(Path(cfg.warm.init_buffer).resolve()), 'sha256': None, 'rows': 0,
+                           'transitions': 0, 'relabel': None, 'bonus_relabel': None, 'speed_relabel': e.stats,
+                           'fallback': True}
             except InitMismatch as e:
                 run.status(state='init_mismatch', stop_reason=str(e))
                 log(str(e))
@@ -579,7 +631,8 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
             prov['init_from'] = {k: init[k] for k in ('path', 'sha256', 'src_num_timesteps', 'src_rlsetup_commit',
                                                       'src_config_sha256', 'src_alpha', 'src_lifetime_steps_offset',
                                                       'lifetime_steps_offset')}
-            prov['init_buffer'] = {k: buf[k] for k in ('path', 'sha256', 'transitions', 'bonus_relabel')}
+            prov['init_buffer'] = {k: buf.get(k) for k in ('path', 'sha256', 'transitions', 'bonus_relabel',
+                                                           'speed_relabel')}
             write_json(run_dir / 'provenance.json', prov)
             log(f"warm start from {init['path']} (step {init['src_num_timesteps']}, alpha {init['src_alpha']:.4f}); "
                 f"actor {init['actor_sha256'][:12]}, log alpha {init['log_ent_coef_sha256'][:12]}; optimizers "
@@ -591,15 +644,27 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
             baseline = pr.mean_progress_m
             run.status(bc_baseline_m=baseline, bc_probe=pr.progress_m, baseline_source='init_from', init_from=init,
                        init_buffer=buf, lifetime_steps_offset=init['lifetime_steps_offset'])
-            run.status(phase='offline_warmup')
-            t = time.time()
-            if cfg.env.corner_bonus.enabled:      # R2-5.2: w(0) before the offline critic phase
-                from .callbacks import bonus_weight
-                model.replay_buffer.bonus_weight = model.bonus_weight = bonus_weight(cfg.bonus_schedule, 0)
-            _offline_critic(run, model)
-            record_phase(run_dir, 'offline_warmup', wall_s=time.time() - t, env_steps=0,
-                         grad_steps=int(model._n_updates))
-            unfreeze_at = critic_check_at = cfg.warm.critic_warmup_steps
+            if fallback is not None:
+                pre_cbs = [_fallback_offline(run, model, cfg)]
+                model.min_train_transitions = cfg.warm.fallback_steps
+                unfreeze_at = critic_check_at = cfg.warm.fallback_steps + cfg.warm.critic_warmup_steps
+                run.status(relabel_fallback=True, planned_unfreeze_at=unfreeze_at)
+                run.event('relabel_fallback', step=0, unresolved_fraction=fallback['unresolved_fraction'],
+                          fallback_steps=cfg.warm.fallback_steps, unfreeze_at=unfreeze_at)
+                _warn(run, 0, f"speed relabel left {fallback['unresolved_fraction']:.4%} of the init buffer unresolved "
+                              f'(> {cfg.warm.speed_relabel_max_unresolved:.4%}): fresh buffer, {cfg.warm.fallback_steps} '
+                              f'frozen-actor transitions before the offline critic phase')
+            else:
+                run.status(phase='offline_warmup')
+                t = time.time()
+                if cfg.env.corner_bonus.enabled:      # R2-5.2: w(0) before the offline critic phase
+                    from .callbacks import bonus_weight
+                    model.replay_buffer.bonus_weight = model.bonus_weight = bonus_weight(cfg.bonus_schedule, 0)
+                _offline_critic(run, model, aux.get('s'), table)
+                record_phase(run_dir, 'offline_warmup', wall_s=time.time() - t, env_steps=0,
+                             grad_steps=int(model._n_updates))
+                unfreeze_at = critic_check_at = cfg.warm.critic_warmup_steps
+            aux.clear()
         else:
             raise ValueError(f'unknown init_mode {a.init_mode!r}')
         r2 = r2_provenance(cfg, table, seed, model.replay_buffer.labelled_fraction()
@@ -609,11 +674,15 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
             write_json(run_dir / 'provenance.json', prov)
             run.status(report_from=cfg.bonus_schedule.report_from if cfg.env.corner_bonus.enabled else None,
                        labelled_fraction_at_start=r2['labelled_fraction_at_start'])
+        r4 = r4_provenance(cfg, table, fallback is not None)
+        if r4 is not None:
+            prov['r4'] = r4
+            write_json(run_dir / 'provenance.json', prov)
         # --- steps 4b + 5 ---
         cbs, guard, wall, plateau = _callbacks(run, model, envs, starts, baseline, unfreeze_at=unfreeze_at,
                                                t0=run.t0, buffer_saved_step=buffer_saved_step,
                                                critic_check_at=critic_check_at, focus_seed=seed,
-                                               focus_state=focus_init)
+                                               focus_state=focus_init, pre=pre_cbs)
         return _learn_and_finish(run, model, cbs, guard, wall, plateau, cfg.total_timesteps)
     except BaseException as e:
         run.status(state='error', stop_reason=f'{type(e).__name__}: {e}', traceback=traceback.format_exc())
@@ -623,6 +692,22 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
             vec.close()
         sys.stdout, sys.stderr = old_out, old_err
         logf.close()
+
+
+def _fallback_offline(run, model, cfg):
+    """R4 fallback: DeferredOfflineCritic running the offline critic phase once the fresh buffer
+    holds warm.fallback_steps transitions (status 'offline_critic_done_at')."""
+    from .callbacks import DeferredOfflineCritic
+    from ..runs import record_phase
+
+    def phase():
+        t = time.time()
+        run.status(phase='offline_warmup')
+        _offline_critic(run, model)
+        record_phase(run.dir, 'offline_warmup', wall_s=time.time() - t, env_steps=0, grad_steps=int(model._n_updates))
+        run.status(phase='online_warmup', offline_critic_done_at=int(model.num_timesteps))
+    return DeferredOfflineCritic(cfg.warm.fallback_steps, phase,
+                                 on_done=lambda n: run.event('fallback_offline_critic', step=int(n)))
 
 
 def _warn(run, step, msg):
@@ -770,6 +855,13 @@ def resume_pipeline(run_dir, overrides=(), *, argv=None, allow_dirty=False, allo
         warm = cfg.agent.init_mode == 'warm'
         frozen_phase = cfg.agent.init_mode in ('bc', 'warm') and status.get('unfrozen_at') is None
         unfreeze_step = cfg.warm.critic_warmup_steps if warm else cfg.warmup.online_warmup_steps
+        pre_cbs = []
+        if status.get('planned_unfreeze_at') is not None:      # R4 fallback run
+            unfreeze_step = int(status['planned_unfreeze_at'])
+            if status.get('offline_critic_done_at') is None:
+                pre_cbs = [_fallback_offline(run, model, cfg)]
+                model.min_train_transitions = cfg.warm.fallback_steps
+                log(f'R4 fallback: offline critic phase still due at {cfg.warm.fallback_steps} steps')
         cbs, guard, wall, plateau = _callbacks(
             run, model, envs, starts, status['bc_baseline_m'],
             unfreeze_at=unfreeze_step if frozen_phase else 0,
@@ -777,11 +869,11 @@ def resume_pipeline(run_dir, overrides=(), *, argv=None, allow_dirty=False, allo
             best_lap2=min(clean) if clean else float('inf'), last_det_clean=last.get('det_clean'),
             wall0=(last.get('wall_train_s') or 0., last.get('wall_eval_s') or 0.),
             buffer_saved_step=buffer_step if buffer_step == n else None,
-            critic_check_at=cfg.warm.critic_warmup_steps if warm else None,
+            critic_check_at=unfreeze_step if warm else None,
             critic_check_done=any('critic_check' in r for r in evals),
             plateau_history=[plateau_entry(r) for r in evals],
             best_aided_lap2=min(aided) if aided else float('inf'), bonus_state=bonus_state,
-            focus_seed=seed, focus_state=focus_state, eval_history=evals)
+            focus_seed=seed, focus_state=focus_state, eval_history=evals, pre=pre_cbs)
         remaining = cfg.total_timesteps - n
         if remaining <= 0:
             log('nothing to do: total_timesteps already reached')
