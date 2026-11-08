@@ -4,8 +4,8 @@ Paste everything below the line into the Windows session (repo RL-SetupOptimizat
 
 ---
 
-We are starting a Barcelona (Catalunya) run on this Windows machine that does what the Mac is doing on
-Shanghai right now (run `f1_r3`). Work through the steps in order, with the usual team pipeline
+We are starting a Barcelona (Catalunya) run on this Windows machine with the F1 car `sf70h_f1` (NOT the
+AV-21-based `sf70h_tum`) that does what the Mac is doing on Shanghai right now (run `f1_r3`). Work through the steps in order, with the usual team pipeline
 (rl-architect approves → rl-coder implements → qa-reviewer + sim-runner verify → you report to me → commit).
 Save every subagent report to a file under docs/ and commit it. Commits are brief, by me, with no trailers.
 Before anything that changes the plan below, or any OPEN item, ask me.
@@ -42,25 +42,30 @@ Report this to me before step 3.
   detects on it. Its detection parameters (prominence 5 m/s, merge 150 m, exit = apex + 150 m or 30 m before the
   next braking) were tuned on Shanghai, so the architect must check that the table makes sense on Catalunya.
 
-**3. Continue the existing Barcelona run with the bonus on from the start** (my decision: no plain phase first).
-This is the f1_r3 recipe:
+**3. Barcelona run on the F1 car only, with the bonus on from the start** (my decision: car `sf70h_f1`, the
+non-AV-21 car with the PL14 tyre and literature parameters; **never `sf70h_tum`**; no plain phase first).
+The source run depends on what step 1 finds:
+- **A Barcelona run on `sf70h_f1` exists:** continue it as `<source>_r3`.
+  - Warm start from its **`last.zip` + replay buffer**, not `best.zip`. On Shanghai a best.zip critic didn't
+    match the end-of-run buffer and caused new crashes.
+  - Use the new setup (2a) and line (2b). The architect confirms the warm start across the setup/line change:
+    the critic must re-fit, and the buffer is relabelled to the new reward.
+- **No `sf70h_f1` Barcelona run exists** (the AV-21 / sf70h_tum runs don't count, leave them alone): start
+  `sf70h_f1` **from scratch** on Catalunya as run `bcn_f1_r3`.
+  - Use the `f1_sha` recipe (demos + BC init, time_pbrs, 15 kN m, traction-control demo settings of
+    sf70h_f1) with setup `bcn_f1_best` and the 2b line.
+  - Turn the R3 aids on from step 0.
+  - Focused starts begin uniform and adapt from training crashes, since there is no crash history to seed from.
+
+The R3 aids, as in f1_r3:
 - clean-corner exit bonus B = 30 per corner, floor 0.85, capped at v_qss on the reference line, paid only if
   the car stays on track through the corner;
 - **kept on (w = 1), never fades**;
-- focused starts 25 % (seeded from the source run's deterministic crash laps);
-- low-noise rollouts;
-- warm start from the source run's **`last.zip` + its replay buffer**, not `best.zip`. On Shanghai a best.zip
-  critic didn't match the end-of-run buffer and caused new crashes.
-- The rest of the warm procedure is as in f1_r3: offline critic 50k grad steps with the pre-exit probe, online
-  critic 20k, then unfreeze, actor lr 1e-4, guard 0.65, lifetime step offset chained from the source.
-- Run name proposal: `<source>_r3`.
+- focused starts 25 %;
+- low-noise rollouts.
 
-**Check which car the source run uses first:**
-- **sf70h_f1:** continue it with the new setup (2a) and line (2b) plus the bonus. The architect confirms the
-  warm start across the setup/line change (the critic must re-fit; buffer relabel to the new reward).
-- **sf70h_tum (AV-21-based):** it cannot become an F1-car run. **Stop and ask me**:
-  - continue the sf70h_tum run with the bonus on its own line and setup, or
-  - start `sf70h_f1` from scratch with the bonus on from step 0, on the 2a/2b setup and line.
+For a warm start, use the f1_r3 warm procedure: offline critic 50k grad steps with the pre-exit probe, online
+critic 20k, then unfreeze, actor lr 1e-4, guard 0.65, lifetime step offset chained from the source.
 
 **Windows-specific items for the architect:**
 - n_envs 16 (`train.overrides`): `low_noise_envs` should keep about a quarter of the envs, e.g. 4 of 16, not
