@@ -226,7 +226,15 @@ nohup cloudflared tunnel --no-autoupdate --url http://127.0.0.1:6006 > runs/mac/
 ```
 Best models: `models/`. Line result: RL 103.06 → 102.57 s. Judge this setup at about 5M steps.
 
-## 8 Nov 2026 — R3 run `f1_r3` RUNNING (launched 10:27, commit 3228c91)
+## 8 Nov 2026 — R4 run `f1_r4` RUNNING (launched 18:39, commit 7fd4f89)
+- What: f1_best_w35 last.zip (12.35M) + its buffer, exactly relabelled (765/765 chains, 0 unresolved) to the R4 reward: time_pbrs + QSS speed-profile potential Φ_v = 20·g(v, v_qss(s)), σ 0.30, in the env reward + corner entry/exit closeness terms 10 + 10 per unit (entry paid at the QSS braking point, taken back on a crash before the exit); never fades; focus seeded from f1_best_w35, low-noise env 3. Spec `docs/specs/R4_speed_profile.md` + `R4_review.md`, DECISIONS #26, report `docs/handoff/R4_coder.md`. Laps aided (best_aided.zip only).
+- Ends: Ibrahim stops it, or the keeper at the first clean det lap 2 ≤ 95 s.
+- Keeper: `nohup runs/mac/keeper_f1.sh f1_r4 >> runs/mac/keeper_f1_r4.log 2>&1 &`
+- Stop by hand: `pkill -f "keeper_f1.sh f1_r4( |$)"`, then wait for a fresh `replay_buffer.pkl` mtime and `kill -TERM` the training PID (SIGINT is ignored).
+- Resume: `PYTHONPATH=/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap-f1 caffeinate -dimsu nohup platforms/mac/train.sh --resume --preset f1_r4 --seed 0 --run-name f1_r4 --allow-code-change >> runs/mac/f1_r4_stdout.log 2>&1 &`
+- TensorBoard: `.venv/bin/tensorboard --logdir_spec "f1_best_w35:runs/mac/D2/f1_best_w35/seed0/tb_evals,f1_r2:runs/mac/D2/f1_r2/seed0/tb_evals_lifetime,f1_r3:runs/mac/D2/f1_r3/seed0/tb_evals_lifetime,f1_r4:runs/mac/D2/f1_r4/seed0/tb_evals_lifetime" --port 6006 --host 127.0.0.1 --reload_interval 30`
+
+## 8 Nov 2026 — R3 run `f1_r3` STOPPED at 7.0M (18:39, SIGTERM after a save; DECISIONS #26): B = 30 exit bonus made the driver cautious (lifts on straights, slow-in for the exit bonus); best 101.27 s at 0.45M, then ~102.2 s. (launched 10:27, commit 3228c91)
 - What: f1_r2 last.zip (7.40M; lifetime 19.75M) + its buffer with the bonus relabelled to **B = 30, floor 0.85**, bonus **kept on (w = 1, never fades)**; offline critic 50k; focus continues from f1_r2 focus_state.json; low-noise env 3. Spec `docs/specs/R3_bigger_bonus.md` + `R3_review.md`, DECISIONS #25, report `docs/handoff/R3_coder.md`. Laps are aided (only best_aided.zip).
 - Ends: Ibrahim stops it, or the keeper at the first clean det lap 2 ≤ 95 s (any eval).
 - Keeper: `nohup runs/mac/keeper_f1.sh f1_r3 >> runs/mac/keeper_f1_r3.log 2>&1 &`
