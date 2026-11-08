@@ -9,10 +9,10 @@ mirrored (kept in tb_evals/last_step.txt) into a new event file in the same fold
 merges the files of a folder; deleting and rewriting them instead leaves a running TensorBoard
 on the stale, deleted file. Point TensorBoard at the seed folder to see these next to SB3's own
 losses in sb3/.
-A warm-started run (status.json 'lifetime_steps_offset' = the source model's steps) also gets
-<seed_dir>/tb_evals_lifetime/ with the same scalars at step + offset, so it overlays its source
-run's curves on one step axis (R2-9.6):
-    tensorboard --logdir_spec f1_r2:runs/mac/D2/f1_r2/seed0/tb_evals_lifetime,f1_best_w35:runs/mac/D2/f1_best_w35/seed0/tb_evals
+A warm-started run (status.json 'lifetime_steps_offset' = the source's own offset + the source
+model's steps, chained over warm starts; R3) also gets <seed_dir>/tb_evals_lifetime/ with the same
+scalars at step + offset, so it overlays its source runs' curves on one step axis (R2-9.6):
+    tensorboard --logdir_spec f1_r3:runs/mac/D2/f1_r3/seed0/tb_evals_lifetime,f1_r2:runs/mac/D2/f1_r2/seed0/tb_evals_lifetime,f1_best_w35:runs/mac/D2/f1_best_w35/seed0/tb_evals
 """
 import calendar
 import json

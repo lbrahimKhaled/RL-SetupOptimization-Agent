@@ -251,7 +251,7 @@ def test_config_dicts_without_aids_are_unchanged():
         cfg = make()
         j = json.loads(config_json(cfg))
         assert train_config_from_dict(j) == cfg, name
-        if not name.startswith('f1_r2'):
+        if not name.startswith(('f1_r2', 'f1_r3')):
             assert not {'bonus_schedule', 'focus_update'} & set(j) and not set(TRAINING_AID_KEYS) & set(j['env'])
             assert not {'low_noise_envs', 'low_noise_std_scale'} & set(j['agent'])
         else:
