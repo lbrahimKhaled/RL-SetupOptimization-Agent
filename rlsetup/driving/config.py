@@ -13,6 +13,9 @@ import math
 
 
 REWARD_MODES = ('ref_tracking', 'time_pbrs')
+CORNER_BONUS_MODES = ('exit', 'entry_exit')
+R4_REWARD_KEYS = ('speed_k', 'speed_sigma')                       # omitted from to_dict while speed_k = 0
+R4_CORNER_KEYS = ('mode', 'bonus_in', 'bonus_out', 'sigma')        # omitted while mode = 'exit'
 
 
 @dataclass(frozen=True)
@@ -37,6 +40,13 @@ class RewardConfig:
     based). c and w are diagnostic only (smoothness / tracking still logged, not rewarded).
     Terminal failures = off track, non-finite, wrong way (Phi(s') = 0); a stall is a truncation
     (no penalty, real Phi(s')). `failure_penalty()` is the ref_tracking formula only.
+
+    R4 speed-profile potential (docs/specs/R4_review.md, DECISIONS #26; time_pbrs only, off with
+    speed_k = 0): Phi_v(s, v) = speed_k g(v, v_qss(s)), g = max(0, 1 - ((v - v*) / (speed_sigma v*))^2)
+    (speed_profile.closeness), v = |(v_x, v_y)| [m/s], v_qss = corner table speed on Track.path arc
+    length s; added per decision as gamma Phi_v(s') - Phi_v(s) with the same terminal convention as
+    Phi (0 after off track / non-finite / wrong way). speed_k = 0: not computed at all (bit-identical
+    rewards); EnvConfig.to_dict then omits both fields.
     """
     a: float = 1.0                       # per metre of progress along Track.path. PLACEHOLDER
     b: float = 1.0                       # per second. PLACEHOLDER
@@ -50,12 +60,18 @@ class RewardConfig:
     mode: str = 'ref_tracking'           # 'ref_tracking' = reward (1), full1 | 'time_pbrs' = R1
     shaping_k: float = 1.0               # [1/m] Phi(s) = -shaping_k |e(s)|; time_pbrs only. PLACEHOLDER
     penalty_const: float = 100.          # P for terminal failures in time_pbrs. PLACEHOLDER
+    speed_k: float = 0.                  # R4: k_v of Phi_v [reward units]; 0 = off. f1_r4: 20 [ARCH]
+    speed_sigma: float = .3              # R4: sigma of g (relative to v_qss) [ARCH]
 
     def __post_init__(self):
         if self.mode not in REWARD_MODES:
             raise ValueError(f'reward mode {self.mode!r} not in {REWARD_MODES}')
-        if not all(math.isfinite(x) and x >= 0 for x in (self.shaping_k, self.penalty_const)):
-            raise ValueError('shaping_k and penalty_const must be finite and nonnegative')
+        if not all(math.isfinite(x) and x >= 0 for x in (self.shaping_k, self.penalty_const, self.speed_k)):
+            raise ValueError('shaping_k, penalty_const and speed_k must be finite and nonnegative')
+        if not (math.isfinite(self.speed_sigma) and self.speed_sigma > 0):
+            raise ValueError(f'speed_sigma must be finite and positive, got {self.speed_sigma}')
+        if self.speed_k > 0 and self.mode != 'time_pbrs':
+            raise ValueError("speed_k > 0 (R4 speed-profile potential) needs mode 'time_pbrs'")
         if not 0. < self.gamma <= 1.:
             raise ValueError(f'gamma must be in (0, 1], got {self.gamma}')
 
@@ -122,7 +138,13 @@ class CornerBonusConfig:
     info['corner_bonus'] (unweighted, per decision) and the replay buffer adds w(t) x bonus at
     sampling time (buffers.py). bonus = B f(rho), f = clip((rho - floor_ratio) / (1 - floor_ratio),
     0, 1), rho = exit speed / v_qss at the exit. The detection fields (prominence .. grid_m) define
-    the corner table (corners.py, cache key)."""
+    the corner table (corners.py, cache key).
+    R4 (`mode` 'entry_exit', docs/specs/R4_review.md req 3-5): instead of the exit bonus, per corner
+    unit bonus_in g(v_entry) paid at the entry crossing (entry = window start = QSS braking point)
+    and bonus_out g(v_exit) at the exit, g = speed_profile.closeness with `sigma`; an entry paid
+    in this pass is taken back (negative info['corner_bonus']) when a terminal failure comes
+    before that unit's exit (speed_profile.EntryExitTracker). bonus / floor_ratio are unused there.
+    The R4 fields are left out of to_dict while mode is 'exit' and they are at their defaults."""
     enabled: bool = False
     bonus: float = 3.                    # B per corner [reward units] (Amendment 1 F4)
     floor_ratio: float = .75             # f = 0 at or below this exit-speed ratio [J]
@@ -131,6 +153,18 @@ class CornerBonusConfig:
     exit_after_apex_m: float = 150.      # exit point = last apex + this ...
     exit_before_brake_m: float = 30.     # ... but at least this before the next unit's braking point [J]
     grid_m: float = 1.                   # Track.path grid of the mapped v_qss
+    mode: str = 'exit'                   # 'exit' = R2/R3 exit bonus | 'entry_exit' = R4 entry + exit closeness
+    bonus_in: float = 10.                # R4 B_in per unit [reward units] [ARCH]
+    bonus_out: float = 10.               # R4 B_out per unit [reward units] [ARCH]
+    sigma: float = .3                    # R4 sigma of g at entries / exits [ARCH]
+
+    def __post_init__(self):
+        if self.mode not in CORNER_BONUS_MODES:
+            raise ValueError(f'corner_bonus mode {self.mode!r} not in {CORNER_BONUS_MODES}')
+        if not all(math.isfinite(x) and x >= 0 for x in (self.bonus_in, self.bonus_out)):
+            raise ValueError('bonus_in and bonus_out must be finite and nonnegative')
+        if not (math.isfinite(self.sigma) and self.sigma > 0):
+            raise ValueError(f'corner_bonus sigma must be finite and positive, got {self.sigma}')
 
 
 @dataclass(frozen=True)
@@ -188,12 +222,36 @@ class EnvConfig:
     corner_bonus: CornerBonusConfig = field(default_factory=CornerBonusConfig)   # R2 training aid
     focus: FocusConfig = field(default_factory=FocusConfig)                      # R2 training aid
 
+    @property
+    def speed_on(self):
+        """R4 speed-profile potential on (reward.speed_k > 0)."""
+        return self.reward.speed_k > 0
+
+    @property
+    def entry_exit_on(self):
+        """R4 corner entry + exit closeness terms on."""
+        return self.corner_bonus.enabled and self.corner_bonus.mode == 'entry_exit'
+
+    @property
+    def r4(self):
+        return self.speed_on or self.entry_exit_on
+
     def to_dict(self):
         """asdict without the TRAINING_AID_KEYS blocks that equal their default (disabled), so
         configs, demo keys and hashes written before R2 do not change (R2-6); a missing block
-        loads as its default."""
+        loads as its default. R4: reward.speed_k / speed_sigma are left out while speed_k = 0 and
+        speed_sigma is at its default, the corner_bonus R4 fields while mode is 'exit' and they
+        are at their defaults (configs written before R4 round-trip byte-equal)."""
         d = asdict(self)
         for k in TRAINING_AID_KEYS:
             if getattr(self, k) == type(getattr(self, k))():
                 del d[k]
+        rd = RewardConfig()
+        if self.reward.speed_k == 0 and self.reward.speed_sigma == rd.speed_sigma:
+            for k in R4_REWARD_KEYS:
+                del d['reward'][k]
+        if 'corner_bonus' in d and all(getattr(self.corner_bonus, k) == getattr(CornerBonusConfig(), k)
+                                       for k in R4_CORNER_KEYS):
+            for k in R4_CORNER_KEYS:
+                del d['corner_bonus'][k]
         return d

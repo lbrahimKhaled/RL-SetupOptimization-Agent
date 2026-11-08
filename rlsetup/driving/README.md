@@ -20,8 +20,9 @@ Pipeline: demo driver collects data, behaviour cloning (BC) initialises the acto
 | `callbacks.py` | SB3 callbacks: periodic eval, checkpoints, plateau and regression guards |
 | `evaluate.py` | Flying-lap evaluation, probe episodes, Q vs Monte Carlo, lap metrics |
 | `vec.py` | Subprocess vector env (must not import torch) |
-| `relabel.py` | Relabel an old replay buffer to the R1 reward |
+| `relabel.py` | Relabel an old replay buffer to the R1 reward; R4: exact speed-potential + entry / exit term relabel (s recovered by an anchored chain fit, aborts above the unresolved limit) |
+| `speed_profile.py` | R4: closeness g, speed potential Φ_v = k_v g(v, v_qss(s)), corner entry / exit tracker with take-back |
 | `corners.py` | R2: corner table (QSS on ξref, exit points, cached in `data/`) and the clean-corner exit bonus tracker |
-| `buffers.py` | R2: `BonusNStepReplayBuffer` (stored corner bonus, weighted by w(t) at sampling time); R3: exact bonus relabel to a new (B, floor), pre-exit rows of the critic probe |
+| `buffers.py` | R2: `BonusNStepReplayBuffer` (stored corner bonus, weighted by w(t) at sampling time); R3: exact bonus relabel to a new (B, floor), pre-exit rows of the critic probe; R4: pre-entry / pre-exit probe rows by recovered s |
 
 Siblings in [rlsetup/](..): `runs.py` (run folders and JSON files), `provenance.py` (code hashes recorded with each result).

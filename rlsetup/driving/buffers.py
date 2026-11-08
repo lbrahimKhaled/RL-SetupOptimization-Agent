@@ -14,6 +14,8 @@ in place (no copy of the observation arrays): bonuses 0, labelled False, bonus_w
 class lives in an importable module, so pickling (save / load / resume) keeps bonuses and labelled.
 `relabel_bonuses(rb, (B_s, f_s), (B, f))` (R3_review req 5) rewrites the stored bonuses of a
 buffer written with bonus B_s / floor f_s to bonus B / floor f, in place (exact up to rounding).
+R4: the stored bonus may be negative (an entry term taken back after a crash; speed_profile.py);
+the sampling rule r + w b is unchanged (w = 1 for a never-fade schedule).
 """
 import hashlib
 import numpy as np
@@ -99,6 +101,20 @@ def pre_exit_cells(rb, horizon):
         rows.append(order[ok])
         cols.append(np.full(int(ok.sum()), c))
     return np.concatenate(rows).astype(np.int64), np.concatenate(cols).astype(np.int64)
+
+
+def pre_point_cells(s, points, length, before_m):
+    """(rows, cols) of a recovered Track.path s array (rows x env columns, NaN = unknown) that lie
+    at most `before_m` [m] before any of `points` [m] (0 < (p - s) mod length <= before_m; R4_review
+    req 5: pre-entry / pre-exit probe rows of the offline critic phase)."""
+    s = np.asarray(s, dtype=float)
+    ok = np.zeros(s.shape, bool)
+    fin = np.isfinite(s)
+    for p in points:
+        d = np.where(fin, (float(p) - np.where(fin, s, 0.)) % float(length), np.inf)
+        ok |= (d > 0.) & (d <= float(before_m))
+    rows, cols = np.nonzero(ok)
+    return rows.astype(np.int64), cols.astype(np.int64)
 
 
 class BonusNStepReplayBuffer(NStepReplayBuffer):

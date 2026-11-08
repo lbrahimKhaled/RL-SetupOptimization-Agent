@@ -37,6 +37,15 @@ Conventions
     rho, bonus, kind} and lap2_bonus_sum; stochastic laps add fail_s (final s of a failed lap)
     and sto_corners per unit {passes (exit crossings), crashes (terminal failures inside the
     unit's window)}.
+  - R4 (docs/specs/R4_review.md req 6; speed potential and / or corner entry / exit terms on): the
+    trace adds g_v and shaping_v (only when the env reports them); lap2_entry_exit per unit {rho_in,
+    g_in, kind_in, bonus_in, rho_out, g_out, kind_out, bonus_out, taken_back, brake_onset_m (s of the
+    first decision with brake pedal >= EvalConfig.brake_pedal between the previous unit's exit and
+    the first apex, minus the entry s; + = later than the QSS braking point), v_min_m_s (apex v_min
+    in the window)}; lap2_r4 {entry_sum, exit_sum, taken_back, terms_sum, mean_g, shaping_v_sum,
+    shaping_e_sum, front_lock_fraction, straights {S<k>: (exit of U<k> -> entry of U<k+1>) mean_g,
+    full_throttle_share (throttle pedal >= EvalConfig.full_throttle_pedal), brake_share, top_speed}};
+    sto_corners passes count exits only.
 """
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -47,6 +56,7 @@ import torch as th
 
 TRACE_KEYS = ('s', 'x', 'y', 'speed', 'e', 'gear', 'slip_rl', 'slip_rr', 'track_position',
               'track_width', 'reward', 'lap_index', 'time_s', 'shaping', 'progress_m', 'corner_bonus')
+OPTIONAL_TRACE_KEYS = ('g_v', 'shaping_v')      # R4: recorded only when the env reports them
 
 
 @contextmanager
@@ -156,6 +166,9 @@ def flying_lap(policy, env, *, deterministic, seed, setup=None, threads=1):
             rec['shaping'].append(info.get('shaping', 0.))
             rec['progress_m'].append(info['progress_m'])
             rec['corner_bonus'].append(info.get('corner_bonus', 0.))
+            for k in OPTIONAL_TRACE_KEYS:
+                if k in info:
+                    rec.setdefault(k, []).append(info[k])
             for ev in info.get('corner_events', ()):
                 events.append(dict(ev, lap_index=len(info['line_crossings_s']), decision=len(actions)))
             actions.append(a)
@@ -376,6 +389,80 @@ def lap_corners(rep, table, lap=2):
     return out, float(sum(v['bonus'] for v in out.values()))
 
 
+def _in_span(s, a, b, length):
+    """s (array) inside [a, b] on a lap of `length` (the span may wrap through 0)."""
+    return (np.asarray(s, dtype=float) - a) % length <= (b - a) % length
+
+
+def _pedals(actions, pedal_deadzone):
+    """(throttle, brake) pedals in [0, 1] of env actions (demo_driver.action_to_inputs)."""
+    a = np.asarray(actions, dtype=float).reshape(-1, 3)
+    if pedal_deadzone:
+        return np.clip((a[:, 1] + .5) / 1.5, 0., 1.), np.clip((a[:, 2] + .5) / 1.5, 0., 1.)
+    return (a[:, 1] + 1.) / 2., (a[:, 2] + 1.) / 2.
+
+
+def lap_r4(rep, table, cfg, *, pedal_deadzone, lap=2, entry_exit=True):
+    """R4 metrics of lap `lap` (module docstring): (per-unit dict, lap dict)."""
+    tr = rep.trace
+    L = float(table.length)
+    m = tr['lap_index'] == lap
+    s, v = tr['s'][m], tr['speed'][m]
+    thr, brk = _pedals(tr['actions'][m], pedal_deadzone)
+    order = np.arange(int(m.sum()))
+    units = {}
+    sums = {'entry_sum': 0., 'exit_sum': 0., 'taken_back': 0.}
+    K = len(table.units)
+    for k, u in enumerate(table.units):
+        name = u['name']
+        d = {}
+        if entry_exit:
+            d.update(rho_in=None, g_in=None, kind_in=None, bonus_in=0., rho_out=None, g_out=None, kind_out=None,
+                     bonus_out=0., taken_back=0.)
+        prev_exit = table.units[k - 1]['exit_m'] if K > 1 else u['start_m'] - 300.
+        zone = _in_span(s, prev_exit, u['apexes_m'][0], L) & (brk >= cfg.brake_pedal)
+        if zone.any():
+            s_on = float(s[order[zone][0]])
+            d['brake_onset_m'] = float((s_on - u['start_m'] + L / 2) % L - L / 2)
+        else:
+            d['brake_onset_m'] = None
+        win = _in_span(s, u['start_m'], u['exit_m'], L)
+        d['v_min_m_s'] = float(np.nanmin(v[win])) if win.any() else None
+        units[name] = d
+    if entry_exit:
+        for ev in rep.corner_events:
+            if ev['lap_index'] != lap:
+                continue
+            d = units[table.units[ev['unit']]['name']]
+            if ev['kind'] == 'taken_back':
+                d['taken_back'] += -ev['bonus']
+                sums['taken_back'] += -ev['bonus']
+                continue
+            io = 'in' if ev.get('point') == 'entry' else 'out'
+            d.update({f'rho_{io}': ev['rho'], f'g_{io}': ev['g'], f'kind_{io}': ev['kind'], f'bonus_{io}': ev['bonus']})
+            sums['entry_sum' if io == 'in' else 'exit_sum'] += ev['bonus']
+    straights = {}
+    for k, u in enumerate(table.units):
+        nxt = table.units[(k + 1) % K]
+        sm = _in_span(s, u['exit_m'], nxt['start_m'], L)
+        g = tr['g_v'][m][sm] if 'g_v' in tr else np.zeros(0)
+        straights[f'S{k + 1}'] = {
+            'mean_g': float(np.nanmean(g)) if g.size else None,
+            'full_throttle_share': float(np.mean(thr[sm] >= cfg.full_throttle_pedal)) if sm.any() else None,
+            'brake_share': float(np.mean(brk[sm] >= cfg.brake_pedal)) if sm.any() else None,
+            'top_speed': float(np.nanmax(v[sm])) if sm.any() else None}
+    out = dict(sums, terms_sum=sums['entry_sum'] + sums['exit_sum'] - sums['taken_back'],
+               mean_g=float(np.nanmean(tr['g_v'][m])) if 'g_v' in tr and m.any() else None,
+               shaping_v_sum=float(np.sum(tr['shaping_v'][m])) if 'shaping_v' in tr else None,
+               shaping_e_sum=float(np.sum(tr['shaping'][m])),
+               front_lock_fraction=front_lock_fraction(tr['kappa'][m, 0], tr['kappa'][m, 1], cfg.front_lock_kappa)
+               if m.any() else None, straights=straights)
+    if not entry_exit:
+        for k in ('entry_sum', 'exit_sum', 'taken_back', 'terms_sum'):
+            out.pop(k)
+    return units, out
+
+
 def evaluate_model(model, envs, cfg, *, laps_path=None):
     """Deterministic 2-lap run on envs['eval_det'] + cfg.stochastic_laps 1-lap runs on
     envs['eval_sto'] (torch seeds cfg.seed + k) + Q vs MC on the stochastic episodes.
@@ -393,9 +480,18 @@ def evaluate_model(model, envs, cfg, *, laps_path=None):
            'lap_diff_s': abs(det.lap1_s - det.lap2_s) if det.lap2_s is not None else None,
            'det_return': det.episode_return, 'det_decisions': det.decisions,
            'lap2': lap_metrics(det, cfg, lap=2)}
+    env_cfg = det_env.cfg if hasattr(det_env, 'cfg') else None
+    r4 = env_cfg is not None and env_cfg.r4 and getattr(det_env, 'corners', None) is not None
+    if r4:
+        units, lap = lap_r4(det, det_env.corners, cfg, pedal_deadzone=env_cfg.pedal_deadzone,
+                            entry_exit=env_cfg.entry_exit_on)
+        out.update(lap2_entry_exit=units, lap2_r4=lap)
     if table is not None:
-        corners, bsum = lap_corners(det, table)
-        out.update(det_bonus_sum=float(np.sum(det.trace['corner_bonus'])), lap2_corners=corners, lap2_bonus_sum=bsum)
+        if env_cfg is not None and env_cfg.entry_exit_on:
+            out.update(det_bonus_sum=float(np.sum(det.trace['corner_bonus'])), lap2_bonus_sum=out['lap2_r4']['terms_sum'])
+        else:
+            corners, bsum = lap_corners(det, table)
+            out.update(det_bonus_sum=float(np.sum(det.trace['corner_bonus'])), lap2_corners=corners, lap2_bonus_sum=bsum)
         sto_corners = {u['name']: {'passes': 0, 'crashes': 0} for u in table.units}
     critic = critic_of(model)
     alpha, gamma = float(model.alpha), float(model.gamma)
@@ -412,7 +508,8 @@ def evaluate_model(model, envs, cfg, *, laps_path=None):
             fail_s = float(rep.trace['s'][-1]) if rep.termination in TERMINAL_FAILURES and len(rep.trace['s']) else None
             sto[-1]['fail_s'] = fail_s
             for ev in rep.corner_events:
-                sto_corners[table.units[ev['unit']]['name']]['passes'] += 1
+                if ev.get('point', 'exit') == 'exit' and ev['kind'] != 'taken_back':
+                    sto_corners[table.units[ev['unit']]['name']]['passes'] += 1
             u = None if fail_s is None else table.unit_at(fail_s)
             if u is not None:
                 sto_corners[table.units[u]['name']]['crashes'] += 1

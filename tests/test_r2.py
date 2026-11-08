@@ -251,7 +251,7 @@ def test_config_dicts_without_aids_are_unchanged():
         cfg = make()
         j = json.loads(config_json(cfg))
         assert train_config_from_dict(j) == cfg, name
-        if not name.startswith(('f1_r2', 'f1_r3')):
+        if not name.startswith(('f1_r2', 'f1_r3', 'f1_r4')):
             assert not {'bonus_schedule', 'focus_update'} & set(j) and not set(TRAINING_AID_KEYS) & set(j['env'])
             assert not {'low_noise_envs', 'low_noise_std_scale'} & set(j['agent'])
         else:
@@ -679,7 +679,7 @@ def test_warm_start_accepts_aid_blocks_refuses_driver_change(tmp_path):
         from rlsetup.driving.agent import _env_without_reward
         src = json.loads((SRC / 'config.json').read_text())['env']
         assert _env_without_reward(src) == _env_without_reward(PRESETS['f1_r2']().env.to_dict())
-        assert src['reward'] == json.loads(json.dumps(dataclasses.asdict(PRESETS['f1_r2']().env.reward)))
+        assert src['reward'] == json.loads(json.dumps(PRESETS['f1_r2']().env.to_dict()['reward']))   # R4 fields omitted at defaults
 
 
 def test_preload_adopts_plain_buffer_and_refuses_relabel_of_time_pbrs(tmp_path):

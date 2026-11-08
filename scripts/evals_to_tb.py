@@ -1,6 +1,7 @@
 """Mirror a seed's evals.jsonl (lap times, clean rates, Q vs MC, alpha, throughput, lap-2 line / cost
 metrics, critic check; R2: corner bonus, per-corner exit ratios, focus, low-noise and buffer
-statistics) into TensorBoard.
+statistics; R4: entry / exit ratios and terms, brake onset, apex v_min, closeness g and pedal use per
+straight, Phi_v / Phi_e shaping sums, front locking, training-episode R4 terms) into TensorBoard.
 
     .venv/bin/python scripts/evals_to_tb.py runs/D2/full1/seed0
 
@@ -13,6 +14,7 @@ A warm-started run (status.json 'lifetime_steps_offset' = the source's own offse
 model's steps, chained over warm starts; R3) also gets <seed_dir>/tb_evals_lifetime/ with the same
 scalars at step + offset, so it overlays its source runs' curves on one step axis (R2-9.6):
     tensorboard --logdir_spec f1_r3:runs/mac/D2/f1_r3/seed0/tb_evals_lifetime,f1_r2:runs/mac/D2/f1_r2/seed0/tb_evals_lifetime,f1_best_w35:runs/mac/D2/f1_best_w35/seed0/tb_evals
+    (R4: add f1_r4:runs/mac/D2/f1_r4/seed0/tb_evals_lifetime)
 """
 import calendar
 import json
@@ -82,6 +84,23 @@ def scalars_of(e):
         scalars[f'{prefix}/bonus_per_episode'] = v.get('bonus_per_episode')
     if 'buffer_labelled_fraction' in e:
         scalars['buffer/labelled_fraction'] = e['buffer_labelled_fraction']
+    # --- R4 (docs/specs/R4_review.md req 6); absent keys -> nothing written ---
+    r4 = e.get('lap2_r4') or {}
+    for k in ('entry_sum', 'exit_sum', 'taken_back', 'terms_sum', 'mean_g', 'shaping_v_sum', 'shaping_e_sum',
+              'front_lock_fraction'):
+        if k in r4:
+            scalars[f'r4/lap2_{k}'] = r4[k]
+    for name, st in (r4.get('straights') or {}).items():
+        for k in ('mean_g', 'full_throttle_share', 'brake_share', 'top_speed'):
+            scalars[f'straight/{k}_{name}'] = st.get(k)
+    for unit, c in (e.get('lap2_entry_exit') or {}).items():
+        for k in ('rho_in', 'g_in', 'rho_out', 'g_out', 'taken_back', 'brake_onset_m', 'v_min_m_s'):
+            if k in c:
+                scalars[f'corner/{k}_{unit}'] = c[k]
+    tr = e.get('train_r4') or {}
+    for k in ('ep_shaping_v_mean', 'ep_corner_terms_mean', 'ep_taken_back_mean', 'takebacks', 'episodes_with_takeback'):
+        if k in tr:
+            scalars[f'train_r4/{k}'] = tr[k]
     return scalars
 
 

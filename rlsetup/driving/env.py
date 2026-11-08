@@ -76,6 +76,16 @@ R2 training aids (docs/specs/R2_review.md; both off by default, and then nothing
              s0 = s_h - f v_qss(s_h) settle_s, v0 by the usual rule; up to focus.max_attempts
              settles, then a uniform start (focus_fallback). Reset info start adds focused,
              focus_bin, focus_target_s, handover_to_target_m (signed, - = before x), focus_fallback.
+R4 (docs/specs/R4_review.md; speed_profile.py):
+  speed potential  reward.speed_k > 0 (time_pbrs): per decision also shaping_v = gamma Phi_v(s') -
+             Phi_v(s), Phi_v = speed_k g(v, v_qss(s)) at the decision-boundary state (s = self.s,
+             v = |(v_x, v_y)|, v_qss = CornerTable.speed), Phi_v(s') = 0 after a terminal failure
+             (as Phi). Added to the reward after the Phi shaping; info shaping_v, phi_v (Phi_v(s')),
+             g_v (g at s', NaN on a non-finite state), episode_shaping_v. speed_k = 0: nothing is
+             computed (reward bit-identical).
+  entry_exit corner_bonus.mode 'entry_exit': info corner_bonus is the signed per-decision sum of the
+             entry / exit terms and take-backs (speed_profile.EntryExitTracker); corner_events carry
+             'point'; episode_corner_taken_back / episode_corner_takebacks. The reward is unchanged.
 Observation (fixed scales, clipped to +-ObsConfig.clip; ObsConfig documents the scales):
     ego (9): speed, v_x, v_y, yaw rate, a_x, a_y (body frame: a_x = dv_x/dt - r v_y,
              a_y = dv_y/dt + r v_x over the last decision, r and v at the interval midpoint),
@@ -100,6 +110,7 @@ from .demo_driver import DemoDriver, action_to_inputs, steer_lock_rad
 from .reference import ReferenceLine, track_grid
 from . import qss_profile, setups
 from .corners import CornerTracker, settle_events
+from .speed_profile import EntryExitTracker, speed_potential
 
 EGO_SIZE = 9
 NO_LAP_PROGRESS_M = -1e7       # training: base progress start, lap completion out of reach
@@ -181,13 +192,19 @@ class DrivingEnv(OCDRacingEnv):
         self._err_key = None
         self.obs_clipped_total = self.obs_values_total = 0
         self.evaluation = cfg.evaluation
-        # R2 training aids (None / unused when disabled)
+        # R2 training aids and R4 terms (None / unused when disabled)
         self.corners = None
-        if cfg.corner_bonus.enabled or cfg.focus.enabled:
+        if cfg.corner_bonus.enabled or cfg.focus.enabled or cfg.speed_on:
             from . import corners as corners_mod
             self.corners = corners if corners is not None else corners_mod.for_env(self.track, cfg, self.qss, self.ref)
         cb = cfg.corner_bonus
-        self._tracker = CornerTracker(self.corners, cb.bonus, cb.floor_ratio) if cb.enabled else None
+        self._tracker, self._settle = None, settle_events
+        if cfg.entry_exit_on:
+            self._tracker = EntryExitTracker(self.corners, cb.bonus_in, cb.bonus_out, cb.sigma)
+            self._settle = self._tracker.settle
+        elif cb.enabled:
+            self._tracker = CornerTracker(self.corners, cb.bonus, cb.floor_ratio)
+        self._speed_on = cfg.speed_on
         self.focus_weights = None
         self.n_focus_bins = int(math.ceil(float(self.track.length) / cfg.focus.bin_m))
 
@@ -428,6 +445,9 @@ class DrivingEnv(OCDRacingEnv):
         rw = self.cfg.reward       # Phi at hand-over (time_pbrs; 0 in ref_tracking)
         self._phi = -rw.shaping_k * abs(self._last_e) if rw.mode == 'time_pbrs' else 0.
         self._episode_shaping = 0.
+        if self._speed_on:         # R4: Phi_v at hand-over
+            self._phi_v, self._g_v = self._speed_potential()
+            self._episode_shaping_v = 0.
         L = self.track.length
         if self.evaluation:
             self.max_time_s = self.cfg.eval_max_s
@@ -454,6 +474,8 @@ class DrivingEnv(OCDRacingEnv):
                 'phi': self._phi, 'reward_mode': rw.mode}
         if trace is not None:
             info['settle_sum_fz_N'] = trace
+        if self._speed_on:
+            info.update(phi_v=self._phi_v, g_v=self._g_v)
         if self.cfg.focus.enabled and not self.evaluation:
             x = focus.get('target') if focus else None
             info['start'].update(focused=bool(focus), focus_bin=focus.get('bin') if focus else None,
@@ -462,6 +484,13 @@ class DrivingEnv(OCDRacingEnv):
         return obs, info
 
     # --- step -------------------------------------------------------------------------------------
+    def _speed_potential(self):
+        """(Phi_v, g) of the current state (R4)."""
+        rw = self.cfg.reward
+        phi, g = speed_potential(self.corners, self.s, math.hypot(self.state['vx'], self.state['vy']),
+                                 rw.speed_k, rw.speed_sigma)
+        return float(phi), float(g)
+
     def _distance(self):
         """Track.path distance driven since hand-over [m] (exact; independent of the offset
         given to the base env's progress counter)."""
@@ -570,6 +599,15 @@ class DrivingEnv(OCDRacingEnv):
             total += shaping
             self._phi = phi_next
             self._episode_shaping += shaping
+        if self._speed_on:   # R4: F_v = gamma Phi_v(s') - Phi_v(s); Phi_v(s') = 0 after a terminal failure
+            if terminated and cause in TERMINAL_FAILURES:
+                phi_v_next, g_next = 0., (math.nan if cause == 'nonfinite' else self._speed_potential()[1])
+            else:
+                phi_v_next, g_next = self._speed_potential()
+            shaping_v = rw.gamma * phi_v_next - self._phi_v
+            total += shaping_v
+            self._phi_v, self._g_v = phi_v_next, g_next
+            self._episode_shaping_v += shaping_v
         if truncated and self._trunc_cause is None:
             self._trunc_cause = 'time_limit'
         self._add_costs(self._episode_cost, step_cost)
@@ -595,10 +633,16 @@ class DrivingEnv(OCDRacingEnv):
             info.update(e_ref=math.nan, heading_error=math.nan, speed=math.nan)
         if self.evaluation:
             info.update(line_crossings_s=list(self._crossings), laps=[dict(l) for l in self._laps])
+        if self._speed_on:
+            info.update(shaping_v=shaping_v, phi_v=self._phi_v, g_v=self._g_v,
+                        episode_shaping_v=self._episode_shaping_v)
         if tracker is not None:   # R2-3.4: a terminal failure in this decision forfeits its crossings
-            bonus, events = settle_events(crossings, terminated and cause in TERMINAL_FAILURES)
+            bonus, events = self._settle(crossings, terminated and cause in TERMINAL_FAILURES)
             self._episode_bonus += bonus
             info.update(corner_bonus=bonus, episode_corner_bonus=self._episode_bonus)
+            if self.cfg.entry_exit_on:   # R4 take-backs (EntryExitTracker.settle)
+                info.update(episode_corner_taken_back=tracker.taken_back,
+                            episode_corner_takebacks=tracker.n_taken_back)
             if events:
                 info['corner_events'] = events
         return obs, float(total), bool(terminated), bool(truncated), info
