@@ -226,7 +226,15 @@ nohup cloudflared tunnel --no-autoupdate --url http://127.0.0.1:6006 > runs/mac/
 ```
 Best models: `models/`. Line result: RL 103.06 → 102.57 s. Judge this setup at about 5M steps.
 
-## 8 Nov 2026 — R2 run `f1_r2` RUNNING (launched ~01:28, commit 3acf74c)
+## 8 Nov 2026 — R3 run `f1_r3` RUNNING (launched 10:27, commit 3228c91)
+- What: f1_r2 last.zip (7.40M; lifetime 19.75M) + its buffer with the bonus relabelled to **B = 30, floor 0.85**, bonus **kept on (w = 1, never fades)**; offline critic 50k; focus continues from f1_r2 focus_state.json; low-noise env 3. Spec `docs/specs/R3_bigger_bonus.md` + `R3_review.md`, DECISIONS #25, report `docs/handoff/R3_coder.md`. Laps are aided (only best_aided.zip).
+- Ends: Ibrahim stops it, or the keeper at the first clean det lap 2 ≤ 95 s (any eval).
+- Keeper: `nohup runs/mac/keeper_f1.sh f1_r3 >> runs/mac/keeper_f1_r3.log 2>&1 &`
+- Stop by hand: `pkill -f "keeper_f1.sh f1_r3( |$)"`, then wait for a fresh `replay_buffer.pkl` mtime and `kill -TERM` the training PID (SIGINT is ignored by the backgrounded trainer).
+- Resume: `PYTHONPATH=/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap-f1 caffeinate -dimsu nohup platforms/mac/train.sh --resume --preset f1_r3 --seed 0 --run-name f1_r3 --allow-code-change >> runs/mac/f1_r3_stdout.log 2>&1 &`
+- TensorBoard: `.venv/bin/tensorboard --logdir_spec "f1_r3:runs/mac/D2/f1_r3/seed0/tb_evals_lifetime,f1_r2:runs/mac/D2/f1_r2/seed0/tb_evals_lifetime,f1_best_w35:runs/mac/D2/f1_best_w35/seed0/tb_evals" --port 6006 --host 127.0.0.1 --reload_interval 30`
+
+## 8 Nov 2026 — R2 run `f1_r2` STOPPED by Ibrahim at 7.40M (09:56, SIGTERM after a checkpoint+buffer save; status.json still says running). Det clean 41 %, best 101.48 s (6.55M, w = 0, not reportable). (launched ~01:28, commit 3acf74c)
 - What: sf70h_f1 / sha_f1_best / IQP w3.5, warm start from f1_best_w35 `last.zip` (12.35M) + its buffer; faded clean-corner exit bonus (B = 3, 7 corners; w = 1 to 2M, fade to 4M, reportable from 8M), focused starts (25 %), low-noise env 3 (0.3σ). Spec `docs/specs/R2_review.md` (Amendments 1–2), DECISIONS #22–24, reports `docs/handoff/R2_*.md`.
 - Ends: clean det lap 2 ≤ 95 s on a reportable eval (keeper), or early ≤ 95 s → bonus off, +4M bonus-free, stops itself (result block in status.json), or Ibrahim stops it.
 - Keeper: `nohup runs/mac/keeper_f1.sh f1_r2 >> runs/mac/keeper_f1_r2.log 2>&1 &` (start only when `pgrep -fl "$(.venv/bin/python scripts/keeper_check.py pattern f1_r2)"` shows training).
