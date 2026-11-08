@@ -202,7 +202,9 @@ def warm_start(model, init_from, cfg):
     0), model.actor_lr = cfg.warm.actor_lr (it only acts after the unfreeze) and freezes actor +
     alpha. Returns {'path', 'sha256', 'src_num_timesteps', 'src_alpha', 'src_config_sha256',
     'src_rlsetup_commit' (from the source provenance.json, None if absent), 'actor_sha256',
-    'log_ent_coef_sha256' (after loading)}."""
+    'log_ent_coef_sha256' (after loading), 'src_lifetime_steps_offset' (the source run's own
+    status.json lifetime_steps_offset, 0 if absent), 'lifetime_steps_offset' (= that +
+    src_num_timesteps: this run's step 0 on the lifetime axis, chained over warm starts; R3_review req 4)}."""
     w = cfg.warm
     path = Path(init_from).resolve()
     if not path.is_file():
@@ -263,12 +265,16 @@ def warm_start(model, init_from, cfg):
     prov = {}
     if (run_dir / 'provenance.json').is_file():
         prov = json.loads((run_dir / 'provenance.json').read_text())
+    src_offset = 0
+    if (run_dir / 'status.json').is_file():
+        src_offset = int(json.loads((run_dir / 'status.json').read_text()).get('lifetime_steps_offset') or 0)
     return {'path': str(path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
             'src_num_timesteps': int(src.num_timesteps), 'src_alpha': float(src.alpha),
             'src_config_sha256': hashlib.sha256(cfg_text.encode()).hexdigest(),
             'src_rlsetup_commit': (prov.get('rlsetup') or {}).get('commit'),
             'actor_sha256': param_digest(model.actor),
-            'log_ent_coef_sha256': None if model.log_ent_coef is None else param_digest(model.log_ent_coef)}
+            'log_ent_coef_sha256': None if model.log_ent_coef is None else param_digest(model.log_ent_coef),
+            'src_lifetime_steps_offset': src_offset, 'lifetime_steps_offset': src_offset + int(src.num_timesteps)}
 
 
 def default_init_buffer(init_from):
@@ -284,22 +290,36 @@ def preload_buffer(model, path, init_from, cfg):
     reward is ref_tracking); mark the last row of every env column as an episode end
     (callbacks.cut_nstep_chains); min_train_transitions = 0. R2-4.4: a plain NStepReplayBuffer is
     accepted for a BonusNStepReplayBuffer model and adopted in place (bonus 0, labelled False).
-    Returns {'path', 'sha256', 'rows', 'transitions', 'full', 'cut_row', 'relabel' (stats or None),
-    'adopted', 'labelled_fraction' (None without the bonus buffer)}."""
+    R3_review req 5: a loaded BonusNStepReplayBuffer whose source config.json has env.corner_bonus
+    enabled with (bonus, floor_ratio) != cfg.env.corner_bonus gets its stored bonuses relabelled exactly
+    (buffers.relabel_bonuses); refused (InitMismatch) if the new floor is below the source floor or a
+    stored bonus exceeds the source B. Returns {'path', 'sha256', 'rows', 'transitions', 'full',
+    'cut_row', 'relabel' (stats or None), 'adopted', 'labelled_fraction' (None without the bonus
+    buffer), 'bonus_relabel' (relabel_bonuses stats or None)}."""
     from stable_baselines3.common.save_util import load_from_pkl
     from .callbacks import cut_nstep_chains
     from .config import EnvConfig
     from .relabel import relabel_to_time_pbrs
     from .train_config import config_from_dict
-    from .buffers import BonusNStepReplayBuffer
+    from .buffers import BonusNStepReplayBuffer, relabel_bonuses, check_bonus_relabel
     from stable_baselines3.common.buffers import NStepReplayBuffer
     path = Path(path).resolve()
     if not path.is_file():
         raise InitMismatch(f'init_buffer {path} missing')
     src_env = None
-    if cfg.warm.relabel:     # R2-10.10: refuse before loading the 1.3 GB file
+    if cfg.warm.relabel or isinstance(model.replay_buffer, BonusNStepReplayBuffer):
         cfg_path = Path(init_from).resolve().parents[1] / 'config.json'
         src_env = config_from_dict(EnvConfig, json.loads(cfg_path.read_text())['env'])
+    pair = lambda cb: (float(cb.bonus), float(cb.floor_ratio))
+    bonus_src = bonus_dst = None
+    if (isinstance(model.replay_buffer, BonusNStepReplayBuffer) and src_env.corner_bonus.enabled
+            and pair(src_env.corner_bonus) != pair(cfg.env.corner_bonus)):
+        bonus_src, bonus_dst = pair(src_env.corner_bonus), pair(cfg.env.corner_bonus)
+        try:                 # config-level refusal before loading the 1.3 GB file
+            check_bonus_relabel(bonus_src, bonus_dst)
+        except ValueError as e:
+            raise InitMismatch(f'cannot relabel the bonuses of {path}: {e}') from None
+    if cfg.warm.relabel:     # R2-10.10: refuse before loading the 1.3 GB file
         if src_env.reward.mode != 'ref_tracking':
             raise InitMismatch(f'cannot relabel {path}: the source reward is already {src_env.reward.mode!r} '
                                '(relabel needs ref_tracking; set warm.relabel=False)')
@@ -317,6 +337,12 @@ def preload_buffer(model, path, init_from, cfg):
             bad.append(f'{key} {a} != {b}')
     if bad:
         raise InitMismatch(f'cannot preload {path}: ' + '; '.join(bad))
+    bonus_stats = None
+    if bonus_src is not None and not adopted:      # an adopted buffer holds no bonuses (all 0)
+        try:
+            bonus_stats = relabel_bonuses(rb, bonus_src, bonus_dst)
+        except ValueError as e:
+            raise InitMismatch(f'cannot relabel the bonuses of {path}: {e}') from None
     stats = None
     if cfg.warm.relabel:
         stats = relabel_to_time_pbrs(rb, src_env, cfg.env)
@@ -331,4 +357,4 @@ def preload_buffer(model, path, init_from, cfg):
     lab = rb.labelled_fraction() if isinstance(rb, BonusNStepReplayBuffer) else None
     return {'path': str(path), 'sha256': h.hexdigest(), 'rows': int(rb.size()), 'transitions': int(rb.size() * rb.n_envs),
             'full': bool(rb.full), 'cut_row': None if cut is None else int(cut), 'relabel': stats,
-            'adopted': adopted, 'labelled_fraction': lab}
+            'adopted': adopted, 'labelled_fraction': lab, 'bonus_relabel': bonus_stats}

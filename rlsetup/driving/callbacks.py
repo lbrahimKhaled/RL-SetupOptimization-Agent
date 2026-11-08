@@ -605,8 +605,9 @@ class WallClockLimit(BaseCallback):
 # --- R2 training aids (docs/specs/R2_review.md §R2-5, R2-7, Amendment 1) -------------------------
 def bonus_weight(cfg, n):
     """Scheduled corner-bonus weight w(n) of BonusScheduleConfig `cfg` at this run's step n:
-    1 before hold_until, linear 1 -> 0 on [hold_until, fade_until], 0 from fade_until on."""
-    if n < cfg.hold_until:
+    1 before hold_until, linear 1 -> 0 on [hold_until, fade_until], 0 from fade_until on;
+    1 at every step for a never-fade schedule (hold_until None, R3)."""
+    if cfg.hold_until is None or n < cfg.hold_until:
         return 1.
     if n >= cfg.fade_until:
         return 0.
@@ -631,7 +632,10 @@ class BonusScheduleCallback(BaseCallback):
     from them) and the run's `result()` = best clean deterministic lap 2 + every clean
     deterministic lap 2 (step, lap) of the stretch goes to bonus_state.json 'result' and to
     `on_result(result)` (train.py: status.json 'result') at every evaluation. `history`: evaluation
-    records of earlier processes (resume), from which the stretch's clean laps are rebuilt."""
+    records of earlier processes (resume), from which the stretch's clean laps are rebuilt.
+    R3 never-fade schedule (cfg.hold_until None, no trigger_step): w = 1 always, report_from None,
+    no evaluation reportable, the trigger is never checked (early trigger off), the run never
+    stops itself."""
 
     def __init__(self, cfg, state_path=None, *, trigger_step=None, report_from=None, on_event=_noop,
                  on_result=_noop, history=()):
@@ -639,9 +643,9 @@ class BonusScheduleCallback(BaseCallback):
         self.cfg, self.on_event, self.on_result = cfg, on_event, on_result
         self.state_path = None if state_path is None else Path(state_path)
         self.trigger_step = None if trigger_step is None else int(trigger_step)
-        self.report_from = int(report_from if report_from is not None else
-                               (self.trigger_step + cfg.bonus_free_before_report if self.trigger_step is not None
-                                else cfg.report_from))
+        rf = (report_from if report_from is not None else
+              self.trigger_step + cfg.bonus_free_before_report if self.trigger_step is not None else cfg.report_from)
+        self.report_from = None if rf is None else int(rf)      # None: never-fade schedule (R3)
         self.stopped = False
         self.result_evals = 0
         self.result_laps = []                  # [(step, clean deterministic lap 2 [s])] of the result stretch
@@ -669,7 +673,7 @@ class BonusScheduleCallback(BaseCallback):
         return 0. if self.trigger_step is not None else bonus_weight(self.cfg, n)
 
     def reportable(self, n):
-        return int(n) >= self.report_from
+        return self.report_from is not None and int(n) >= self.report_from
 
     def state(self, step=None):
         st = {'step': None if step is None else int(step), 'trigger_step': self.trigger_step,
@@ -718,7 +722,7 @@ class BonusScheduleCallback(BaseCallback):
         w = self.weight(n)
         rec['bonus_w'] = w
         lap2 = rec.get('lap2_s')
-        if (self.trigger_step is None and rec.get('det_clean') and lap2 is not None
+        if (self.trigger_step is None and self.report_from is not None and rec.get('det_clean') and lap2 is not None
                 and lap2 <= self.cfg.trigger_lap2_s and (w > 0 or n < self.report_from)):
             self.trigger(n, lap2)
             rec['aided_target_lap'] = True

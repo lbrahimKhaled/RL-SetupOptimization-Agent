@@ -2,7 +2,8 @@
 
 Spec: docs/specs/D2_agent.md (binding); warm start, stop rule and the r1_* presets:
 docs/specs/R1_time_optimal.md §2.4; R2 training aids (bonus schedule, focus weights, low-noise
-rollouts, presets f1_r2*): docs/specs/R2_review.md incl. Amendment 1. Step counts are transitions summed over envs (SB3
+rollouts, presets f1_r2*): docs/specs/R2_review.md incl. Amendment 1; R3 (preset f1_r3: B = 30, floor
+0.85, never-fade schedule, bonus relabel, focus init_state): docs/specs/R3_review.md. Step counts are transitions summed over envs (SB3
 `num_timesteps`); one transition = one 25 Hz decision of one env. Times in s unless the name
 says otherwise. PLACEHOLDER marks numbers not yet justified by data or a decision.
 
@@ -135,6 +136,13 @@ class WarmStartConfig:
     min_buffer_batches: int = 10         # no grad step until buffer >= agent.batch_size * this (0 with a
                                          # preloaded buffer)
     critic_check_tol: float = .08        # |Q_min - MC| / |MC| at the unfreeze eval; above -> warning
+    # R3 req 6: pre-exit probe of the offline critic phase (bonus buffer with nonzero bonuses only):
+    # fixed batch of rows that have a nonzero bonus within this many decisions ahead (same env column,
+    # no episode end before it); mean Q_min per block; warning when its range over the last
+    # pre_exit_warn_blocks blocks exceeds pre_exit_warn_q [reward units] (critic still moving near exits).
+    pre_exit_horizon: int = 30
+    pre_exit_warn_q: float = .5
+    pre_exit_warn_blocks: int = 5
 
 
 @dataclass(frozen=True)
@@ -155,15 +163,24 @@ class BonusScheduleConfig:
     report_from = fade_until + bonus_free_before_report (8M). Trigger (Amendment 1): the first
     evaluation with a clean deterministic lap 2 <= trigger_lap2_s while w > 0 or t < report_from
     sets w = 0 for the rest of the run and report_from = trigger step + bonus_free_before_report;
-    the run then stops itself at report_from."""
-    hold_until: int = 2_000_000
+    the run then stops itself at report_from.
+    R3 (DECISIONS #25, R3_review req 1): hold_until = None = never fade: w = 1 for the whole run,
+    report_from None (no evaluation is reportable, best.zip is never written, only best_aided.zip),
+    no trigger; fade_until and bonus_free_before_report are then unused. trigger_lap2_s stays the
+    keeper limit (scripts/keeper_check.py counts every evaluation of such a run)."""
+    hold_until: int | None = 2_000_000
     fade_until: int = 4_000_000
     bonus_free_before_report: int = 4_000_000   # Decision 2 (DECISIONS #22)
     trigger_lap2_s: float = 95.          # Decision 5: clean deterministic lap 2 <= this
 
     @property
+    def never_fade(self):
+        return self.hold_until is None
+
+    @property
     def report_from(self):
-        return self.fade_until + self.bonus_free_before_report
+        """First reportable step; None for a never-fade schedule."""
+        return None if self.never_fade else self.fade_until + self.bonus_free_before_report
 
 
 @dataclass(frozen=True)
@@ -173,11 +190,15 @@ class FocusUpdateConfig:
     0.5^(update_every / half_life); r_b = c_b / n_b; P = (1 - hot_floor_share) r / sum r +
     hot_floor_share Uniform(H0). Seed: crashes of the failed deterministic eval laps with
     step >= seed_min_step in <seed_run>/laps/step_*_det.npz: n_b = prior_passes,
-    c_b = prior_passes crashes_b / N_evals; H0 = bins with >= hot_min_crashes seed crashes."""
+    c_b = prior_passes crashes_b / N_evals; H0 = bins with >= hot_min_crashes seed crashes.
+    R3 req 7: init_state = a focus_state.json of an earlier run (relative to the repo root unless
+    absolute): its decayed counters n, c and H0 are the initial state (continued, not re-seeded);
+    takes precedence over seed_run."""
     update_every: int = 10_000
     half_life: int = 1_000_000
     prior_passes: float = 200.
     seed_run: str | None = None          # seed folder (relative to the repo root unless absolute)
+    init_state: str | None = None        # focus_state.json to continue from (R3; precedence over seed_run)
     seed_min_step: int = 2_000_000
     hot_min_crashes: int = 5
     hot_floor_share: float = .2
@@ -185,6 +206,7 @@ class FocusUpdateConfig:
 
 R2_TRAIN_KEYS = ('bonus_schedule', 'focus_update')      # TrainConfig blocks of the R2 training aids
 R2_AGENT_KEYS = ('low_noise_envs', 'low_noise_std_scale')
+R3_WARM_KEYS = ('pre_exit_horizon', 'pre_exit_warn_q', 'pre_exit_warn_blocks')   # omitted like the R2 blocks
 
 
 @dataclass(frozen=True)
@@ -247,6 +269,9 @@ class TrainConfig:
             for k in R2_AGENT_KEYS:
                 if getattr(self.agent, k) == getattr(AgentConfig(), k):
                     del d['agent'][k]
+            for k in R3_WARM_KEYS:
+                if getattr(self.warm, k) == getattr(WarmStartConfig(), k):
+                    del d['warm'][k]
         return d
 
     @property
@@ -388,6 +413,28 @@ def _f1_r2():
                    stop=replace(c.stop, plateau=False))
 
 
+F1_R2_RUN = 'runs/mac/D2/f1_r2/seed0'   # R3 warm-start source (stopped at 7.40M, DECISIONS #25)
+F1_R3_INIT = str(Path(__file__).resolve().parents[2] / F1_R2_RUN / 'checkpoints' / 'last.zip')
+
+
+def _f1_r3():
+    """R3 (docs/specs/R3_bigger_bonus.md + R3_review.md; DECISIONS #25): f1_r2 with the corner
+    bonus at B = 30 per corner, floor 0.85, kept on (w = 1, never fade: hold_until None, so no
+    trigger, nothing reportable, only best_aided.zip); warm start by default from f1_r2 last.zip
+    (F1_R3_INIT, 7.40M steps; lifetime offset 12.35M + 7.40M = 19.75M) with f1_r2's own replay buffer
+    (warm.init_buffer None -> <f1_r2>/replay_buffer.pkl) whose bonuses are relabelled exactly from
+    (3, 0.75) to (30, 0.85) (buffers.relabel_bonuses); offline critic 50k grad steps (pre-exit probe);
+    focused starts continue from f1_r2's focus_state.json (init_state, not re-seeded). Everything
+    else as f1_r2 (focus 25 %, low-noise env 3, actor lr 1e-4, guard 0.65, no plateau stop, no
+    step / wall cap). Laps are aided while the bonus is on. Run name: f1_r3."""
+    c = _f1_r2()
+    return replace(c, preset='f1_r3', init_from=F1_R3_INIT,
+                   env=replace(c.env, corner_bonus=replace(c.env.corner_bonus, bonus=30., floor_ratio=.85)),
+                   warm=replace(c.warm, offline_critic_grad_steps=50_000),
+                   bonus_schedule=replace(c.bonus_schedule, hold_until=None),
+                   focus_update=replace(c.focus_update, seed_run=None, init_state=f'{F1_R2_RUN}/focus_state.json'))
+
+
 def _f1_r2_smoke():
     """f1_r2 compressed to 150k env steps (R2-9.2): w = 1 until 60k, fade to 0 at 120k,
     reportable from 150k (gap 30k); eval every 25k with 3 stochastic laps, probe every 5k,
@@ -405,7 +452,7 @@ def _f1_r2_smoke():
 PRESETS = {'full': lambda: TrainConfig(preset='full'), 'smoke': _smoke, 'r1_warm': _r1_warm,
            'r1_warm_smoke': _r1_warm_smoke, 'p1_TUM': _p1_tum,
            'p0_TUMref': _p0_tumref, 'bcn': _bcn, 'f1_sha': _f1_sha, 'f1_sha_w35': _f1_sha_w35,
-           'f1_best_w35': _f1_best_w35, 'f1_r2': _f1_r2, 'f1_r2_smoke': _f1_r2_smoke}
+           'f1_best_w35': _f1_best_w35, 'f1_r2': _f1_r2, 'f1_r2_smoke': _f1_r2_smoke, 'f1_r3': _f1_r3}
 
 
 # --- dict / override helpers (JSON round trip of nested frozen dataclasses) -------------------------

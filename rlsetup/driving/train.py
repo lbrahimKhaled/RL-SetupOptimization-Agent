@@ -48,7 +48,7 @@ changes (exit 4) unless --allow-dirty; both flags are recorded in the 'resume' e
 with the code state. A new run with strict_provenance refuses a dirty tree the same way. Resume
 never re-applies init_from; a run resumed in its frozen phase ('bc' or 'warm') stays frozen until
 its unfreeze step.
-R2 training aids (docs/specs/R2_review.md + Amendment 1; presets f1_r2, f1_r2_smoke): the corner
+R2 training aids (docs/specs/R2_review.md + Amendment 1; presets f1_r2, f1_r2_smoke, f1_r3): the corner
 table (corners.py) is built once here and handed to the vector-env workers and the eval envs;
 corner_bonus -> BonusNStepReplayBuffer (a pre-R2 init buffer is adopted in place, bonus 0),
 BonusScheduleCallback first in the callback list (w(0) is set before the offline critic phase;
@@ -61,6 +61,14 @@ provenance.json 'r2' records the table, the configs, the focus seed and the buff
 fraction at the start. A resume restores the schedule state (incl. the result stretch), the focus
 counters (re-seeded with a warning if focus_state.json is missing) and best / best_aided from the
 evaluation records.
+R3 (docs/specs/R3_review.md; preset f1_r3): a never-fade schedule (bonus_schedule.hold_until None:
+w = 1, nothing reportable, no trigger, only best_aided.zip); a preloaded bonus buffer written with a
+different (B, floor) is relabelled exactly (agent.preload_buffer, stats in status.json init_buffer
+and provenance.json init_buffer.bonus_relabel); lifetime_steps_offset = the source run's own
+offset + its num_timesteps (chained warm starts, both parts in provenance.json init_from); the
+offline critic phase also logs mean Q_min on a fixed batch of pre-exit rows (warning if it still
+moves); focus_update.init_state continues the focus counters of an earlier run (provenance 'r2'
+focus_init_state).
 """
 from dataclasses import replace
 from pathlib import Path
@@ -130,10 +138,33 @@ def corner_table(cfg, track, qss):
     return corners.for_env(track, cfg.env, qss)
 
 
-def focus_seed_for(cfg, track):
-    """FocusUpdateConfig seed histogram (callbacks.focus_seed) of cfg.focus_update.seed_run, or None."""
+def _repo_path(p):
+    from ..provenance import REPO_ROOT
+    p = Path(p)
+    return p if p.is_absolute() else REPO_ROOT / p
+
+
+def focus_init_state_for(cfg):
+    """R3 req 7: (state dict, provenance dict) of cfg.focus_update.init_state (a focus_state.json,
+    relative to the repo root unless absolute), or (None, None). ValueError if its bin_m differs
+    from cfg.env.focus.bin_m; FocusedStartCallback refuses a different bin count."""
     u = cfg.focus_update
-    if not cfg.env.focus.enabled or u.seed_run is None:
+    if not cfg.env.focus.enabled or u.init_state is None:
+        return None, None
+    import json
+    path = _repo_path(u.init_state)
+    st = json.loads(path.read_text())
+    if st.get('bin_m') is not None and float(st['bin_m']) != float(cfg.env.focus.bin_m):
+        raise ValueError(f"focus init_state {path} has bin_m {st['bin_m']}, the run uses {cfg.env.focus.bin_m}")
+    return st, {'path': str(path), 'sha256': _sha_file(path), 'step': st.get('step'), 'updates': st.get('updates'),
+                'n_bins': len(st['n']), 'hot': list(st['hot'])}
+
+
+def focus_seed_for(cfg, track):
+    """FocusUpdateConfig seed histogram (callbacks.focus_seed) of cfg.focus_update.seed_run, or None
+    (also when focus_update.init_state is set: the continued state takes precedence)."""
+    u = cfg.focus_update
+    if not cfg.env.focus.enabled or u.seed_run is None or u.init_state is not None:
         return None
     length_m = float(track.length)
     from ..provenance import REPO_ROOT
@@ -142,8 +173,8 @@ def focus_seed_for(cfg, track):
     return focus_seed(p if p.is_absolute() else REPO_ROOT / p, u, cfg.env.focus.bin_m, length_m)
 
 
-def r2_provenance(cfg, table, seed, labelled_fraction):
-    """provenance.json 'r2' (R2-9.7), None for runs without R2 aids."""
+def r2_provenance(cfg, table, seed, labelled_fraction, focus_init=None):
+    """provenance.json 'r2' (R2-9.7; R3: focus_init_state), None for runs without R2 aids."""
     if not cfg.r2_aids:
         return None
     from dataclasses import asdict
@@ -152,7 +183,7 @@ def r2_provenance(cfg, table, seed, labelled_fraction):
             'bonus_schedule': dict(asdict(cfg.bonus_schedule), report_from=cfg.bonus_schedule.report_from),
             'focus_update': asdict(cfg.focus_update), 'focus_seed': seed,
             'low_noise': {'envs': list(cfg.agent.low_noise_envs), 'std_scale': cfg.agent.low_noise_std_scale},
-            'labelled_fraction_at_start': labelled_fraction}
+            'labelled_fraction_at_start': labelled_fraction, 'focus_init_state': focus_init}
 
 
 class Run:
@@ -332,8 +363,14 @@ def _offline_warmup(run, model, demos, val_episodes):
 def _offline_critic(run, model):
     """Amendment 1 §B step 4: actor + alpha frozen, cfg.warm.offline_critic_grad_steps critic
     grad steps on the preloaded buffer in blocks of cfg.warm.offline_block; per block the critic
-    loss and mean Q_min on a fixed batch of buffer rows (warmup.q_probe_batch) -> warmup.jsonl."""
+    loss and mean Q_min on a fixed batch of buffer rows (warmup.q_probe_batch) -> warmup.jsonl.
+    R3 req 6 (bonus buffer with nonzero bonuses): also mean Q_min on a fixed batch of pre-exit rows
+    (buffers.pre_exit_cells, horizon warm.pre_exit_horizon) per block ('mean_q_pre_exit'); if its
+    range over the last warm.pre_exit_warn_blocks blocks exceeds warm.pre_exit_warn_q, a status
+    warning (the global critic_check cannot see a critic still moving just before the exits).
+    Returns the warmup.jsonl block records."""
     from ..runs import append_jsonl
+    from .buffers import BonusNStepReplayBuffer, pre_exit_cells
     from .evaluate import q_values
     cfg, w = run.cfg, run.cfg.warm
     rb = model.replay_buffer
@@ -341,6 +378,15 @@ def _offline_critic(run, model):
     idx = np.random.default_rng(cfg.seed).choice(n, size=min(cfg.warmup.q_probe_batch, n), replace=False)
     rows, cols = idx // rb.n_envs, idx % rb.n_envs
     obs, act = rb.observations[rows, cols], rb.actions[rows, cols]
+    pre = None
+    if isinstance(rb, BonusNStepReplayBuffer):
+        pr, pc = pre_exit_cells(rb, w.pre_exit_horizon)
+        if len(pr):
+            k = np.random.default_rng(cfg.seed + 1).choice(len(pr), size=min(cfg.warmup.q_probe_batch, len(pr)),
+                                                           replace=False)
+            pre = (rb.observations[pr[k], pc[k]], rb.actions[pr[k], pc[k]])
+            run.log(f'pre-exit probe: {len(k)} of {len(pr)} rows with a bonus within {w.pre_exit_horizon} decisions')
+    out = []
     done, b = 0, 0
     while done < w.offline_critic_grad_steps:
         k = min(w.offline_block, w.offline_critic_grad_steps - done)
@@ -350,13 +396,25 @@ def _offline_critic(run, model):
         rec = {'block': b, 'grad_steps': done,
                'critic_loss': float(model.logger.name_to_value.get('train/critic_loss', np.nan)),
                'mean_q_fixed_batch': float(q_min.mean())}
+        if pre is not None:
+            rec['mean_q_pre_exit'] = float(q_values(model.critic, *pre)[0].mean())
+            model.logger.record('warmup/mean_q_pre_exit', rec['mean_q_pre_exit'])
         append_jsonl(run.dir / 'warmup.jsonl', rec)
+        out.append(rec)
         model.logger.record('warmup/critic_loss', rec['critic_loss'])
         model.logger.record('warmup/mean_q_fixed_batch', rec['mean_q_fixed_batch'])
         model.logger.dump(step=b)
         run.log(f"offline critic block {b}: {done} grad steps, critic loss {rec['critic_loss']:.3f}, "
-                f"mean Q {rec['mean_q_fixed_batch']:.1f}")
+                f"mean Q {rec['mean_q_fixed_batch']:.1f}"
+                + (f", pre-exit mean Q {rec['mean_q_pre_exit']:.2f}" if pre is not None else ''))
         b += 1
+    if pre is not None and len(out) >= w.pre_exit_warn_blocks:
+        last = [r['mean_q_pre_exit'] for r in out[-w.pre_exit_warn_blocks:]]
+        moved = max(last) - min(last)
+        if moved > w.pre_exit_warn_q:
+            _warn(run, 0, f'pre-exit mean Q_min moved {moved:.2f} (> {w.pre_exit_warn_q:g}) over the last '
+                          f'{w.pre_exit_warn_blocks} offline critic blocks: critic not settled near the exits')
+    return out
 
 
 def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
@@ -386,6 +444,10 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
         if missing:
             print(f'refusing to warm start: missing {missing}')
             return EXIT_INIT_MISMATCH
+    if cfg.env.focus.enabled and cfg.focus_update.init_state is not None \
+            and not _repo_path(cfg.focus_update.init_state).is_file():      # R3: same rule as QA m2
+        print(f'refusing to run: focus_update.init_state {_repo_path(cfg.focus_update.init_state)} missing')
+        return EXIT_INIT_MISMATCH
     rl_git = git_state(REPO_ROOT)
     if cfg.strict_provenance and rl_git['dirty'] and not allow_dirty:
         print(f'refusing to run preset {cfg.preset} (strict_provenance): rlsetup has uncommitted changes '
@@ -423,6 +485,7 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
         model = build_model(cfg, vec)
         a = cfg.agent
         seed = focus_seed_for(cfg, track)
+        focus_init, focus_init_prov = focus_init_state_for(cfg)
         if table is not None:
             log('corner table ' + ', '.join(f"{u['name']} [{u['start_m']:.0f}, {u['exit_m']:.0f}] m v_exit "
                                             f"{u['v_qss_exit']:.1f}" for u in table.units))
@@ -514,17 +577,20 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
                 log(str(e))
                 return EXIT_INIT_MISMATCH
             prov['init_from'] = {k: init[k] for k in ('path', 'sha256', 'src_num_timesteps', 'src_rlsetup_commit',
-                                                      'src_config_sha256', 'src_alpha')}
-            prov['init_buffer'] = {k: buf[k] for k in ('path', 'sha256', 'transitions')}
+                                                      'src_config_sha256', 'src_alpha', 'src_lifetime_steps_offset',
+                                                      'lifetime_steps_offset')}
+            prov['init_buffer'] = {k: buf[k] for k in ('path', 'sha256', 'transitions', 'bonus_relabel')}
             write_json(run_dir / 'provenance.json', prov)
             log(f"warm start from {init['path']} (step {init['src_num_timesteps']}, alpha {init['src_alpha']:.4f}); "
                 f"actor {init['actor_sha256'][:12]}, log alpha {init['log_ent_coef_sha256'][:12]}; optimizers "
                 f"{'loaded' if cfg.warm.load_optimizers else 'fresh'}; buffer {buf['transitions']} transitions "
-                f"({time.time() - t:.1f} s), relabel {buf['relabel']}")
+                f"({time.time() - t:.1f} s), relabel {buf['relabel']}, bonus relabel {buf['bonus_relabel']}; "
+                f"lifetime offset {init['src_lifetime_steps_offset']} + {init['src_num_timesteps']} = "
+                f"{init['lifetime_steps_offset']}")
             pr = probe(model, envs['probe'], starts)
             baseline = pr.mean_progress_m
             run.status(bc_baseline_m=baseline, bc_probe=pr.progress_m, baseline_source='init_from', init_from=init,
-                       init_buffer=buf, lifetime_steps_offset=init['src_num_timesteps'])
+                       init_buffer=buf, lifetime_steps_offset=init['lifetime_steps_offset'])
             run.status(phase='offline_warmup')
             t = time.time()
             if cfg.env.corner_bonus.enabled:      # R2-5.2: w(0) before the offline critic phase
@@ -537,7 +603,7 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
         else:
             raise ValueError(f'unknown init_mode {a.init_mode!r}')
         r2 = r2_provenance(cfg, table, seed, model.replay_buffer.labelled_fraction()
-                           if hasattr(model.replay_buffer, 'labelled_fraction') else None)
+                           if hasattr(model.replay_buffer, 'labelled_fraction') else None, focus_init_prov)
         if r2 is not None:
             prov['r2'] = r2
             write_json(run_dir / 'provenance.json', prov)
@@ -546,7 +612,8 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
         # --- steps 4b + 5 ---
         cbs, guard, wall, plateau = _callbacks(run, model, envs, starts, baseline, unfreeze_at=unfreeze_at,
                                                t0=run.t0, buffer_saved_step=buffer_saved_step,
-                                               critic_check_at=critic_check_at, focus_seed=seed)
+                                               critic_check_at=critic_check_at, focus_seed=seed,
+                                               focus_state=focus_init)
         return _learn_and_finish(run, model, cbs, guard, wall, plateau, cfg.total_timesteps)
     except BaseException as e:
         run.status(state='error', stop_reason=f'{type(e).__name__}: {e}', traceback=traceback.format_exc())
@@ -692,9 +759,13 @@ def resume_pipeline(run_dir, overrides=(), *, argv=None, allow_dirty=False, allo
         focus_state = load_focus_state(run_dir) if cfg.env.focus.enabled else None
         seed = None
         if cfg.env.focus.enabled and focus_state is None:
-            seed = focus_seed_for(cfg, track)
-            _warn(run, n, 'focus_state.json missing: focus counters re-seeded from '
-                          f'{cfg.focus_update.seed_run} (training-time counts lost)')
+            if cfg.focus_update.init_state is not None:      # R3: back to the run's initial state
+                focus_state = focus_init_state_for(cfg)[0]
+                src = cfg.focus_update.init_state
+            else:
+                seed = focus_seed_for(cfg, track)
+                src = cfg.focus_update.seed_run
+            _warn(run, n, f'focus_state.json missing: focus counters re-seeded from {src} (training-time counts lost)')
         from .callbacks import plateau_entry
         warm = cfg.agent.init_mode == 'warm'
         frozen_phase = cfg.agent.init_mode in ('bc', 'warm') and status.get('unfrozen_at') is None
