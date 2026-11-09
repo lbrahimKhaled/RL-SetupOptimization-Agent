@@ -12,13 +12,15 @@ Storage `<demo_dir>/demos_<key12>.npz` + `.json` (metadata, summary, provenance)
 sha256 of (EnvConfig dict, DemoDataConfig without `workers`, sha256 of the rlsetup source files
 that shape the demos (DEMO_SOURCES; lead decision 26 Oct, replaces the rlsetup commit of spec §4,
 so commits that do not touch them keep the cache), ocd_lap code_version, sha256 of the QSS cache
-key). Arrays:
+key); with the corner bonus or the R4 speed potential on also the sha256 of REWARD_SOURCES. Arrays:
   obs            (sum(T_i + 1), obs_dim) float32: each episode's T_i + 1 observations, the last
                  being the true terminal / truncation observation
   actions        (N, 3) float32 executed (noisy, clipped) actions, action space [-1, 1]
   actions_clean  (N, 3) float32 the demo driver's action before noise (addition to the spec:
                  BC's validation MSE is measured against it)
-  rewards        (N,) float64 env reward; terminated, truncated (N,) bool
+  rewards        (N,) float64 env reward (incl. the R4 speed potential); terminated, truncated (N,) bool
+  corner_bonus   (N,) float64 info['corner_bonus'] per decision (signed R4 entry / exit terms, or the R2
+                 exit bonus); only in datasets of an env with corner_bonus.enabled (not in ARRAYS)
   ep_start_obs, ep_start_tr (E,) int64 first row of episode e in obs / in the transition arrays
   f_demo, s0     (E,) float64;  ep_cause (E,) str: failure cause, 'time_limit' or 'none'
 Transition t of episode e: obs row ep_start_obs[e] + (t - ep_start_tr[e]), next obs = that + 1.
@@ -48,6 +50,8 @@ ARRAYS = ('obs', 'actions', 'actions_clean', 'rewards', 'terminated', 'truncated
 # rlsetup files whose content can change the demo data (relative to the repo root).
 DEMO_SOURCES = tuple(f'rlsetup/driving/{f}' for f in
                      ('env.py', 'config.py', 'demo_driver.py', 'reference.py', 'qss_profile.py', 'demos.py'))
+# ... and those that shape the stored rewards / corner terms only with the corner bonus or the R4 potential on.
+REWARD_SOURCES = tuple(f'rlsetup/driving/{f}' for f in ('corners.py', 'speed_profile.py'))
 
 
 class DemoGateFailed(RuntimeError):
@@ -67,6 +71,8 @@ def dataset_key(env_cfg, demo_cfg, qss, provenance=None):
          'rlsetup_demo_sources_sha256': demo_sources_sha256(),
          'ocd_lap_code_version': prov['ocd_lap_code_version'],
          'qss_cache_key_sha256': hashlib.sha256(json.dumps(qss.meta['key'], sort_keys=True).encode()).hexdigest()}
+    if env_cfg.corner_bonus.enabled or env_cfg.speed_on:
+        d['rlsetup_reward_sources_sha256'] = {f: sha256_file(REPO_ROOT / f) for f in REWARD_SOURCES}
     return hashlib.sha256(json.dumps(d, sort_keys=True).encode()).hexdigest(), d
 
 
@@ -83,7 +89,7 @@ def run_episode(env, demo_cfg, ep):
     policy.reset()
     e = env.unwrapped
     observations, actions, clean_actions, rewards, terms, truncs = [obs], [], [], [], [], []
-    speed_fraction = []
+    speed_fraction, bonus = [], []
     while True:
         clean = policy()
         a = np.clip(clean + rng.normal(0., std), -1., 1.).astype(np.float32)
@@ -94,16 +100,21 @@ def run_episode(env, demo_cfg, ep):
         rewards.append(r)
         terms.append(term)
         truncs.append(trunc)
+        if 'corner_bonus' in info:
+            bonus.append(info['corner_bonus'])
         if np.isfinite(info['speed']):
             speed_fraction.append(info['speed'] / float(e.qss.speed(info['s_track'])))
         if term or trunc:
             break
     cause = info['termination'] or info['truncation'] or 'none'
-    return {'obs': np.asarray(observations, np.float32), 'actions': np.asarray(actions, np.float32),
-            'actions_clean': np.asarray(clean_actions, np.float32), 'rewards': np.asarray(rewards, np.float64),
-            'terminated': np.asarray(terms, bool), 'truncated': np.asarray(truncs, bool),
-            'f_demo': f, 's0': s0, 'cause': cause, 'speed_fraction_sum': float(np.sum(speed_fraction)),
-            'speed_fraction_n': len(speed_fraction)}
+    out = {'obs': np.asarray(observations, np.float32), 'actions': np.asarray(actions, np.float32),
+           'actions_clean': np.asarray(clean_actions, np.float32), 'rewards': np.asarray(rewards, np.float64),
+           'terminated': np.asarray(terms, bool), 'truncated': np.asarray(truncs, bool),
+           'f_demo': f, 's0': s0, 'cause': cause, 'speed_fraction_sum': float(np.sum(speed_fraction)),
+           'speed_fraction_n': len(speed_fraction)}
+    if bonus:                 # the env reports it on every decision iff corner_bonus.enabled
+        out['corner_bonus'] = np.asarray(bonus, np.float64)
+    return out
 
 
 _WORKER = {}
@@ -160,8 +171,9 @@ def summarize(episodes):
 def _assemble(episodes):
     lens = np.array([len(e['actions']) for e in episodes], np.int64)
     ep_start_tr = np.r_[0, np.cumsum(lens)[:-1]].astype(np.int64)
+    optional = ('corner_bonus',) if 'corner_bonus' in episodes[0] else ()
     out = {k: np.concatenate([e[k] for e in episodes]) for k in
-           ('obs', 'actions', 'actions_clean', 'rewards', 'terminated', 'truncated')}
+           ('obs', 'actions', 'actions_clean', 'rewards', 'terminated', 'truncated') + optional}
     out.update(ep_start_tr=ep_start_tr, ep_start_obs=ep_start_tr + np.arange(len(episodes), dtype=np.int64),
                f_demo=np.array([e['f_demo'] for e in episodes]), s0=np.array([e['s0'] for e in episodes]),
                ep_cause=np.array([e['cause'] for e in episodes], dtype='U16'))
@@ -258,7 +270,12 @@ def prefill_replay_buffer(rb, demos):
     last row of every column that does not end on a true termination gets done = 1 and
     TimeLimit.truncated = True, so the n-step sampler never chains a cut demo into that
     column's first online transition (it bootstraps from the stored next obs instead).
+    A dataset with `corner_bonus` passes it as info['corner_bonus'], the way online transitions
+    reach BonusNStepReplayBuffer.add; a bonus buffer refuses a dataset without it (ValueError, nothing
+    written), since its rows would silently carry 0.
     Returns counts."""
+    if hasattr(rb, 'bonuses') and 'corner_bonus' not in demos:
+        raise ValueError('demo dataset has no corner_bonus array but the replay buffer stores corner terms')
     if 'obs_index' not in demos:
         demos = with_index(demos)
     n = rb.n_envs
@@ -279,9 +296,13 @@ def prefill_replay_buffer(rb, demos):
     tail = ~term[-1]
     done[-1, tail] = True
     timeout[-1, tail] = True
-    O, A, R = demos['obs'], demos['actions'], demos['rewards']
+    O, A, R, B = demos['obs'], demos['actions'], demos['rewards'], demos.get('corner_bonus')
     for r in range(T):
+        infos = [{'TimeLimit.truncated': bool(x)} for x in timeout[r]]
+        if B is not None:
+            for info, b in zip(infos, B[idx[r]]):
+                info['corner_bonus'] = float(b)
         rb.add(O[obs_i[r]], O[obs_i[r] + 1], A[idx[r]], R[idx[r]].astype(np.float32),
-               done[r].astype(np.float32), [{'TimeLimit.truncated': bool(x)} for x in timeout[r]])
+               done[r].astype(np.float32), infos)
     return {'rows': int(T), 'transitions': int(T * n), 'dropped': int(len(A) - T * n),
             'flagged_tails': int(tail.sum()), 'columns': n}

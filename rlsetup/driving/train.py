@@ -80,6 +80,10 @@ the offline critic phase (callbacks.DeferredOfflineCritic) and the usual online 
 unfreeze moves to fallback_steps + critic_warmup_steps (status 'planned_unfreeze_at'; a resume
 continues the fallback). provenance.json 'r4' records the terms, the entry / exit points and the
 fallback flag.
+R4 from scratch (preset f1_r4_scratch, init_mode 'bc'): the demo rewards hold the speed potential, the
+demo dataset stores the entry / exit terms (demos.py) and the prefill writes them to the bonus buffer;
+w(0) is set before the offline warm-up and its Q vs soft MC uses r + w b. Nothing is relabelled.
+init_mode 'bc' honours warm.actor_lr from the unfreeze on (PhaseCallback; warm.actor_lr None: unchanged).
 """
 from dataclasses import replace
 from pathlib import Path
@@ -300,7 +304,8 @@ def _callbacks(run, model, envs, starts, baseline, *, unfreeze_at, guard_start=N
     wall = WallClockLimit(cfg.max_wall_h, t0=t0, on_event=run.event)
     ckpt = CheckpointCallback(cfg.checkpoint_interval, d / 'checkpoints', buffer_every=cfg.buffer_save_interval,
                               buffer_saver=saver)
-    cbs = ([schedule] if schedule else []) + list(pre) + [PhaseCallback(unfreeze_at, on_event=run.event), guard, stats] \
+    phase = PhaseCallback(unfreeze_at, on_event=run.event, actor_lr=cfg.warm.actor_lr if cfg.agent.init_mode == 'bc' else None)
+    cbs = ([schedule] if schedule else []) + list(pre) + [phase, guard, stats] \
         + ([focus] if focus else []) + [evalcb, plateau, ckpt, wall]
     return cbs, guard, wall, plateau
 
@@ -342,8 +347,17 @@ def _learn_and_finish(run, model, cbs, guard, wall, plateau, total):
     return EXIT_COLLAPSED if reason == 'collapsed' else EXIT_OK
 
 
+def _set_bonus_w0(cfg, model):
+    """R2-5.2: w(0) in the replay buffer (and its audit mirror) before an offline critic phase, so its
+    gradient steps use the weight BonusScheduleCallback applies from learn() on. No corner bonus: nothing."""
+    if cfg.env.corner_bonus.enabled:
+        from .callbacks import bonus_weight
+        model.replay_buffer.bonus_weight = model.bonus_weight = bonus_weight(cfg.bonus_schedule, 0)
+
+
 def _offline_warmup(run, model, demos, val_episodes):
-    """Step 4a after the prefill: frozen actor + alpha, blocks of model.train()."""
+    """Step 4a after the prefill: frozen actor + alpha, blocks of model.train(). The Q vs soft MC
+    check uses r + w b per decision when the dataset has corner terms, as the critic's targets do."""
     import torch as th
     from ..runs import append_jsonl
     from .env import FAILURES
@@ -370,6 +384,7 @@ def _offline_warmup(run, model, demos, val_episodes):
     eps = list(val_episodes) + [e for e in range(E) if e not in set(val_episodes)]
     eps = eps[:w.q_mc_max_episodes]
     actor = model.actor
+    w_bonus = getattr(model.replay_buffer, 'bonus_weight', 0.)
     pairs = []
     for e in eps:
         t0, T = demos['ep_start_tr'][e], demos['ep_len'][e]
@@ -379,7 +394,10 @@ def _offline_warmup(run, model, demos, val_episodes):
             mean, log_std, _ = actor.get_action_dist_params(th.as_tensor(o, device=actor.device))
             logp = actor.action_dist.proba_distribution(mean, log_std).log_prob(
                 th.as_tensor(a, device=actor.device).clamp(-cfg.bc.action_clip, cfg.bc.action_clip)).cpu().numpy()
-        pairs.append(q_vs_mc(model.critic, o, a, demos['rewards'][sl], logp, gamma=model.gamma,
+        rewards = demos['rewards'][sl]
+        if w_bonus and 'corner_bonus' in demos:
+            rewards = rewards + w_bonus * demos['corner_bonus'][sl]
+        pairs.append(q_vs_mc(model.critic, o, a, rewards, logp, gamma=model.gamma,
                              alpha=model.alpha, failed=str(demos['ep_cause'][e]) in FAILURES,
                              stride=cfg.eval.q_mc_stride, min_left=cfg.eval.q_mc_min_left,
                              n_steps=model.n_steps))
@@ -594,6 +612,7 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
             fill = prefill_replay_buffer(model.replay_buffer, demos)
             log(f'prefill: {fill}')
             model.set_frozen(actor=True, ent_coef=True)
+            _set_bonus_w0(cfg, model)
             _offline_warmup(run, model, demos, report['val_episodes'])
             record_phase(run_dir, 'offline_warmup', wall_s=time.time() - t, env_steps=0,
                          grad_steps=int(model._n_updates), prefill=fill)
@@ -657,9 +676,7 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
             else:
                 run.status(phase='offline_warmup')
                 t = time.time()
-                if cfg.env.corner_bonus.enabled:      # R2-5.2: w(0) before the offline critic phase
-                    from .callbacks import bonus_weight
-                    model.replay_buffer.bonus_weight = model.bonus_weight = bonus_weight(cfg.bonus_schedule, 0)
+                _set_bonus_w0(cfg, model)
                 _offline_critic(run, model, aux.get('s'), table)
                 record_phase(run_dir, 'offline_warmup', wall_s=time.time() - t, env_steps=0,
                              grad_steps=int(model._n_updates))
