@@ -87,11 +87,14 @@ def load_replay_buffer_for_resume(model, path):
 class PhaseCallback(BaseCallback):
     """Step 5: at num_timesteps >= unfreeze_at, unfreeze actor and alpha (actor Adam is fresh:
     it never stepped while frozen; alpha continues from its initial value). The 'unfreeze' event
-    carries sha256 digests of the actor and log alpha as they leave the frozen phase (R1 A4)."""
+    carries sha256 digests of the actor and log alpha as they leave the frozen phase (R1 A4).
+    `actor_lr` (init_mode 'bc' with warm.actor_lr set; None = nothing changes): model.actor_lr from
+    the unfreeze on. It is pickled with the model, so a resume after the unfreeze keeps it."""
 
-    def __init__(self, unfreeze_at, on_event=_noop):
+    def __init__(self, unfreeze_at, on_event=_noop, actor_lr=None):
         super().__init__()
         self.unfreeze_at = int(unfreeze_at)
+        self.actor_lr = actor_lr
         self.on_event = on_event
         self.unfrozen_at = None
 
@@ -102,6 +105,8 @@ class PhaseCallback(BaseCallback):
             digests = {'actor_sha256': param_digest(m.actor),
                        'log_ent_coef_sha256': None if m.log_ent_coef is None else param_digest(m.log_ent_coef)}
             m.set_frozen(False, False)
+            if self.actor_lr is not None:
+                m.actor_lr = self.actor_lr
             self.unfrozen_at = m.num_timesteps
             self.logger.record('phase/unfrozen_at', m.num_timesteps)
             self.on_event('unfreeze', step=m.num_timesteps, **digests)

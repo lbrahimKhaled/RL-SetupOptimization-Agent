@@ -90,7 +90,7 @@ def test_to_dict_omits_r4_defaults_and_round_trips():
         cfg = make()
         j = json.loads(config_json(cfg))
         assert train_config_from_dict(j) == cfg, name
-        if name != 'f1_r4':                      # no R4 key in any pre-R4 preset's config.json
+        if name not in ('f1_r4', 'f1_r4_scratch'):     # no R4 key in any pre-R4 preset's config.json
             text = config_json(cfg)
             for k in ('"speed_k"', '"speed_sigma"', '"bonus_in"', '"bonus_out"', '"mode": "e', '"speed_relabel"',
                       '"fallback_steps"', '"probe_before_m"', '"full_throttle_pedal"', '"brake_pedal"'):

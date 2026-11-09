@@ -5,7 +5,7 @@ docs/specs/R1_time_optimal.md §2.4; R2 training aids (bonus schedule, focus wei
 rollouts, presets f1_r2*): docs/specs/R2_review.md incl. Amendment 1; R3 (preset f1_r3: B = 30, floor
 0.85, never-fade schedule, bonus relabel, focus init_state): docs/specs/R3_review.md; R4 (preset f1_r4:
 speed-profile potential, corner entry / exit terms, speed relabel of the init buffer, fresh-buffer
-fallback): docs/specs/R4_review.md. Step counts are transitions summed over envs (SB3
+fallback): docs/specs/R4_review.md; preset f1_r4_scratch: the R4 reward from scratch. Step counts are transitions summed over envs (SB3
 `num_timesteps`); one transition = one 25 Hz decision of one env. Times in s unless the name
 says otherwise. PLACEHOLDER marks numbers not yet justified by data or a decision.
 
@@ -137,7 +137,8 @@ class WarmStartConfig:
     relabel: bool = True                 # relabel the preloaded buffer ref_tracking -> time_pbrs (relabel.py)
     offline_critic_grad_steps: int = 25_000   # critic grad steps on the preloaded buffer before learn()
     offline_block: int = 1_000           # ... in blocks of this many (critic loss + mean Q logged per block)
-    actor_lr: float | None = None        # actor Adam lr from the unfreeze on (None = agent.learning_rate)
+    actor_lr: float | None = None        # actor Adam lr from the unfreeze on (None = agent.learning_rate);
+                                         # also honoured by init_mode 'bc' (callbacks.PhaseCallback)
     min_buffer_batches: int = 10         # no grad step until buffer >= agent.batch_size * this (0 with a
                                          # preloaded buffer)
     critic_check_tol: float = .08        # |Q_min - MC| / |MC| at the unfreeze eval; above -> warning
@@ -480,6 +481,24 @@ def _f1_r4():
                    focus_update=replace(c.focus_update, seed_run=F1_BEST_W35_RUN, init_state=None))
 
 
+def _f1_r4_scratch():
+    """f1_best_w35 from scratch (demos + BC, no warm start, no focused starts, no low-noise rollouts, same
+    guard and evaluation) with only the reward changed to f1_r4's, so that f1_best_w35 is the control
+    run of the reward: speed potential Phi_v (k_v 20, sigma 0.3) + corner entry / exit terms (B_in = B_out = 10,
+    sigma 0.3, QSS targets unchanged), never fading (w = 1 from step 0, no trigger, nothing reportable, only
+    best_aided.zip). Demo rewards and buffer rows carry the same terms (demos.py). One more difference from
+    f1_best_w35: actor lr 1e-4 from the unfreeze (warm.actor_lr), because the control trained at 1e-4 from
+    its guard rollback at 30k on (docs/specs/R4_scratch_review.md B1), which would otherwise depend on whether
+    this run's guard fires. Guard and rollback logic unchanged. Run name: f1_r4_scratch."""
+    c = _f1_best_w35()
+    return replace(c, preset='f1_r4_scratch',
+                   env=replace(c.env, reward=replace(c.env.reward, speed_k=20., speed_sigma=.3),
+                               corner_bonus=replace(c.env.corner_bonus, enabled=True, mode='entry_exit', bonus_in=10.,
+                                                    bonus_out=10., sigma=.3)),
+                   warm=replace(c.warm, actor_lr=1e-4),
+                   bonus_schedule=replace(c.bonus_schedule, hold_until=None))
+
+
 def _f1_r2_smoke():
     """f1_r2 compressed to 150k env steps (R2-9.2): w = 1 until 60k, fade to 0 at 120k,
     reportable from 150k (gap 30k); eval every 25k with 3 stochastic laps, probe every 5k,
@@ -498,7 +517,7 @@ PRESETS = {'full': lambda: TrainConfig(preset='full'), 'smoke': _smoke, 'r1_warm
            'r1_warm_smoke': _r1_warm_smoke, 'p1_TUM': _p1_tum,
            'p0_TUMref': _p0_tumref, 'bcn': _bcn, 'f1_sha': _f1_sha, 'f1_sha_w35': _f1_sha_w35,
            'f1_best_w35': _f1_best_w35, 'f1_r2': _f1_r2, 'f1_r2_smoke': _f1_r2_smoke, 'f1_r3': _f1_r3,
-           'f1_r4': _f1_r4}
+           'f1_r4': _f1_r4, 'f1_r4_scratch': _f1_r4_scratch}
 
 
 # --- dict / override helpers (JSON round trip of nested frozen dataclasses) -------------------------
