@@ -199,3 +199,16 @@ Critic 2 real − shuffle: F_cell +0.001 [−0.016, 0.018], F_person −0.005 [�
   - m5 (rows S style transform) is irrelevant, because rows S were not used.
 - Report-only items have not been computed: q_min pair accuracy, same-c published vs in-fold, same-month pairs, and the R3c Δ table. They need the deferred report script.
 - **Open for Ibrahim / architect:** the F_cell guard result blocks combined readiness under the C1 rule. Whether that blocks TD3 use of the critic-1 bundle is not the coder's call.
+
+## Post-hoc ensemble check (16 Nov, lead; NOT pre-registered, no retraining)
+Script: `scripts/critic_c2_ensemble_check.py` (reads the saved per-fold test predictions of `runs/critic_c2/20261116_081601Z`; each model's setup score z-scored per fold over its test rows, i.e. without labels). Pair accuracy on rows A, 3 repeats, person-cluster bootstrap; critic 3 here = R3 twin mean without the Barcelona head.
+
+| Model (setup score) | F_cell | F_person (unseen drivers) | Barcelona F_cell / F_person |
+|---|---|---|---|
+| critic 3 (grouped heads) | 0.575 | 0.566 | 0.563 / 0.539 |
+| ridge (B15) | 0.566 | 0.563 | — |
+| critic 2 pretrained on A (full MLP, no style) | **0.582** | **0.581** | — |
+| 50/50 critic 3 + ridge | 0.575 (Δ −0.000 [−0.011, +0.010]) | 0.577 (Δ +0.010 [+0.001, +0.020]) | 0.582 / 0.622 |
+| equal 3-way critic 3 + ridge + critic-2-pretrain | 0.581 (Δ +0.006 [−0.008, +0.020]) | **0.581 (Δ +0.015 [+0.002, +0.028])** | 0.599 / 0.620 |
+
+Reading: (1) the full-interaction network ranks setups better than the grouped heads (grouping costs ≈ 0.007–0.015 pair accuracy); (2) an equal-weight ensemble improves ranking for unseen drivers with a CI excluding 0. Caveats: four variants were looked at on the test folds (mild selection), weights were not tuned (equal / 50-50), Barcelona numbers have MDE ≈ 0.13. Not yet a delivered bundle: an ensemble TD3 Q would be mean(critic 1, critic 2 fine-tuned with style, ridge) — each differentiable in p and keeping the style path; it needs a bundle class and a pre-registered confirmation run.
