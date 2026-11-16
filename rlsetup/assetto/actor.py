@@ -58,6 +58,7 @@ VERSION = 1
 WEIGHTS_FILE = 'actor.pt'
 CONFIG_FILE = 'config.json'
 MANIFEST_FILE = 'manifest.json'
+TRAINING_FILE = 'training.json'
 
 
 def _sha(data: bytes) -> str:
@@ -268,6 +269,62 @@ def export_actor(checkpoint: str | Path, config: str | Path, output: str | Path)
     return output
 
 
+def source_contract_sha256(manifest: dict) -> str:
+    """Stable source interface identity; excludes weights and changing training lineage."""
+    return _sha(_encoded({key: manifest[key] for key in
+                          ('network', 'observation', 'source_action')}))
+
+
+def _training(value: dict) -> None:
+    expected = {'schema', 'backend', 'parent_actor_manifest_sha256', 'source_contract_sha256',
+                'target', 'chunk_sha256', 'critic_updates', 'updates', 'gamma', 'n_steps'}
+    if (set(value) != expected or value['schema'] != 'rlsetup.ac3.training.v1'
+            or value['backend'] != 'assetto_corsa' or value['gamma'] != .992
+            or type(value['n_steps']) is not int or value['n_steps'] != 1):
+        raise ValueError('unsupported AC training lineage')
+    for key in ('critic_updates', 'updates'):
+        if type(value[key]) is not int or value[key] < 0:
+            raise ValueError('invalid AC update count')
+    target = value['target']
+    if (not isinstance(target, dict) or set(target) != {'car_name', 'track_name', 'track_configuration', 'setup_id'}
+            or any(not isinstance(v, str) for v in target.values())
+            or any(not target[k] for k in ('car_name', 'track_name', 'setup_id'))):
+        raise ValueError('invalid AC training target')
+    if not isinstance(value['chunk_sha256'], list):
+        raise ValueError('invalid AC training chunks')
+    for digest in [value['parent_actor_manifest_sha256'], value['source_contract_sha256'],
+                   *value['chunk_sha256']]:
+        if not isinstance(digest, str) or re.fullmatch('[0-9a-f]{64}', digest) is None:
+            raise ValueError('invalid AC lineage SHA256')
+
+
+def export_updated_actor(weights: dict[str, torch.Tensor], parent: str | Path,
+                         output: str | Path, training: dict) -> Path:
+    """Write ten actor tensors with explicit AC training lineage; no critics or pickle metadata."""
+    runtime = ActorRuntime(parent)
+    _training(training)
+    if (training['parent_actor_manifest_sha256'] != _sha((Path(parent) / MANIFEST_FILE).read_bytes())
+            or training['source_contract_sha256'] != source_contract_sha256(runtime.manifest)):
+        raise ValueError('AC lineage does not match parent actor')
+    weights = {key: value.detach().cpu().clone() for key, value in weights.items()}
+    _validate_weights(weights)
+    buffer = io.BytesIO()
+    torch.save(weights, buffer)
+    weights_data = buffer.getvalue()
+    config_data = (Path(parent) / CONFIG_FILE).read_bytes()
+    source = runtime.manifest['source']
+    identity = {key: source[key] for key in ('checkpoint_name', 'checkpoint_sha256', 'num_timesteps')}
+    manifest = _manifest(_json(config_data), identity, _sha(config_data), _sha(weights_data))
+    training_data = _encoded(training)
+    manifest['training'] = {'file': TRAINING_FILE, 'sha256': _sha(training_data)}
+    output = Path(output)
+    output.mkdir(parents=False, exist_ok=False)
+    for name, data in ((WEIGHTS_FILE, weights_data), (CONFIG_FILE, config_data),
+                       (TRAINING_FILE, training_data), (MANIFEST_FILE, _encoded(manifest))):
+        (output / name).write_bytes(data)
+    return output
+
+
 class ActorRuntime:
     """Frozen CPU actor. Observation construction and AC control mapping are external."""
     def __init__(self, bundle: str | Path):
@@ -283,6 +340,16 @@ class ActorRuntime:
             raise ValueError('invalid manifest source')
         identity = {key: source.get(key) for key in ('checkpoint_name', 'checkpoint_sha256', 'num_timesteps')}
         expected = _manifest(_json(config_data), identity, _sha(config_data), _sha(weights_data))
+        if 'training' in manifest:
+            try:
+                training_data = (bundle / TRAINING_FILE).read_bytes()
+            except OSError as exc:
+                raise ValueError('incomplete AC training lineage') from exc
+            training = _json(training_data)
+            _training(training)
+            if training['source_contract_sha256'] != source_contract_sha256(expected):
+                raise ValueError('AC lineage source contract mismatch')
+            expected['training'] = {'file': TRAINING_FILE, 'sha256': _sha(training_data)}
         # Compare canonical JSON as well: bool/int substitutions are not schema-compatible.
         if _encoded(manifest) != _encoded(expected):
             raise ValueError('unsupported manifest schema/contract or file hash mismatch')
