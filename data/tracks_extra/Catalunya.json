@@ -1,0 +1,47 @@
+{
+ "stem": "Catalunya",
+ "source": {
+  "repo": "bacinger/f1-circuits",
+  "commit": "8094e957b8d6aa8b9f4510c93968556cccd30e02",
+  "id": "es-1991",
+  "url": "https://raw.githubusercontent.com/bacinger/f1-circuits/8094e957b8d6aa8b9f4510c93968556cccd30e02/circuits/es-1991.geojson",
+  "sha256": "739784fa7fe51e38040b7a30a21fe5288564f8901a87fbb27c8cc22462a05c29",
+  "licence": {
+   "name": "MIT",
+   "url": "https://raw.githubusercontent.com/bacinger/f1-circuits/8094e957b8d6aa8b9f4510c93968556cccd30e02/LICENSE.md",
+   "sha256": "f093960027c8ebcc3220000b8316ec29cc6f9149b7625ebad02524bf44ebf2f3",
+   "copy": "LICENSE-bacinger-f1-circuits.md",
+   "copyright": "Copyright (c) 2019-2025 Tomislav Bacinger"
+  }
+ },
+ "crs": "local ENU tangent plane (east, north) at lon 2.2573731, lat 41.5690080, WGS84 ellipsoid, h = 0",
+ "vertices": 150,
+ "closing_gap_m": 0.0,
+ "spline_s": 596.0,
+ "vertex_dev_rms_m": 1.658311204715728,
+ "vertex_dev_max_m": 6.184578755316493,
+ "length_m": 4680.7707951444445,
+ "spacing_m": 5.000823499085945,
+ "direction": "as_file",
+ "direction_checked": true,
+ "direction_gate": {
+  "as_file": {
+   "median_abs_corr": 0.9143927319628248,
+   "scale": 1.0066696799910018,
+   "shift_m": -118.00974287692998
+  },
+  "reversed": {
+   "median_abs_corr": 0.5480398480453094,
+   "scale": 0.9941176889686711,
+   "shift_m": -828.0683652720159
+  }
+ },
+ "start": "index 0 = game lap distance 0 (fitted gate shift)",
+ "start_roll_samples": 912,
+ "gate_laps": 31,
+ "width_assumed": true,
+ "w_tr_right_m": 5.823,
+ "w_tr_left_m": 5.823,
+ "width_method": "PLACEHOLDER (provisional pending Ibrahim): half the median over the vendored TUM tracks of each track median total width (W2 of c2_track_geometry.md 4.1)",
+ "csv_sha256": "4e6871fedf17ebfd4ac0edf640dfb03a3ee7f4e48f573d78f79dd42f84d64bed"
+}

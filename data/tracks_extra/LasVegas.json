@@ -1,0 +1,47 @@
+{
+ "stem": "LasVegas",
+ "source": {
+  "repo": "bacinger/f1-circuits",
+  "commit": "8094e957b8d6aa8b9f4510c93968556cccd30e02",
+  "id": "us-2023",
+  "url": "https://raw.githubusercontent.com/bacinger/f1-circuits/8094e957b8d6aa8b9f4510c93968556cccd30e02/circuits/us-2023.geojson",
+  "sha256": "bebd86828c5016ede9d6b1133f3f8fbb8301e357018bb551d2514a621803d29d",
+  "licence": {
+   "name": "MIT",
+   "url": "https://raw.githubusercontent.com/bacinger/f1-circuits/8094e957b8d6aa8b9f4510c93968556cccd30e02/LICENSE.md",
+   "sha256": "f093960027c8ebcc3220000b8316ec29cc6f9149b7625ebad02524bf44ebf2f3",
+   "copy": "LICENSE-bacinger-f1-circuits.md",
+   "copyright": "Copyright (c) 2019-2025 Tomislav Bacinger"
+  }
+ },
+ "crs": "local ENU tangent plane (east, north) at lon -115.1657120, lat 36.1164310, WGS84 ellipsoid, h = 0",
+ "vertices": 100,
+ "closing_gap_m": 0.0,
+ "spline_s": 396.0,
+ "vertex_dev_rms_m": 1.757513995126132,
+ "vertex_dev_max_m": 4.967790868952695,
+ "length_m": 6260.056707691701,
+ "spacing_m": 5.000045293683468,
+ "direction": "as_file",
+ "direction_checked": true,
+ "direction_gate": {
+  "as_file": {
+   "median_abs_corr": 0.8169968981520045,
+   "scale": 1.0023669424786539,
+   "shift_m": -119.99266658692886
+  },
+  "reversed": {
+   "median_abs_corr": 0.4169311132119465,
+   "scale": 0.9998420887192631,
+   "shift_m": -2061.873987518745
+  }
+ },
+ "start": "index 0 = game lap distance 0 (fitted gate shift)",
+ "start_roll_samples": 1228,
+ "gate_laps": 41,
+ "width_assumed": true,
+ "w_tr_right_m": 5.823,
+ "w_tr_left_m": 5.823,
+ "width_method": "PLACEHOLDER (provisional pending Ibrahim): half the median over the vendored TUM tracks of each track median total width (W2 of c2_track_geometry.md 4.1)",
+ "csv_sha256": "ff56edb662965eb92fc63446e22c3e4b66a40556014a73514d71b336f6e5ed08"
+}

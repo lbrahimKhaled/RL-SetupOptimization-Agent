@@ -1,3 +1,5 @@
+> **Superseded by C2** (`docs/specs/C2_style_critic.md`, `docs/specs/C2_review.md`), 15 Nov 2026. Kept as reference only; the C1 code and tests were deleted.
+
 # C1 critic warm start: architecture review (9 Nov 2026)
 
 **Verdict: CHANGES-REQUIRED.** One blocker (the §3 constants); the rest are concrete fixes. §1 is untouched: Decision 8 stands, only the §3 constants change. Evidence tags: [F] formulation, [C] code read, [D] measured read-only on the CSV, [J] judgement. No literature is relied on; two facts are listed under "Needs research".
@@ -85,3 +87,21 @@
 3. R1 recalibration: accepted. Row loss reproduced independently: 1,142 of 2,007 with the §3 constants, 52 with R1.
 
 Assetto Corsa (`docs/research/ac_spring_frequency.md`) has no equivalent to the frequency mediator and gives no better click maps, so the R1 constants stand.
+
+## QA repair amendment (9 Nov 2026; approved before the full evaluation)
+
+This amendment changes technical details R6/R9 after the prototype QA; R12 grouping selection and R13 acceptance bars remain fixed. The 2,565-row CSV with driver IDs was explicitly confirmed by Ibrahim.
+
+1. **Paired R9 guard.** Keep the 256-row sampling budget, independent knob replacement probability 0.3, U[-1,1] replacements, outside-support filter, weight 0.1 and target 1.0 percentage point. For each surviving corrupted row use the same source row's track summary and `delta = Sum h(p_corrupt, z_source) - Sum h(p_source, z_source)`. Minimise `0.1 mean((delta - 1)^2)` with full autograd through **both** terms. Do not detach the source prediction. Common output biases and track-only terms cancel. After centring, report paired delta mean and p5/median/p95 for both twins using the guard's own sampling distribution. Also report the registered `sha_f1_best` setup prediction relative to Shanghai training outputs. This is a target regularizer, never a guarantee of a +1% lift or a safety bound.
+2. **R6 early stopping.** Increase patience from 30 to 200; keep maximum 500 epochs. Smoke retains its three-epoch/two-patience budget. Record epochs run, best epoch and standard deviation of the restored setup-head sum on the inner training rows for every fit; record each additive phase separately. Flag a fit stalled only when **best epoch <= 5 and head SD < 0.05 percentage points**. A stalled final twin is not usable. No adaptive retries or tuning to pass are permitted.
+3. **Finite mapping and folds.** Reject nonfinite mapped knob values as out of bounds. Assign outer-fold groups largest first, with seeded random ties, to reduce imbalance while preserving group disjointness. Tables state each configuration's repeat count.
+4. **Guard acceptance and readiness.** Compare guarded versus unguarded predictions on common on-support held-out rows/pairs. Compute paired driver-cluster 95% confidence intervals for pair-accuracy difference and held-out-setup R2 difference. Significant degradation of either metric (CI entirely below zero), or an undefined interval, blocks combined readiness. Improvements are allowed. Report R13 independently. Combined readiness requires R13, both guard checks, non-stalled final twins and available operating-point diagnostics; smoke never qualifies.
+5. **Verification before evaluation.** Add meaningful tests for paired-loss/gradient invariance to common bias shifts, cancellation of output-bias gradients and track-only terms, centring invariance, synthetic setup-signal fits across several seeds, nonfinite rejection, group balance, paired metric intervals and readiness outcomes. Complete independent QA before one full evaluation.
+
+These are technical repairs to the existing approved warm-start experiment, not a change to the setup actor or any OPEN project decision.
+
+## Budgeted primary profile (approved before execution)
+
+The user's explicit 25-minute critic-work cap makes the complete comparison suite too long. `--primary-only` preserves full 5-fold x 3-repeat held-out-setup and driver/track evaluations for PCA/joint and physics/joint, weight-decay selection, ridge/nuisance baselines, chosen-group strict ranking, guarded-versus-unguarded comparisons on both foldsets, unchanged R12/R13 rules, final twin fits and diagnostics. No training budget or acceptance threshold is reduced.
+
+Random partitions, one-group control, separate training, backfitting and held-out-track evaluation are deferred. The default CLI still runs the original full suite. The selected execution profile and omissions are written before fitting in `execution_profile.json`, initial `provenance.json` and the initial report. A primary run can only claim that its **primary acceptance criteria** were met and save candidate weights; it cannot claim full C1 completion. Separate-training comparison remains outstanding.

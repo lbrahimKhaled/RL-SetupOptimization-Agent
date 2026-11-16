@@ -1,3 +1,5 @@
+> **Superseded by C2** (`docs/specs/C2_style_critic.md`, `docs/specs/C2_review.md`), 15 Nov 2026. Kept as reference only; the C1 code and tests were deleted.
+
 # C1 — Setup-critic warm start from F1 2020 setups
 
 Status: DRAFT by lead, 9 Nov 2026. Needs rl-architect review ([ARCH] items), then rl-coder.

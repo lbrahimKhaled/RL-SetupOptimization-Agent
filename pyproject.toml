@@ -12,6 +12,9 @@ dependencies = [
 [project.optional-dependencies]
 # Minimum-lap-time OCP (rlsetup/ocp, PL14 replication). cp311-abi3 wheel, ships IPOPT + MUMPS.
 ocp = ["casadi==3.8.2", "scipy"]
+# Dev/test only (C2_review [ARCH]): pandas runs style-rl's original DataFrame code in
+# tests/test_c2_style.py (port equality); rlsetup itself never imports it.
+dev = ["pandas"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

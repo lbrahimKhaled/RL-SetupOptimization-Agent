@@ -129,9 +129,11 @@ Haarnoja et al. 2018 (SAC); Fujimoto et al. 2018 (TD3); Ng et al. 1999 (reward s
 
 ---
 
+> **16 Nov 2026 (Ibrahim):** "Driver style vector as input" is no longer superseded **for the setup critic**: C2 (`docs/specs/C2_style_critic.md`) feeds the 12-number style vector of style-rl to the critic. It was removed from the list below.
+
 ## 12. Superseded — do not reintroduce
 
-Driver style vector z as input (driver is only ξref); corridor/smoothness driver attributes; problem_formulation_v5 (time-optimal driver that sees the setup, c annealed to 0, Speed Dreams); raw track points / full ξref into the setup agent; Speed Dreams/CARLA/F1TENTH; RunPod; RL on PS4; multi-agent RL framing; OCP/NLP as the solver; GT-car scope; "2014 OC superseded by RL" framing.
+corridor/smoothness driver attributes; problem_formulation_v5 (time-optimal driver that sees the setup, c annealed to 0, Speed Dreams); raw track points / full ξref into the setup agent; Speed Dreams/CARLA/F1TENTH; RunPod; RL on PS4; multi-agent RL framing; OCP/NLP as the solver; GT-car scope; "2014 OC superseded by RL" framing.
 
 ---
 
