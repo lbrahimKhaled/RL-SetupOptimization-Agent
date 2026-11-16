@@ -215,3 +215,8 @@ Reading: (1) the full-interaction network ranks setups better than the grouped h
 
 ### Ensemble TD3 Q built (16 Nov, lead)
 `rlsetup/critic/ensemble.py` (`EnsembleCritic`), manifest `runs/critic_c2/20261116_081601Z/bundles/ensemble_td3_q.json` = equal-weight mean of `critic1_final.pt` (grouped, style) and `critic2_final.pt` (full MLP, style). Both members keep the style path; critic 2's inherited weights are frozen, so at e = 0 it equals the pretrained network measured above (0.582 / 0.581). Offline, critic 3 + critic-2-pretrain 50/50: F_cell 0.581 (Δ +0.006 [−0.005, +0.017]), F_person **0.582 (Δ +0.016 [+0.005, +0.028])**, Barcelona 0.582 / 0.620. Sanity on Barcelona with style-rl's three OCD drivers: gradients finite, corr(ensemble q, critic-1 q) 0.94–0.95, style changes q (attacker vs smooth mean |Δq| 0.39, rank corr 0.92), q_min ≤ q, style-free members refused. Not pre-registered and not run through QA; `critic1_final.pt` stays the TD3 Q of record until Ibrahim chooses.
+
+### Further tweaks tried (16 Nov, lead; none adopted)
+- Pairwise ranking net trained on within-driver pairs (RankNet, date as training-only term): 0.548 / 0.539 (too few pairs).
+- Critic-2 seed ensembles (5 seeds) and widths 32/64/128: alone 0.582–0.588; with critic 3 within ±0.004 of the current ensemble (all CIs include 0).
+- Plateau ≈ 0.58. Diagnostic: "later setup is faster" alone scores 0.651 within driver (driver learning, not setup). The ensemble scores 0.61–0.63 on pairs > 1 % apart and on same-day pairs, 0.53 on pairs < 0.25 % apart. Date is not added to q: TD3 cannot change it, so it would grade setups by when they were made.
