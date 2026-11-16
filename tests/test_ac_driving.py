@@ -109,12 +109,14 @@ class FakeSocket:
         self.packets = list(packets)
         self.sent = []
         self.closed = False
+        self.blocking_receives = 0
     def settimeout(self, timeout):
-        assert 0 <= timeout <= .08
+        assert 0 <= timeout <= (3. if self.blocking_receives == 0 else .08)
         self.nonblocking = timeout == 0
     def recv(self, _size):
         if self.nonblocking:
             raise BlockingIOError()
+        self.blocking_receives += 1
         return json.dumps(self.packets.pop(0)).encode()
     def send(self, value):
         self.sent.append(value)
@@ -256,3 +258,42 @@ def test_handshake_deadline_checked_after_reply_and_releases(monkeypatch):
         with Session(CollectConfig('localhost', 1), steering()):
             pytest.fail('late handshake accepted')
     assert sock.closed and sock.sent[-1] == b'disconnect'
+
+
+@pytest.mark.parametrize('overall_s', [1., .1])
+def test_startup_wait_allows_120ms_but_retains_active_and_overall_limits(monkeypatch, overall_s):
+    import rlsetup.assetto.driving as d
+    clock = [0.]
+    monkeypatch.setattr(d.time, 'monotonic', lambda: clock[0])
+    class DelayedSocket(FakeSocket):
+        def settimeout(self, timeout):
+            super().settimeout(timeout)
+            self.timeout = timeout
+        def recv(self, size):
+            if self.nonblocking:
+                raise BlockingIOError()
+            delay = .12 if self.blocking_receives == 0 else .09
+            clock[0] += min(delay, self.timeout)
+            if delay > self.timeout:
+                raise TimeoutError('mock transport timeout')
+            return super().recv(size)
+    sess = Session(CollectConfig('localhost', 1), steering())
+    sock = DelayedSocket([packet(1), packet(2)])
+    sess.sock = sock
+    try:
+        if overall_s == .1:
+            with pytest.raises(TimeoutError):
+                sess.receive(overall_s)
+            assert clock[0] == pytest.approx(.1) and sess.last is None
+        else:
+            assert sess.receive(overall_s)['steps'] == 1
+            assert clock[0] == pytest.approx(.12)
+            with pytest.raises(TimeoutError):
+                sess.receive(overall_s)
+            assert sock.timeout == pytest.approx(.08)
+            assert sess.last['steps'] == 1
+    finally:
+        sess.close()
+    assert json.loads(sock.sent[-2])['acc'] == -1.
+    assert json.loads(sock.sent[-2])['brake'] == -1.
+    assert sock.sent[-1] == b'disconnect' and sock.closed

@@ -272,7 +272,9 @@ class Session:
         return self
 
     def receive(self, deadline):
-        self.sock.settimeout(max(.001, min(deadline-time.monotonic(), self.config.max_dt)))
+        # The server initializes after identified; active freshness starts at the first sample.
+        wait_s = self.config.timeout_s if self.last is None else self.config.max_dt
+        self.sock.settimeout(max(.001, min(deadline-time.monotonic(), wait_s)))
         if time.monotonic() >= deadline:
             raise TimeoutError('wall limit')
         payload = self.sock.recv(65508)
