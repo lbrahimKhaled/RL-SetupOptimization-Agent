@@ -33,7 +33,7 @@
 \begin{tikzpicture}
 \node[box] (inp) at (1.9,0) {setup $p$ (15 knobs), track $z$, game};
 \node[box,fill=blue!6] (c3) at (0.2,-1.2) {Critic 3: grouped heads\\(PCA knob groups)};
-\node[box,fill=blue!6] (c2) at (3.8,-1.2) {Critic 2: full MLP\\(all knob interactions)};
+\node[box,fill=blue!6] (c2) at (3.8,-1.2) {Critic 2: one network\\(same 15 knobs, no groups)};
 \node[box] (s) at (1.9,-2.1) {driver style $s$ (12)};
 \node[box,fill=green!8] (c1) at (0.2,-3.0) {Critic 1 = critic 3\\+ style encoder};
 \node[box,fill=orange!12] (q) at (1.9,-4.2) {TD3 $Q$ = mean(critic 1, critic 2)};
@@ -73,10 +73,8 @@ Critic 2 network, no style & 0.583 & 0.571 & 0.608\\
 
 % ---------------------------------------------------------------- critic 3/3
 \begin{frame}{Accuracy per knob group}
-\begin{columns}[T,onlytextwidth]
-\column{.56\textwidth}
 \centering
-\begin{tikzpicture}[x=55mm,y=7mm]
+\begin{tikzpicture}[x=75mm,y=8.5mm]
 \draw[gray!60] (0,.6) -- (0,-4.6); \node[font=\tiny,gray] at (0,.85) {0.5};
 \foreach \y/\lab/\n/\a/\b in {0/{Front ride + camber}/71/.770/.761,
   -1.2/{Anti-roll bars}/1157/.640/.622,
@@ -86,19 +84,11 @@ Critic 2 network, no style & 0.583 & 0.571 & 0.608\\
   \fill[blue!45] (0,\y+.05) rectangle (\a-.5,\y+.42); \node[right,font=\tiny] at (\a-.5,\y+.23) {\a};
   \fill[orange!60] (0,\y-.05) rectangle (\b-.5,\y-.42); \node[right,font=\tiny] at (\b-.5,\y-.23) {\b};}
 \fill[blue!45] (.02,-5.0) rectangle (.05,-4.8); \node[right,font=\tiny] at (.05,-4.9) {unseen cells};
-\fill[orange!60] (.25,-5.0) rectangle (.28,-4.8); \node[right,font=\tiny] at (.28,-4.9) {unseen drivers};
+\fill[orange!60] (.3,-5.0) rectangle (.33,-4.8); \node[right,font=\tiny] at (.33,-4.9) {unseen drivers};
 \end{tikzpicture}
-\column{.41\textwidth}
-\small
-\begin{itemize}\setlength\itemsep{1.5mm}
-\item Each pair is assigned to the knob group whose settings differ most between the two setups (mean change per knob).
-\item Camber/front ride and anti-roll changes are graded well (0.62--0.77).
-\item Rear ride, toe, bias and diff changes: near chance --- small lap-time effect or noise.
-\item Overall ceiling: ``the later setup is faster'' alone scores 0.651 (driver learning); date is kept out of $Q$.
-\end{itemize}
-\end{columns}
-\vspace{2mm}
-\smallnote{Groups are the critic's PCA knob groups. Ensemble critic; 3 repeats $\times$ 5 folds; 2{,}881 pairs.}
+\vspace{1mm}
+
+\smallnote{Each pair is assigned to the PCA knob group that changed most between the two setups (mean change per knob). Ensemble critic.}
 \end{frame}
 
 % ---------------------------------------------------------------- TD3 1/2
@@ -121,23 +111,6 @@ Critic 2 network, no style & 0.583 & 0.571 & 0.608\\
 \item TD3 parts kept: twin critics with $\min(Q_1,Q_2)$, target policy smoothing, delayed actor updates.
 \item Actor penalised outside the data's support box; style clipped to the training range.
 \end{itemize}
-\end{frame}
-
-% ---------------------------------------------------------------- TD3 2/2
-\begin{frame}{TD3 setup agent: plan}
-\begin{tabularx}{\textwidth}{@{}l X@{}}
-\toprule
-Step & Content\\
-\midrule
-1. Offline actor & Train $\mu_\theta$ against the frozen C2 ensemble on Barcelona and the other tracks; check proposed setups stay in support.\\
-2. Sanity check & Compare the actor's setups with the community meta setups and with critic ranking of known good setups.\\
-3. Online loop (OCD) & Each proposed setup is driven by the SAC driver; the lap is added to the data and the critics are fine-tuned (Barcelona head).\\
-4. Assetto Corsa & Same loop through the Lenovo collector; few laps, so screen candidates with $Q$ first.\\
-5. Evaluation & Lap time vs default and meta setups; per driver style (attacker, smooth, neutral).\\
-\bottomrule
-\end{tabularx}
-\vspace{3mm}
-\smallnote{Open: measured game$\to$OCD knob constants, recorded Barcelona track edges, target session (solo hot lap).}
 \end{frame}
 
 % ---------------------------------------------------------------- TCP
