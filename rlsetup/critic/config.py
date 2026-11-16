@@ -43,6 +43,9 @@ class DataConfig:
     2-3 and the one-sided 8 % cut). The label filter is a selection on the label, computed globally
     (all rows, not per fold; QA M10)."""
     drop_tracks: tuple = ('mexico',)            # B2 / spec 12.12: no accepted geometry
+    # games the S4 click map covers (menu ranges verified in S0 for F1 25 / F1 26 only); setups of other
+    # games (F1 2020 / 23 / 24 in the 16 Nov telemetry-matched file) are skipped at load and counted
+    games: tuple = ('F1_25', 'F1_26')
     label_z_max: float = 3.5                    # B1: drop |robust z| > 3.5, both sides
     label_passes: int = 2                       # B1: m and d recomputed once on the kept rows
     # B1 reading: a row dropped in an earlier pass stays dropped ("drop |z| > 3.5 again"). True re-tests

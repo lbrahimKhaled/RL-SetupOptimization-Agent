@@ -220,3 +220,29 @@ Reading: (1) the full-interaction network ranks setups better than the grouped h
 - Pairwise ranking net trained on within-driver pairs (RankNet, date as training-only term): 0.548 / 0.539 (too few pairs).
 - Critic-2 seed ensembles (5 seeds) and widths 32/64/128: alone 0.582–0.588; with critic 3 within ±0.004 of the current ensemble (all CIs include 0).
 - Plateau ≈ 0.58. Diagnostic: "later setup is faster" alone scores 0.651 within driver (driver learning, not setup). The ensemble scores 0.61–0.63 on pairs > 1 % apart and on same-day pairs, 0.53 on pairs < 0.25 % apart. Date is not added to q: TD3 cannot change it, so it would grade setups by when they were made.
+
+## Retrain with added data (16 Nov)
+Inputs added: `setup_data/f1_unique_setups_with_actual_telemetry.csv` (1,448 setups, all TT/dry/has_telemetry) and `setup_data/f1_telemetry_enhanced_setup_lap_pairs.csv` (1,448 explicit setup→lap pairs). Relation to the old sources: 677 setup ids already present (identical setup values), 771 new, but 764 of those are F1 2020 / 23 / 24, which the S4 click map does not cover (menu ranges verified for F1 25/26 only), so they are skipped at load (`DataConfig.games`, counted per game) — **using older games is Ibrahim's call**. 7 new F1 25/26 setups. Pairs: every pair has a distinct `matched_lap_id`; 658 laps have telemetry in `f1_25_26_telemetry_complete.zip` (nothing downloaded), 625 of them equal the existing `setup_lap_map.csv` pairs, 33 are new exact pairs (31 on existing setups, 2 on new). Adapter (`sources/f1laps.py`): a bare CSV with `matched_lap_id` is a pairs map with precedence over `setup_lap_map.csv`; game labels `F1_25`/`F1 25` are unified. All other rules unchanged.
+
+Build `runs/critic_c2_data/20261116_110216Z` vs `20261115_232051Z`: rows A 20,198 vs 20,190; exact rows 618 vs 586 (with style 594 vs 579); rows S 1,635 vs 1,633; persons 2,635 vs 2,633; ranking pairs 2,881 vs 2,878 (261 vs 260 persons); Barcelona rows A 978 vs 977, exact 26 vs 24, pairs 158 vs 157.
+
+Run `runs/critic_c2/20261116_110253Z` (`--threads 8`, two invocations per the rulings; no fallback needed). Bars:
+
+| Bar | Value | Result |
+|---|---|---|
+| R11 critic 3 pair acc ≥ 0.56, F_cell / F_person | 0.580 [0.557, 0.605] / 0.567 [0.544, 0.592] | pass |
+| R11 critic 3 − ridge ≥ −0.02 | +0.012 [−0.006, 0.030] / +0.001 [−0.017, 0.019] | pass |
+| R11 strict (F_cell r0) ≥ 0.54 | 0.558 | pass |
+| R11 F_hash R² gain > 0 | 0.011 [0.008, 0.014] | pass |
+| Barcelona pair acc ≥ 0.55 (pooled + head, F_cell) | 0.608 [0.521, 0.700] | pass |
+| Groups (C1-R12) | PCA − physics −0.013 [−0.029, 0.004] | PCA kept |
+| Guard F_cell / F_person | R² −0.001 [−0.002, 0.001] / +0.001 [−0.004, 0.006] | **pass** (failed F_cell before) |
+| Critic 1 rung 0 ΔR² CI low > −0.02 | +0.002 [−0.021, 0.028] / −0.009 [−0.043, 0.019] | **fail** → B23 ladder |
+| B23 ladder | rung 0 fails, rung 2 selected level (L1) passes, e0 ok | TD3 Q = critic 1 rung 2 L1 (`critic1_final.pt`) |
+| B16 trigger | not fired | no rows-S fallback |
+| Style helps (R6) F_person | track −0.007 [−0.038, 0.019]; cross +0.011 [−0.022, 0.041] | fail: not shown |
+| Critic 2 MAE below nuisance | +0.012 [0.001, 0.023] / +0.014 [−0.003, 0.031] | fail |
+| B21.4 meta-prior / B21.5 trigger / R3c | not adopted / not fired / not needed | critic 3 plain |
+| S22a drop Quali / S22b escalate | false / false | Quali kept |
+
+Stalled fits: 0. Ensemble (post-hoc, `scripts/critic_c2_ensemble_check.py runs/critic_c2/20261116_110253Z`; the script now loads the run's own data build): critic 3 0.581 / 0.566, critic-2-pretrain 0.583 / 0.571, 50/50 **0.587 (Δ +0.007 [−0.006, +0.020]) / 0.576 (Δ +0.010 [−0.001, +0.022])** (F_cell / F_person); Barcelona 0.599 / 0.608 / 0.614 (F_cell), 0.568 / 0.572 / 0.589 (F_person). The F_person gain no longer excludes 0. Bundles: `runs/critic_c2/20261116_110253Z/bundles/{critic1,critic2,critic3}_final.pt`, `ensemble_td3_q.json` (critic1 + critic2 equal weights). Thread count 8 vs 1 before: torch CPU reductions may differ in the last bits.

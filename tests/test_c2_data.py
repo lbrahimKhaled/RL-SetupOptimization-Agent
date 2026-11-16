@@ -183,3 +183,32 @@ def test_adapter_contract(data, frame):
     table = {c: np.array([r['values'][c] for r in rows], float) for c in GAME_COLUMNS}
     np.testing.assert_array_equal(ad.to_knobs(table), game_to_knobs(table))
     np.testing.assert_allclose(frame.knobs[[0, 20, 40]], game_to_knobs(table))
+
+
+def test_explicit_pairs_file_and_game_filter(fx, tmp_path):
+    """16 Nov files: a bare CSV with `matched_lap_id` is a pairs map (precedence over setup_lap_map.csv,
+    telemetry from exports already read); setups of games without an S4 map are skipped when `games` is set."""
+    import csv as _csv
+    import io as _io
+    from c2_fixture import USERS_25, _csv as to_csv
+    rows = list(_csv.DictReader(_io.StringIO((fx['root'] / 'extra_setups.csv').read_text(encoding='utf-8-sig'))))
+    u, t = USERS_25[0], 'trk_good'
+    old_game = dict(rows[0], game='F1_23', setup_id='23-old-game')
+    (tmp_path / 'more_setups.csv').write_bytes(to_csv([old_game], list(rows[0])))
+    pairs = [{'setup_id': f'25-{t}-{u}-2', 'matched_lap_id': f'lap-25-{t}-{u}', 'has_telemetry': 'true'},
+             {'setup_id': '23-old-game', 'matched_lap_id': f'lap-25-{t}-{u}', 'has_telemetry': 'true'},
+             {'setup_id': f'25-{t}-{u}-0', 'matched_lap_id': 'lap-not-downloaded', 'has_telemetry': 'true'}]
+    (tmp_path / 'pairs.csv').write_bytes(to_csv(pairs, ['setup_id', 'matched_lap_id', 'has_telemetry']))
+    assert discover(tmp_path / 'pairs.csv')[0].names == {'setup_lap_pairs.csv'}
+    srcs = fx['sources'] + [tmp_path / 'more_setups.csv', tmp_path / 'pairs.csv']
+    base = load_exports(fx['sources'], log=lambda *a: None)
+    d = load_exports(srcs, log=lambda *a: None, games=('F1_25', 'F1_26'))
+    c = dict(d.counts)
+    assert c['setup rows skipped: game F1 23 (no S4 map)'] == 1 and len(d.setups) == len(base.setups)
+    assert c['explicit setup-lap pairs read (pairs files)'] == 3
+    assert c['explicit pairs with the setup kept and the lap telemetry available'] == 1
+    assert len(d.exact) == len(base.exact) + 1            # the k=2 setup gains the lap; k=1 keeps it too
+    assert set(base.exact.items()) <= set(d.exact.items())
+    assert len(load_exports(srcs, log=lambda *a: None).setups) == len(base.setups) + 1   # no filter: kept
+    from rlsetup.critic.sources.f1laps import game_label
+    assert game_label('F1_25') == game_label('F1 25') == 'F1 25'

@@ -145,7 +145,7 @@ def main(argv=None):
     adapter = F1LapsAdapter(map_cfg, cfg)
 
     print('== setups and laps ==')
-    data = load_exports(expand_sources(args.sources), drop_tracks=cfg.data.drop_tracks)
+    data = load_exports(expand_sources(args.sources), drop_tracks=cfg.data.drop_tracks, games=cfg.data.games)
     frame = build_frame(data, cfg, map_cfg, adapter=adapter)
     s_before = s_rows_before_filters(data)
     print(f'rows S before filters (all unique setup_id): {s_before}')

@@ -2,8 +2,11 @@
 
 An export is a folder (or a folder inside a zip archive, read in place) holding `setups.csv` and,
 optionally, `laps.csv`, `setup_lap_map.csv`, `time_mapping.csv`, `graph_{throttle,brake,steer}.csv`.
-A bare setups CSV file is an export with the setups table only. The game is a column. New export
-folders need no code change: every `setups.csv` found under a given path is one export.
+A bare setups CSV file is an export with the setups table only. A bare CSV with a `matched_lap_id`
+column (the 16 Nov telemetry-enhanced setup-lap pairs file) is an explicit setup -> lap map only: its
+pairs take precedence over `setup_lap_map.csv` for the exact-row pairing; the lap's telemetry must come
+from an export already read (nothing is downloaded). The game is a column. New export folders need no
+code change: every `setups.csv` found under a given path is one export.
 
 Privacy: usernames are mapped to integer ids keyed by (game, user) (`driver`) and to a cross-game integer
 `person` id (the same name in two games = one person, C2b_addendum B6) while the files are read, and the
@@ -50,6 +53,8 @@ STEER_KAPPA_SIGN = -1
 TIME_MAP_UNIT_S = 1e-3
 # declared `unit` of each graph channel in the exports read so far; anything else stops the load
 GRAPH_UNITS = {'throttle': ('fraction',), 'brake': ('fraction',), 'steer': ('source_normalized',)}
+# explicit setup -> lap pairs file (16 Nov): a bare CSV with this column is read as the table PAIRS_TABLE
+PAIRS_LAP_COLUMN, PAIRS_TABLE = 'matched_lap_id', 'setup_lap_pairs.csv'
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -103,7 +108,10 @@ def discover(path) -> list:
             out.append(Export(f'{path.name}:{prefix}'.rstrip('/:'), reader, names))
         return out
     if path.suffix.lower() == '.csv' and path.is_file():
-        return [Export(path.name, lambda n: path.read_bytes(), {'setups.csv'})]
+        with open(path, encoding='utf-8-sig', newline='') as f:
+            header = next(csv.reader(f), [])
+        name = PAIRS_TABLE if PAIRS_LAP_COLUMN in header else 'setups.csv'
+        return [Export(path.name, lambda n: path.read_bytes(), {name})]
     raise ValueError(f'{path}: not an export folder, a .zip archive or a setups .csv file')
 
 
@@ -244,7 +252,12 @@ def _parse_time_map(data: bytes, wanted):
     return {k: np.array(sorted(v)) for k, v in acc.items()}
 
 
-def load_exports(paths, log=print, drop_tracks=()) -> F1LapsData:
+def game_label(game):
+    """Canonical game label: 'F1_25' (16 Nov files) and 'F1 25' (f1laps exports) are one game, 'F1 25'."""
+    return (game or '').strip().replace('_', ' ')
+
+
+def load_exports(paths, log=print, drop_tracks=(), games=None) -> F1LapsData:
     """Read all exports under `paths` (see `discover`). Setups are deduplicated by `setup_id`, laps by
     `lap_id` (first export wins for the lap's metadata). Telemetry (each graph channel, the time map)
     is taken from the first export that has it for that lap: a lap listed earlier without samples is
@@ -253,13 +266,17 @@ def load_exports(paths, log=print, drop_tracks=()) -> F1LapsData:
     file read goes to `provenance`. Setups, laps and exact matches on `drop_tracks` (B2) are removed
     after the ids are assigned, before anything else uses the data (counted in `dropped_tracks`).
     `person` (B6): integer per username across games, from the sorted names, built before the names
-    are discarded."""
+    are discarded. `games` (DataConfig.games): setups of other games are skipped before any id is given
+    (counted per game). Exact pairs: explicit pairs files first, then `setup_lap_map.csv`; the first
+    accepted pair (lap with samples) per setup wins."""
     exports = [e for p in paths for e in discover(p)]
     if not exports:
         raise ValueError(f'no export with a setups.csv under {[str(p) for p in paths]}')
     prov, seen_files = Provenance(), {}
     users = {}                      # (game, user) -> None; replaced by integer ids below, then cleared
-    setups, setup_ids, laps, lap_ids, exact_pairs = [], {}, {}, {}, []
+    setups, setup_ids, laps, lap_ids, exact_pairs, explicit_pairs = [], {}, {}, {}, [], []
+    keep_games = None if games is None else {game_label(g) for g in games}
+    skipped_games = {}
     n_setup_rows = n_lap_rows = 0
     filled_later, seen = set(), set()   # lap keys filled by a later export / listed by an earlier one
 
@@ -284,6 +301,10 @@ def load_exports(paths, log=print, drop_tracks=()) -> F1LapsData:
         if data is not None:
             for r in _rows(data):
                 n_setup_rows += 1
+                r['game'] = game_label(r['game'])
+                if keep_games is not None and r['game'] not in keep_games:
+                    skipped_games[r['game']] = skipped_games.get(r['game'], 0) + 1
+                    continue
                 games.add(r['game'])
                 if r['setup_id'] in setup_ids:
                     continue
@@ -295,7 +316,7 @@ def load_exports(paths, log=print, drop_tracks=()) -> F1LapsData:
                                'date_days': _date_days(r.get('date_key')), 'lap_s': lap_time_s(r.get('lap_time')),
                                'values': {c: _num(r.get(c)) for c in GAME_COLUMNS}})
         elif 'setups.csv' in export.names:      # duplicate bytes: the game is still needed for laps.csv
-            games = {r['game'] for r in _rows(export.read('setups.csv'))}
+            games = {game_label(r['game']) for r in _rows(export.read('setups.csv'))}
         data = fetch(export, 'laps.csv')
         lap_bytes = data if data is not None else export.read('laps.csv')   # duplicate bytes: ids still needed
         listed = {}                 # lap_id -> key of every lap this export lists
@@ -305,7 +326,7 @@ def load_exports(paths, log=print, drop_tracks=()) -> F1LapsData:
                 if r['lap_id'] in lap_ids:
                     listed[r['lap_id']] = lap_ids[r['lap_id']]
                     continue
-                game = r.get('game') or (next(iter(games)) if len(games) == 1 else None)
+                game = game_label(r.get('game')) or (next(iter(games)) if len(games) == 1 else None)
                 if game is None:
                     raise ValueError(f'{export.label}/laps.csv has no game column and its setups.csv does not name one game')
                 users.setdefault((game, r['user']))
@@ -335,6 +356,10 @@ def load_exports(paths, log=print, drop_tracks=()) -> F1LapsData:
         data = fetch(export, 'setup_lap_map.csv')
         if data is not None:
             exact_pairs += [(r['setup_id'], r['lap_id']) for r in _rows(data) if r.get('has_telemetry') == 'true']
+        data = fetch(export, PAIRS_TABLE)
+        if data is not None:
+            explicit_pairs += [(r['setup_id'], r[PAIRS_LAP_COLUMN]) for r in _rows(data)
+                               if r.get('has_telemetry') == 'true' and r[PAIRS_LAP_COLUMN]]
         log(f'read {export.label}: setups so far {len(setups)}, laps so far {len(laps)}')
 
     # usernames -> integer ids keyed by (game, user) and cross-game person ids (B6); the strings end here
@@ -352,13 +377,19 @@ def load_exports(paths, log=print, drop_tracks=()) -> F1LapsData:
     persons.clear()
 
     exact = {}
-    for setup_id, lap_id in exact_pairs:
+    for setup_id, lap_id in explicit_pairs + exact_pairs:
         if setup_id in setup_ids and lap_id in lap_ids and laps[lap_ids[lap_id]].has_samples:
             exact.setdefault(setup_ids[setup_id], lap_ids[lap_id])
-    counts = [('setup rows read (all exports)', n_setup_rows), ('unique setup_id', len(setups)),
+    usable = [(a, b) for a, b in explicit_pairs if a in setup_ids and b in lap_ids and laps[lap_ids[b]].has_samples]
+    counts = [('setup rows read (all exports)', n_setup_rows),
+              *((f'setup rows skipped: game {g} (no S4 map)', n) for g, n in sorted(skipped_games.items())),
+              ('unique setup_id', len(setups)),
               ('lap rows read (all exports)', n_lap_rows), ('unique lap_id', len(laps)),
               ('laps with graph samples', sum(l.has_samples for l in laps.values())),
               ('laps given telemetry by a later export', len(filled_later)),
+              ('explicit setup-lap pairs read (pairs files)', len(explicit_pairs)),
+              ('explicit pairs with the setup kept and the lap telemetry available', len(usable)),
+              ('explicit pairs not in any setup_lap_map.csv (new exact pairs)', len(set(usable) - set(exact_pairs))),
               ('exact setup-lap matches with samples', len(exact))]
     dropped = {}
     if drop_tracks:                     # B2: before anything else uses the data
