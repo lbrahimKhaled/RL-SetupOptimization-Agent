@@ -32,13 +32,15 @@
 \centering
 \begin{tikzpicture}
 \node[box] (inp) at (1.9,0) {setup $p$ (15 knobs), track $z$, game};
-\node[box,fill=blue!6] (c3) at (0.3,-1.2) {Critic 3: grouped heads\\(PCA knob groups)};
-\node[box,fill=blue!6] (c2) at (3.5,-1.2) {Critic 2: full MLP\\(all knob interactions)};
-\node[box] (s) at (1.9,-2.2) {driver style $s$ (12)};
-\node[box,fill=green!8] (c1) at (0.3,-3.2) {Critic 1 = critic 3\\+ style encoder};
-\node[box,fill=orange!12] (q) at (1.9,-4.3) {TD3 $Q$ = mean(critic 1, critic 2)};
+\node[box,fill=blue!6] (c3) at (0.2,-1.2) {Critic 3: grouped heads\\(PCA knob groups)};
+\node[box,fill=blue!6] (c2) at (3.8,-1.2) {Critic 2: full MLP\\(all knob interactions)};
+\node[box] (s) at (1.9,-2.1) {driver style $s$ (12)};
+\node[box,fill=green!8] (c1) at (0.2,-3.0) {Critic 1 = critic 3\\+ style encoder};
+\node[box,fill=orange!12] (q) at (1.9,-4.2) {TD3 $Q$ = mean(critic 1, critic 2)};
 \draw[arr] (inp) -- (c3); \draw[arr] (inp) -- (c2); \draw[arr] (c3) -- (c1);
-\draw[arr] (s) -- (c1); \draw[arr] (s) -- (c2); \draw[arr] (c1) -- (q); \draw[arr] (c2) |- (q);
+\draw[arr] (s) -- (c1); \draw[arr] (s) -- (c2);
+\draw[arr] (c1.south) -- (q.north -| c1.south);
+\draw[arr] (c2.south) -- (q.north -| c2.south);
 \end{tikzpicture}
 \end{columns}
 \vspace{2mm}
