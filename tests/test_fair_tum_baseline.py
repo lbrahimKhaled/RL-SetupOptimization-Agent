@@ -59,6 +59,7 @@ def test_snapshot_uses_requested_run_and_survives_live_checkpoint_replace(tmp_pa
             state.prepare_snapshot(run, out)
 
 
+@pytest.mark.skipif(sys.platform == 'win32', reason='POSIX only: Windows cannot rename over a file that is open')
 def test_freeze_copies_one_inode_during_atomic_source_replacement(tmp_path, monkeypatch):
     source, destination = tmp_path / 'live.zip', tmp_path / 'frozen.zip'
     replacement = tmp_path / 'new.zip'

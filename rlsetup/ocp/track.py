@@ -21,7 +21,9 @@ from pathlib import Path
 
 import numpy as np
 
-TRACKS_DIR = Path("/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap/vendor/racetrack-database/tracks")
+from ..paths import ocd_first_lap_root
+
+TRACKS_DIR = ocd_first_lap_root() / "vendor" / "racetrack-database" / "tracks"
 R_DEFAULT = 1e4   # m^6, ASSUMPTION (see module docstring)
 
 

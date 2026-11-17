@@ -12,8 +12,6 @@ solution_ladder_*_1m.csv.
 from __future__ import annotations
 
 import argparse
-import contextlib
-import fcntl
 import json
 import subprocess
 import sys
@@ -31,6 +29,7 @@ from rlsetup.ocp.ladder_solve import (NAMES, LadderSettings, convert_l0, cumulat
 from rlsetup.ocp.ocd_car import from_backend  # noqa: E402
 from rlsetup.ocp.pl14_model import pl14_car, sf70h_tum_car  # noqa: E402
 from rlsetup.ocp.track import Track  # noqa: E402
+from rlsetup.runs import file_lock  # noqa: E402
 
 OUT = ROOT / "docs/results/limebeer_ocp"
 RES = OUT / "results.json"
@@ -64,15 +63,8 @@ def git_hash():
         return "unknown"
 
 
-@contextlib.contextmanager
 def locked():
-    LOCK.touch(exist_ok=True)
-    with open(LOCK) as fh:
-        fcntl.flock(fh, fcntl.LOCK_EX)
-        try:
-            yield
-        finally:
-            fcntl.flock(fh, fcntl.LOCK_UN)
+    return file_lock(LOCK)
 
 
 def update(track_name, step, key, value):

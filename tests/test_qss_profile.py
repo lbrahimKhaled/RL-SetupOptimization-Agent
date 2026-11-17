@@ -1,3 +1,4 @@
+import sys
 import warnings
 import numpy as np
 import pytest
@@ -20,7 +21,16 @@ def test_profile_reproduces_qss_lap_time_exactly(track, computed):
 
 def test_cached_file_matches_fresh_computation(track, qss, computed):
     profile, _ = computed
-    assert qss.meta['key'] == qss_profile.cache_key(track, Setup())
+    key = qss_profile.cache_key(track, Setup())
+    cached = qss_profile.load(qss_profile.default_path(track.name))
+    old = cached.meta.get('key') or {}
+    if old != key and sys.platform != 'darwin':
+        # The key hashes the ocd_native binary, so the committed (Mac-built) cache only matches on
+        # the Mac; elsewhere load_or_build recomputes in memory (the qss fixture is that).
+        diff = sorted(k for k in set(old) | set(key) if old.get(k) != key.get(k))
+        pytest.skip(f'committed AV-21 cache was built on another platform; key differs in {diff}')
+    qss = cached
+    assert qss.meta['key'] == key
     np.testing.assert_array_equal(qss.v, profile.v)
     assert qss.lap_time_s == profile.lap_time_s
     assert {'ocd_first_lap', 'rlsetup', 'ocd_lap_code_version'} <= set(qss.meta['provenance'])

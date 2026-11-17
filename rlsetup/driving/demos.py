@@ -38,9 +38,10 @@ import json
 import multiprocessing
 import numpy as np
 from ..provenance import REPO_ROOT, run_provenance, sha256_file
+from ..runs import replace_file
 from .config import EnvConfig
 from .env import FAILURES
-from .train_config import DemoDataConfig, config_from_dict
+from .train_config import DemoDataConfig, config_from_dict, DEFAULT_START_METHOD
 from .vec import make_env
 
 ARRAYS = ('obs', 'actions', 'actions_clean', 'rewards', 'terminated', 'truncated', 'ep_start_obs',
@@ -186,7 +187,7 @@ def demo_path(demo_dir, key):
     return d / f'demos_{key[:12]}.npz'
 
 
-def collect_demos(env_cfg, demo_cfg, qss, track_sha, demo_dir, *, start_method='forkserver', log=print):
+def collect_demos(env_cfg, demo_cfg, qss, track_sha, demo_dir, *, start_method=DEFAULT_START_METHOD, log=print):
     """Collect (or reuse the cached) dataset. Returns (npz path, metadata dict incl. summary)."""
     prov = run_provenance()
     key, key_dict = dataset_key(env_cfg, demo_cfg, qss, prov)
@@ -203,7 +204,7 @@ def collect_demos(env_cfg, demo_cfg, qss, track_sha, demo_dir, *, start_method='
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(path.stem + '.tmp.npz')
     np.savez(tmp, **arrays)
-    tmp.replace(path)
+    replace_file(tmp, path)
     wall = (datetime.datetime.now(datetime.timezone.utc) - t0).total_seconds()
     summary = summarize(episodes)
     meta = {'key': key, 'key_inputs': key_dict, 'path': str(path), 'npz_sha256': sha256_file(path),
@@ -216,7 +217,7 @@ def collect_demos(env_cfg, demo_cfg, qss, track_sha, demo_dir, *, start_method='
     return path, meta
 
 
-def ensure_demos(env_cfg, demo_cfg, qss, track_sha, demo_dir, *, start_method='forkserver', log=print):
+def ensure_demos(env_cfg, demo_cfg, qss, track_sha, demo_dir, *, start_method=DEFAULT_START_METHOD, log=print):
     """`collect_demos` + the gate (spec §4 step 2): below min_clean_fraction, recollect once with
     steering noise `fallback_steer_noise`; raise DemoGateFailed if that fails too.
     Returns (path, meta, demo_cfg actually used)."""

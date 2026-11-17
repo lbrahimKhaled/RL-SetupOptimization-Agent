@@ -3,15 +3,65 @@
 Layout: <runs_root>/<run_name>/seed<k>/ with config.json, provenance.json, status.json, ...
 `status.json` = {'phase', 'state', 'events': [...], 'phases': {name: {wall_s, env_steps}},
 'created_utc', 'updated_utc', ...}; `update_status` merges fields, `add_event` appends.
-JSON writes are atomic (temporary file + rename); NaN / inf become null.
+JSON writes are atomic (temporary file + rename, retried on Windows); NaN / inf become null.
 """
 from pathlib import Path
+import contextlib
 import datetime
 import json
 import math
 import os
+import sys
+import time
 import numpy as np
 from .provenance import REPO_ROOT
+
+
+def replace_file(src, dst, *, timeout_s=30.):
+    """os.replace(src, dst). On Windows the rename fails with PermissionError while another process
+    (a TensorBoard / eval watcher, an antivirus scan of the new file) has `dst` or `src` open, so
+    retry with back-off for up to `timeout_s` instead of killing a long run at a save."""
+    if sys.platform != 'win32':
+        return os.replace(src, dst)
+    deadline, wait = time.monotonic() + timeout_s, .05
+    while True:
+        try:
+            return os.replace(src, dst)
+        except PermissionError:
+            if time.monotonic() > deadline:
+                raise
+            time.sleep(wait)
+            wait = min(wait * 2, 1.)
+
+
+@contextlib.contextmanager
+def file_lock(path):
+    """Exclusive inter-process lock on `path` (created if missing): fcntl.flock on POSIX,
+    msvcrt.locking on Windows (fcntl does not exist there)."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, 'a+b') as fh:
+        if sys.platform == 'win32':
+            import msvcrt
+            fh.seek(0)
+            while True:
+                try:
+                    msvcrt.locking(fh.fileno(), msvcrt.LK_LOCK, 1)   # retries ~10 s, then OSError
+                    break
+                except OSError:
+                    continue
+            try:
+                yield
+            finally:
+                fh.seek(0)
+                msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(fh, fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(fh, fcntl.LOCK_UN)
 
 
 def utc_now():
@@ -45,7 +95,7 @@ def write_json(path, obj):
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(path.name + '.tmp')
     tmp.write_text(to_json(obj, indent=1))
-    os.replace(tmp, path)
+    replace_file(tmp, path)
 
 
 def read_json(path, default=None):

@@ -16,6 +16,7 @@ from rlsetup.driving.config import EnvConfig, RewardConfig
 from rlsetup.driving.demo_driver import DemoPolicy
 from rlsetup.driving.train_config import (PRESETS, TrainConfig, StopConfig, config_json, train_config_from_dict)
 from r1_golden import legacy_rollout
+from platform_golden import golden, GOLDEN_LEGACY
 from sb3_helpers import TinyEnv, tiny_cfg, make_model, OBS
 
 R1 = lambda **kw: RewardConfig(mode='time_pbrs', **kw)
@@ -25,7 +26,6 @@ CRASH_LEFT = np.array([1., 1., -1.], np.float32)
 
 
 # --- 1: legacy bit identity --------------------------------------------------------------------
-GOLDEN_LEGACY = '0007e2813d2d28971223460790b45852513768865f08d6d0b3685f5868a1c4c2'
 
 
 def test_legacy_rollout_bit_identical(make_env):
@@ -36,7 +36,7 @@ def test_legacy_rollout_bit_identical(make_env):
     (`git diff aeab814 47f1d8d -- rlsetup` is empty), same machine (macOS arm64, M4)."""
     digest, ends = legacy_rollout(make_env)
     assert ends == ['off_track', 'stall', 'time_limit', 'wrong_way', 'off_track', 'stall']
-    assert digest == GOLDEN_LEGACY
+    assert digest == golden(GOLDEN_LEGACY)
     assert RewardConfig().mode == 'ref_tracking'
 
 

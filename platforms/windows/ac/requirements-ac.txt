@@ -1,0 +1,20 @@
+# Assetto Corsa client side (assetto_corsa_gym ef0fa50), installed on top of a clone of ocdenv
+# (Python 3.12, torch 2.11 cu128, stable-baselines3 / sb3-contrib 2.9.0, gymnasium 1.4).
+# Upstream pins (gym 0.21, numpy 1.23, pandas 1.4, Python 3.9) do not install on 3.12; these are the
+# nearest versions that do. setup_acenv.ps1 runs check_ac.py afterwards to confirm the imports.
+numpy<2.5            # numba exports numba.np.extensions.cross2d (AssettoCorsaEnv/track.py) only below numpy 2.5
+gym==0.26.2          # AssettoCorsaEnv/ac_env.py: from gym import Env, spaces
+pandas
+numba                # AssettoCorsaEnv/gap.py
+pyyaml
+omegaconf
+python-box
+termcolor
+tqdm
+mpld3
+pygame               # AssettoCorsaEnv/pygame_joystick_handler.py (manual override / recording)
+wandb                # train.py imports it; runs use disable_wandb=True
+# optional: screen capture (sensors_par alternative interpreter); harmless if unused
+mss
+pygetwindow
+opencv-python-headless

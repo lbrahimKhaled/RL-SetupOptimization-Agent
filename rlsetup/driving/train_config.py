@@ -18,8 +18,12 @@ from dataclasses import dataclass, field, asdict, fields, is_dataclass, replace
 from pathlib import Path
 import ast
 import json
+import sys
 import typing
 from .config import EnvConfig
+
+# forkserver does not exist on Windows; spawn is the only start method there.
+DEFAULT_START_METHOD = 'spawn' if sys.platform == 'win32' else 'forkserver'
 
 
 @dataclass(frozen=True)
@@ -267,7 +271,7 @@ class TrainConfig:
                                          # transitions (lead decision, QA D2 follow-up)
     demo_dir: str = 'data/demos'         # relative to the repo root unless absolute
     runs_root: str = 'runs/D2'           # relative to the repo root unless absolute
-    vec_start_method: str = 'forkserver'
+    vec_start_method: str = DEFAULT_START_METHOD   # forkserver; spawn on Windows
 
     @property
     def r2_aids(self):

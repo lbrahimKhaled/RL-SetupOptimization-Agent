@@ -26,6 +26,7 @@ from rlsetup.driving.relabel import relabel_speed_profile
 from rlsetup.driving.train_config import (PRESETS, BonusScheduleConfig, EvalConfig, config_json,
                                           train_config_from_dict, F1_R2_INIT, F1_BEST_W35_RUN)
 from r1_golden import legacy_rollout
+from platform_golden import golden, GOLDEN_LEGACY, GOLDEN_PBRS, TABLE_KEY
 from sb3_helpers import TinyEnv, tiny_cfg, make_model
 import speed_truth as ST
 
@@ -35,11 +36,8 @@ RUNS = REPO_ROOT / 'runs' / 'mac' / 'D2'
 SRC = RUNS / 'f1_best_w35' / 'seed0'
 needs_src = pytest.mark.skipif(not (HAS_F1 and (SRC / 'checkpoints' / 'last.zip').exists()),
                                reason='needs sf70h_f1 and runs/mac/D2/f1_best_w35')
-GOLDEN_LEGACY = '0007e2813d2d28971223460790b45852513768865f08d6d0b3685f5868a1c4c2'   # = test_r1.py
 # time_pbrs digest of legacy_rollout(EnvConfig(max_episode_s=4, reward=time_pbrs)), generated with the
 # pre-R4 code (commit ad3b879, both ocd_first_lap branches)
-GOLDEN_PBRS = '3104af11981e51be74c2a9475c402e9c273340794ccd4dc62baf836e13e9e7aa'
-TABLE_KEY = '6c61b28a4876'
 E3 = CornerBonusConfig(enabled=True, mode='entry_exit')
 
 
@@ -124,14 +122,14 @@ def test_real_f1_r2_config_differs_only_by_the_r3_keys():
 # --- req 2: speed potential in the env ------------------------------------------------------------------
 def test_golden_rollouts_unchanged(make_env, track, qss):
     table = ST.table_for(track, qss)
-    assert legacy_rollout(make_env)[0] == GOLDEN_LEGACY
+    assert legacy_rollout(make_env)[0] == golden(GOLDEN_LEGACY)
     off = EnvConfig(max_episode_s=4., reward=RewardConfig(mode='time_pbrs', speed_sigma=.5))   # speed_k = 0
-    assert legacy_rollout(make_env, off)[0] == GOLDEN_PBRS
-    assert legacy_rollout(make_env, EnvConfig(max_episode_s=4., reward=RewardConfig(mode='time_pbrs')))[0] == GOLDEN_PBRS
+    assert legacy_rollout(make_env, off)[0] == golden(GOLDEN_PBRS)
+    assert legacy_rollout(make_env, EnvConfig(max_episode_s=4., reward=RewardConfig(mode='time_pbrs')))[0] == golden(GOLDEN_PBRS)
     # entry / exit terms on, speed_k = 0: the reward and observations stay bit-identical
     with_terms = dataclasses.replace(off, corner_bonus=E3)
-    assert legacy_rollout(lambda c: make_env(c, corners=table), with_terms)[0] == GOLDEN_PBRS
-    assert legacy_rollout(lambda c: make_env(dataclasses.replace(c, corner_bonus=E3), corners=table))[0] == GOLDEN_LEGACY
+    assert legacy_rollout(lambda c: make_env(c, corners=table), with_terms)[0] == golden(GOLDEN_PBRS)
+    assert legacy_rollout(lambda c: make_env(dataclasses.replace(c, corner_bonus=E3), corners=table))[0] == golden(GOLDEN_LEGACY)
 
 
 def _episode(env, options, policy, seed=1, n=600):
@@ -538,7 +536,8 @@ def test_f1_r4_corner_table_key_unchanged():
     cfg = PRESETS['f1_r4']()
     track = Track(cfg.env.track)
     table = corner_table(cfg, track, qss_profile.for_env(track, cfg.env))
-    assert table.meta['key'][:12] == TABLE_KEY and (REPO_ROOT / 'data' / f'corner_table_{TABLE_KEY}.json').exists()
+    table_key = golden(TABLE_KEY)
+    assert table.meta['key'][:12] == table_key and (REPO_ROOT / 'data' / f'corner_table_{table_key}.json').exists()
     want = [(517.0, 82.56), (1467.9, 80.15), (2061.9, 78.73), (2449.9, 61.32), (3006.9, 78.11), (4634.8, 83.60),
             (5041.8, 72.00)]                                 # R4_review [ARCH] 3
     for (name, s_in, v_in), (s, v) in zip(SP.entry_points(table), want):

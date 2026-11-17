@@ -9,6 +9,7 @@ import importlib.util
 import json
 import math
 import pickle
+from pathlib import Path
 from types import SimpleNamespace
 import numpy as np
 import pytest
@@ -27,6 +28,7 @@ from rlsetup.driving.config import EnvConfig, RewardConfig, CornerBonusConfig, F
 from rlsetup.driving.train_config import (PRESETS, TrainConfig, BonusScheduleConfig, FocusUpdateConfig, EvalConfig,
                                           config_json, train_config_from_dict)
 from r1_golden import legacy_rollout
+from platform_golden import golden, GOLDEN_LEGACY
 from sb3_helpers import TinyEnv, tiny_cfg, make_model, OBS
 
 HAS_F1 = 'sf70h_f1' in cars.CARS
@@ -34,7 +36,6 @@ needs_f1 = pytest.mark.skipif(not HAS_F1, reason='sf70h_f1 needs ocd_first_lap b
 SRC = REPO_ROOT / 'runs' / 'mac' / 'D2' / 'f1_best_w35' / 'seed0'
 needs_src = pytest.mark.skipif(not (HAS_F1 and (SRC / 'checkpoints' / 'best.zip').exists()),
                                reason='needs sf70h_f1 and runs/mac/D2/f1_best_w35')
-GOLDEN_LEGACY = '0007e2813d2d28971223460790b45852513768865f08d6d0b3685f5868a1c4c2'   # = test_r1.py
 B, FLOOR = 3., .75
 ON = dict(corner_bonus=CornerBonusConfig(enabled=True), focus=FocusConfig(enabled=True))
 
@@ -217,8 +218,8 @@ def test_check_windows_rejects_overlap_and_short():
 def test_golden_rollout_unchanged_with_aids_on(make_env):
     table = synthetic_table()
     digest, _ = legacy_rollout(lambda c: make_env(dataclasses.replace(c, **ON), corners=table))
-    assert digest == GOLDEN_LEGACY
-    assert legacy_rollout(make_env)[0] == GOLDEN_LEGACY
+    assert digest == golden(GOLDEN_LEGACY)
+    assert legacy_rollout(make_env)[0] == golden(GOLDEN_LEGACY)
 
 
 def test_time_pbrs_rollout_bitwise_equal_with_bonus(make_env):
@@ -310,7 +311,7 @@ def _buffers(n_envs=1, size=64, n_steps=3, gamma=.9, rows=50, seed=0):
     """Identical plain / bonus buffers with `size` rows per env (SB3 divides buffer_size by n_envs)."""
     from gymnasium import spaces
     obs_sp, act_sp = spaces.Box(-1, 1, (4,), np.float32), spaces.Box(-1, 1, (2,), np.float32)
-    kw = dict(n_envs=n_envs, n_steps=n_steps, gamma=gamma)
+    kw = dict(n_envs=n_envs, n_steps=n_steps, gamma=gamma, device='cpu')   # tests read samples with .numpy()
     plain = NStepReplayBuffer(size * n_envs, obs_sp, act_sp, **kw)
     bonus = BonusNStepReplayBuffer(size * n_envs, obs_sp, act_sp, **kw)
     rng = np.random.default_rng(seed)
@@ -835,7 +836,7 @@ def test_evals_to_tb_r2_scalars_and_lifetime(tmp_path, monkeypatch):
             self.d = d
 
         def add_scalar(self, tag, v, step, walltime=None):
-            written.append((self.d.split('/')[-1], tag, v, step))
+            written.append((Path(self.d).name, tag, v, step))
 
         def close(self):
             pass

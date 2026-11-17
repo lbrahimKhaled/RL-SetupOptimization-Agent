@@ -226,6 +226,11 @@ nohup cloudflared tunnel --no-autoupdate --url http://127.0.0.1:6006 > runs/mac/
 ```
 Best models: `models/`. Line result: RL 103.06 → 102.57 s. Judge this setup at about 5M steps.
 
+## 17 Nov 2026 — Windows box set up for OCD (branch `sf70h-f1`) and Assetto Corsa
+- **OCD:** this repo on `sf70h-f1`; `ocd_first_lap` on its `sf70h-f1` branch (Python-only change, existing `ocd_native` build kept). Env `C:\Users\imk14\ocdenv` unchanged. Full test suite passes on Windows (`platforms/windows/README.md` § Tests).
+- **Windows fixes:** `.gitattributes` `* -text` (CRLF checkouts changed every source hash); `vec_start_method` default `spawn` on Windows; `runs.replace_file` retries `os.replace` on PermissionError (a reader holding a checkpoint open killed saves); `runs.file_lock` replaces `fcntl`; `rlsetup/paths.py` replaces hard-coded Mac `ocd_first_lap` paths; `cars.py` added to `OCD_LAP_EXTRA_SOURCES` (W1 gap 3b; provenance.json only, demo keys unchanged, a resume needs `--allow-code-change`). Per-platform goldens in `tests/platform_golden.py` (Windows LEGACY / PBRS digests generated on the pre-R1 7a2bee2 and pre-R4 ad3b879 trees; equal to the current tree's).
+- **Assetto Corsa (game and learner on this PC):** `platforms/windows/ac/` (README there). `assetto_corsa_gym` cloned next to the repo at `ef0fa50`; env `C:\Users\imk14\acenv` (clone of ocdenv + `requirements-ac.txt`, numpy 2.4.6 for numba's `cross2d`). Plugin servers bind 127.0.0.1. **Blocked on:** AC Steam download (231 MB of 10.2 GB), vJoy install (admin), SF70H DLC + `china-gp` mod, SF70H steer/brake maps.
+
 ## 8 Nov 2026 — R4 run `f1_r4` RUNNING (launched 18:39, commit 7fd4f89)
 - What: f1_best_w35 last.zip (12.35M) + its buffer, exactly relabelled (765/765 chains, 0 unresolved) to the R4 reward: time_pbrs + QSS speed-profile potential Φ_v = 20·g(v, v_qss(s)), σ 0.30, in the env reward + corner entry/exit closeness terms 10 + 10 per unit (entry paid at the QSS braking point, taken back on a crash before the exit); never fades; focus seeded from f1_best_w35, low-noise env 3. Spec `docs/specs/R4_speed_profile.md` + `R4_review.md`, DECISIONS #26, report `docs/handoff/R4_coder.md`. Laps aided (best_aided.zip only).
 - Ends: Ibrahim stops it, or the keeper at the first clean det lap 2 ≤ 95 s.

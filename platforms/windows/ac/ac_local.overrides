@@ -1,0 +1,7 @@
+# assetto_corsa_gym config.yml overrides for SINGLE-PC training (AC and the learner on this machine).
+# One key=value per line (OmegaConf dotlist); train_ac.ps1 passes them after --config config.yml.
+AssettoCorsa.remote_machine_ip=127.0.0.1   # not "localhost": Windows resolves the name on every UDP sendto
+AssettoCorsa.vjoy_executed_by_server=False  # the client process drives vJoy (plugin config.py: 50 Hz)
+AssettoCorsa.track=china-gp                 # Shanghai (AC mod; reference line ships with assetto_corsa_gym)
+AssettoCorsa.car=ks_ferrari_sf70h           # needs AssettoCorsaConfigs/cars/ks_ferrari_sf70h/{steer,brake}_map.csv (README step 6)
+disable_wandb=True

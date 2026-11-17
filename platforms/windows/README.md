@@ -11,6 +11,9 @@
     -DCMAKE_PREFIX_PATH=C:/Users/imk14/ocdenv/Library
   cmake --build build -j 28                  # -> ocd_native.cp312-win_amd64.pyd (static MinGW runtime)
   ```
+- **ocd_first_lap branch:** `sf70h-f1` (adds the `sf70h_f1` car; Python-only change, the `ocd_native` build above stays valid). Its own tests: `tests/test_sf70h_f1.py`, 17 passed on 17 Nov 2026.
+- **Line endings:** Git for Windows defaults to `core.autocrlf=true`, which checks source out with CRLF and changes every source hash (provenance, QSS / demo / corner-table cache keys). This repo's `.gitattributes` (`* -text`) turns conversion off; also run `git config core.autocrlf false` in `ocd_first_lap`, then re-checkout (`git rm -r -q --cached . ; git reset --hard`) if it was cloned with CRLF.
+- **Assetto Corsa:** separate env `acenv` and scripts in [ac/](ac/README.md).
 - **Scripts:** `powershell -ExecutionPolicy Bypass -File <script>.ps1` (no admin needed). Inside a PowerShell prompt, `.\platforms\windows\<script>.ps1` also works if the execution policy allows it.
 
 ## Defaults (`train.overrides`): PROVISIONAL
@@ -59,4 +62,4 @@ While a run is live, `bench.ps1` skips the CUDA steps, because GPU sharing would
 | End to end at UTD 0.5, decisions/s | not measured |
 
 ## Tests
-`python -m pytest -q -m "not slow"` (PYTHONPATH must include ocd_first_lap). See `docs/handoff/W1_windows_port.md` for which tests still fail on Windows, and why.
+`python -m pytest -q -m "not slow"` (PYTHONPATH must include ocd_first_lap). On 17 Nov 2026 (e616f94 + Windows fixes, ocd_first_lap `sf70h-f1`): all pass on Windows. Golden rollout digests and the f1_r4 corner-table key are per platform (`tests/platform_golden.py`); the AV-21 QSS cache test skips off the Mac (its key hashes the Mac's `ocd_native` binary). History: `docs/handoff/W1_windows_port.md`.

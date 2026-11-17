@@ -11,7 +11,7 @@ from functools import partial
 import hashlib
 import numpy as np
 from .config import EnvConfig
-from .train_config import config_from_dict
+from .train_config import config_from_dict, DEFAULT_START_METHOD
 
 
 def track_sha256(track):
@@ -36,9 +36,9 @@ def env_fns(env_cfg, n_envs, track, qss, corners=None):
     return [partial(make_env, env_cfg.to_dict(), i, sha, qss, **extra) for i in range(n_envs)]
 
 
-def build_vec_env(env_cfg, n_envs, track, qss, *, start_method='forkserver', subprocess=True, corners=None):
+def build_vec_env(env_cfg, n_envs, track, qss, *, start_method=DEFAULT_START_METHOD, subprocess=True, corners=None):
     """VecMonitor(SubprocVecEnv) of `n_envs` DrivingEnvs (DummyVecEnv if not `subprocess`).
-    Call from inside `if __name__ == '__main__':` (forkserver re-imports the main module)."""
+    Call from inside `if __name__ == '__main__':` (forkserver / spawn re-import the main module)."""
     from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv, VecMonitor
     fns = env_fns(env_cfg, n_envs, track, qss, corners)
     venv = SubprocVecEnv(fns, start_method=start_method) if subprocess else DummyVecEnv(fns)

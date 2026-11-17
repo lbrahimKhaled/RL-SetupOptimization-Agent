@@ -94,7 +94,8 @@ def rows_of(track, car, driver, lap):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('tum_repo', help='clone of TUMFTM/laptime-simulation at ' + common.TUM_COMMIT)
-    ap.add_argument('--ocd-first-lap', default='/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap')
+    from rlsetup.paths import ocd_first_lap_root
+    ap.add_argument('--ocd-first-lap', default=str(ocd_first_lap_root()))
     ap.add_argument('--out', default=str(common.OUT_ROOT / 'tum'))
     args = ap.parse_args()
     # Same NumPy-1.24 alias shim as run_tum_laptimesim.main() (tph 0.66 uses np.int etc.).

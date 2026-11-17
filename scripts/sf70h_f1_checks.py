@@ -34,7 +34,11 @@ from pathlib import Path
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_OCD_ROOT = Path('/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap-f1')
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from rlsetup.paths import ocd_first_lap_root  # noqa: E402
+from rlsetup.runs import file_lock, replace_file  # noqa: E402
+DEFAULT_OCD_ROOT = ocd_first_lap_root()   # a checkout on branch sf70h-f1 (the Mac used a worktree ocd_first_lap-f1)
 OUT = ROOT / 'docs/results/sf70h_f1/results.json'
 BRAKE_NM = 15000.
 F1_CARS = ('sf70h_f1', 'sf70h_f1_iz560')
@@ -61,11 +65,7 @@ def setup_paths(ocd_root):
 def update(key, value, path=OUT, sub=None):
     """results.json[key] = value, or results.json[key][sub] = value (file-locked read-modify-write)."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    import fcntl
-    lock = path.with_name('.results.lock')
-    lock.touch(exist_ok=True)
-    with open(lock) as fh:   # two parts may run in parallel
-        fcntl.flock(fh, fcntl.LOCK_EX)
+    with file_lock(path.with_name('.results.lock')):   # two parts may run in parallel
         data = json.loads(path.read_text()) if path.exists() else {}
         if sub is None:
             data[key] = value
@@ -73,8 +73,7 @@ def update(key, value, path=OUT, sub=None):
             data.setdefault(key, {})[sub] = value
         tmp = path.with_suffix('.tmp')
         tmp.write_text(json.dumps(clean(data), indent=1) + '\n')
-        tmp.replace(path)
-        fcntl.flock(fh, fcntl.LOCK_UN)
+        replace_file(tmp, path)
 
 
 def clean(x):

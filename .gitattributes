@@ -1,0 +1,4 @@
+# Check out every file byte-for-byte as committed (no CRLF conversion on Windows).
+# Source hashes (provenance, QSS / demo / corner-table cache keys, golden rollouts) are taken over
+# file bytes, so a CRLF checkout changes them and breaks cross-platform reproducibility.
+* -text

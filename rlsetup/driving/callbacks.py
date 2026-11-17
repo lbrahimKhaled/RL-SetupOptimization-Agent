@@ -11,13 +11,12 @@ train(); returning False ends `learn()` (SB3 still calls every callback of that 
 """
 import copy
 import math
-import os
 import time
 from pathlib import Path
 import numpy as np
 import torch as th
 from stable_baselines3.common.callbacks import BaseCallback
-from ..runs import append_jsonl, write_json
+from ..runs import append_jsonl, replace_file, write_json
 from .env import FAILURES, TERMINAL_FAILURES
 from .vec import base_venv
 
@@ -32,7 +31,7 @@ def save_model_atomic(model, path):
     path = Path(path)
     tmp = path.with_name(path.name + '.tmp')
     model.save(tmp)
-    os.replace(tmp, path)
+    replace_file(tmp, path)
 
 
 def save_replay_buffer_atomic(model, path):
@@ -40,7 +39,7 @@ def save_replay_buffer_atomic(model, path):
     path = Path(path)
     tmp = path.with_name(path.name + '.tmp')
     model.save_replay_buffer(tmp)
-    os.replace(tmp, path)
+    replace_file(tmp, path)
 
 
 class ReplayBufferSaver:

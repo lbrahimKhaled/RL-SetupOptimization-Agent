@@ -18,9 +18,10 @@ import subprocess
 REPO_ROOT = Path(__file__).resolve().parents[1]
 # ocd_lap modules loaded by rlsetup but not in ocd_lap's code_version (simulation.SOURCES +
 # evaluate.py + provenance.py). env.py: DrivingEnv's base class; qss_lap.py, handling.py,
-# manoeuvres.py: QSS profile; rig.py, vertical_model.py: imported by handling.py; __init__.py.
+# manoeuvres.py: QSS profile; rig.py, vertical_model.py: imported by handling.py; cars.py: car
+# parameters (backend, footprint, QSS; not in ocd_lap code_version); __init__.py.
 # tests/test_provenance.py fails if rlsetup starts importing a module covered by neither list.
-OCD_LAP_EXTRA_SOURCES = ('__init__.py', 'env.py', 'qss_lap.py', 'handling.py', 'manoeuvres.py',
+OCD_LAP_EXTRA_SOURCES = ('__init__.py', 'cars.py', 'env.py', 'qss_lap.py', 'handling.py', 'manoeuvres.py',
                          'rig.py', 'vertical_model.py')
 
 

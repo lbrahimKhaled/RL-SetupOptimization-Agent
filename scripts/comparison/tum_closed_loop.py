@@ -54,7 +54,8 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import common  # noqa: E402
 
-DEFAULT_OCD_ROOT = Path('/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap-tumdebug')
+from rlsetup.paths import sibling_checkout  # noqa: E402
+DEFAULT_OCD_ROOT = sibling_checkout('ocd_first_lap-tumdebug')   # worktree of ocd_first_lap branch tum-debug
 TUM_CSV = common.OUT_ROOT / 'tum' / 'tum_none.csv'
 CAR = 'sf70h_tum_debug'
 SETUP = 'p1_TUM'
