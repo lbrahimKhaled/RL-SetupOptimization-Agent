@@ -1,9 +1,9 @@
 # rlsetup.assetto AC worker on THIS PC: START_LENOVO_FULL.cmd (v11) with the learner on 127.0.0.1.
 # Start AC first (SF70H, Barcelona GP, Hotlap, Vjoy controls, 100 FPS cap) and ac_server.ps1 in a
 # second window. Runs until Ctrl+C; run it again to continue from the last committed actor.
-#   platforms\windows\ac\ac_worker.ps1 -WorkDir runs\windows\ac\worker-001
+#   platforms\windows\ac\ac_worker.ps1                 # work dir runs\windows\ac\worker-001
 param(
-    [Parameter(Mandatory)] [string]$WorkDir,
+    [string]$WorkDir = 'runs\windows\ac\worker-001',
     [int]$Port = 2350,
     [string]$Calibration = 'runs\windows\ac\steering.json',
     [Parameter(ValueFromRemainingArguments)] [string[]]$Extra = @()

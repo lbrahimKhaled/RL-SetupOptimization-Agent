@@ -35,16 +35,17 @@ State on 17 Nov 2026: AC is installed, CSP is installed, the SF70H and Barcelona
 6. **Steering calibration for this PC** (about 10 s): car stationary, **N** visible, you at the keyboard. Run `powershell -ExecutionPolicy Bypass -File platforms\windows\ac\ac_calibrate.ps1`, which writes `runs\windows\ac\steering.json`. The Lenovo map is kept in `data\ac\steering_sf70h_barcelona_lenovo.json` for comparison: about ±0.300 rad of road-wheel angle at full lock, reached by command ±0.5.
 7. **Train** (two windows, AC in front):
    ```powershell
-   platforms\windows\ac\ac_server.ps1 -WorkDir runs\windows\ac\server-001 -ActorBundle <source actor dir> --critic-updates C --updates U --batch-size B ...
-   platforms\windows\ac\ac_worker.ps1 -WorkDir runs\windows\ac\worker-001
+   powershell -ExecutionPolicy Bypass -File platforms\windows\ac\ac_server.ps1   # learner: Mac tcp-full-002 settings, runs\windows\ac\server-001
+   powershell -ExecutionPolicy Bypass -File platforms\windows\ac\ac_worker.ps1   # driver:  runs\windows\ac\worker-001
    ```
+   Learner settings (from `START_MAC_FULL.command`): `--batch-size 256 --buffer-size 300000 --warmup-transitions 5000 --critic-updates 1000 --transitions-per-update 4 --updates 0 --critic-init runs\mac\D2\bcn\seed0\checkpoints\best.zip --keep-learners 2 --max-no-update 20`. The first 5,000 transitions (about 200 s of driving) use the source actor unchanged; then 1,000 critic-only updates; then one update per 4 new transitions. Progress: `runs\windows\ac\server-001\progress.jsonl`.
    The worker settings are the Lenovo's (`START_LENOVO_FULL.cmd` v11): `ocd_path` reference (`data\ac\ocd_path_reference_barcelona.json`), 3750 steps / 180 s per drive, exploration 0.3, an evaluation drive every 10th, and 5 consecutive failures allowed. Ctrl+C stops it; run it again to continue.
 
 ## Learner code (from the Mac branch `ac-barcelona-transfer`, 095d6d8)
 `learn.py`, the newer `distributed.py` (adds `--critic-init`; worker side unchanged), the `tests/test_ac_*` suite, `scripts/ac_*` and `docs/AC_QUICKSTART.md` / `docs/handoff/AC_*.md` are taken from that branch as-is (the rest of the branch, slides and C2 work, is not merged). On this PC the 257 AC tests pass, and so does `scripts/ac_loopback_smoke.py` (real learner and worker processes against a simulated 25 Hz AC, with a random stand-in actor via `--actor-bundle`). The harness needed one Windows fix: ignore `ConnectionResetError` on UDP `recvfrom`, as the real plugin does.
 
-## Still missing from the Mac (blocks step 7)
-Model files are git-ignored, so copy them over by hand (USB or cloud), keeping the paths:
+## Model files from the Mac (copied to this PC on 17 Nov 2026)
+Done: the manifest sha256 matches `e4cdf256…`, and `--critic-init` loads (alpha 0.063). For another PC, model files are git-ignored, so copy them over by hand (USB or cloud), keeping the paths:
 1. `runs/ac/source_actor/` (`actor.pt`, `config.json`, `manifest.json`; manifest sha256 `e4cdf256…` in `data/ac/lenovo_v11_BUILD.json`).
 2. `runs/mac/D2/bcn/seed0/checkpoints/best.zip` and `runs/mac/D2/bcn/seed0/config.json`. These are for `--critic-init`, which accepts only that exact checkpoint. With them, (1) can also be re-exported here: `python -m rlsetup.assetto.actor export --checkpoint ...best.zip --config ...config.json --output runs\ac\source_actor`.
 3. `runs/ac/tcp-launch/START_MAC_FULL.command`, for the exact `--updates` and `--batch-size` (the rest of the schedule is in `ac_server.ps1`).

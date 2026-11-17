@@ -101,7 +101,7 @@ def rlsetup_side():
     key = (work / 'tcp-session.key').exists()
     check('TCP token', key, '' if key else 'ac_server.ps1 / ac_worker.ps1 create it', required=False)
     check('learner rlsetup/assetto/learn.py', (REPO / 'rlsetup' / 'assetto' / 'learn.py').exists())
-    missing = 'copy from the Mac (README "Still missing from the Mac")'
+    missing = 'copy from the Mac (README "Model files from the Mac")'
     check('source actor runs/ac/source_actor', (REPO / 'runs' / 'ac' / 'source_actor' / 'manifest.json').exists(),
           missing, required=False)
     check('--critic-init checkpoint runs/mac/D2/bcn/seed0/checkpoints/best.zip',
