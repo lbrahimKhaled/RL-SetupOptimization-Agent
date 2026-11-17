@@ -100,8 +100,12 @@ def rlsetup_side():
           'run the calibration (README walkthrough step 6)', required=False)
     key = (work / 'tcp-session.key').exists()
     check('TCP token', key, '' if key else 'ac_server.ps1 / ac_worker.ps1 create it', required=False)
-    check('learner rlsetup/assetto/learn.py', (REPO / 'rlsetup' / 'assetto' / 'learn.py').exists(),
-          'only on the Mac, not committed: push it (README "Missing from the Mac")', required=False)
+    check('learner rlsetup/assetto/learn.py', (REPO / 'rlsetup' / 'assetto' / 'learn.py').exists())
+    missing = 'copy from the Mac (README "Still missing from the Mac")'
+    check('source actor runs/ac/source_actor', (REPO / 'runs' / 'ac' / 'source_actor' / 'manifest.json').exists(),
+          missing, required=False)
+    check('--critic-init checkpoint runs/mac/D2/bcn/seed0/checkpoints/best.zip',
+          (REPO / 'runs' / 'mac' / 'D2' / 'bcn' / 'seed0' / 'checkpoints' / 'best.zip').exists(), missing, required=False)
 
 
 def live():

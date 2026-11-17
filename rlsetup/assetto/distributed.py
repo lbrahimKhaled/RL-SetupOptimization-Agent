@@ -169,17 +169,20 @@ class LearnerServer:
         if any(type(v) is not int or v < 0 for v in self.schedule.values()):
             raise ValueError('schedule values must be nonnegative integers')
         self.root.mkdir(parents=True, exist_ok=True)
-        self.config = LearnerConfig(batch_size=args.batch_size, buffer_size=args.buffer_size)
+        critic_init = getattr(args, 'critic_init', None)
+        self.config = LearnerConfig(batch_size=args.batch_size, buffer_size=args.buffer_size,
+                                    critic_init=str(Path(critic_init).resolve()) if critic_init else None)
         self.config.validate()
         source = pack_actor(args.actor_bundle)
         settings = dict(source_sha256=sha(source), critic_updates=args.critic_updates,
                         updates=args.updates, batch_size=args.batch_size,
-                        buffer_size=args.buffer_size, **self.schedule)
+                        buffer_size=args.buffer_size, **self.schedule,
+                        critic_init_sha256=sha(Path(critic_init).read_bytes()) if critic_init else None)
         # Hash member contents, not ZIP timestamps, for restart compatibility.
         settings['source_sha256'] = sha((Path(args.actor_bundle)/'manifest.json').read_bytes())
         config_path = self.root/'server.json'
         if config_path.exists():
-            saved = dict(SCHEDULE_DEFAULTS, **json.loads(config_path.read_text()))
+            saved = {**SCHEDULE_DEFAULTS, 'critic_init_sha256': None, **json.loads(config_path.read_text())}
             saved.pop('max_cycles', None)  # budget may change between restarts
             if saved != settings:
                 raise ValueError('server work-dir belongs to different settings/source')
@@ -833,6 +836,8 @@ def main(argv=None):
                            help='ratio schedule: keep the source actor until this many transitions')
             p.add_argument('--transitions-per-update',type=int,default=0,
                            help='0 = legacy fixed updates per cycle; k>0 = one joint update per k new transitions')
+            p.add_argument('--critic-init',type=Path,
+                           help="start critics/targets/alpha from the actor's source SB3 checkpoint")
             p.add_argument('--keep-learners',type=int,default=0,
                            help='keep replay/model snapshots of only the newest N cycles (0 = keep all)')
         else:

@@ -1,0 +1,142 @@
+{
+  "schema": "ac-reset-timing-excerpt.v1",
+  "description": "Reduced real reset-settling telemetry; no identity or file paths. speed is the original 3D scalar.",
+  "anchor": {
+    "steps": 3,
+    "timestamp_ac": 600.9005845
+  },
+  "samples": [
+    {
+      "arrival_s": 0.043735999992350116,
+      "steps": 4,
+      "timestamp_ac": 600.9442945,
+      "speed": 0.15236540138721466,
+      "velocity_vertical_mps": -0.15226224064826965,
+      "velocity_planar_mps": 0.005605921751571157,
+      "actualGear": 1,
+      "accStatus": 0.0,
+      "brakeStatus": 0.0
+    },
+    {
+      "arrival_s": 0.08487669998430647,
+      "steps": 5,
+      "timestamp_ac": 600.9850355,
+      "speed": 0.5535620450973511,
+      "velocity_vertical_mps": -0.5535618662834167,
+      "velocity_planar_mps": 0.00045878160970685934,
+      "actualGear": 1,
+      "accStatus": 0.0,
+      "brakeStatus": 1.0
+    },
+    {
+      "arrival_s": 0.12681019998854026,
+      "steps": 6,
+      "timestamp_ac": 601.0273418,
+      "speed": 0.9975631833076477,
+      "velocity_vertical_mps": -0.9975631833076477,
+      "velocity_planar_mps": 0.00018215332774698667,
+      "actualGear": 1,
+      "accStatus": 0.0,
+      "brakeStatus": 1.0
+    },
+    {
+      "arrival_s": 0.16872849999344908,
+      "steps": 7,
+      "timestamp_ac": 601.0693316,
+      "speed": 1.4103949069976807,
+      "velocity_vertical_mps": -1.4103949069976807,
+      "velocity_planar_mps": 1.704632147136518e-05,
+      "actualGear": 1,
+      "accStatus": 0.0,
+      "brakeStatus": 1.0
+    },
+    {
+      "arrival_s": 0.20991390000563115,
+      "steps": 8,
+      "timestamp_ac": 601.1104292,
+      "speed": 1.792935848236084,
+      "velocity_vertical_mps": -1.792935848236084,
+      "velocity_planar_mps": 0.0001266165414052662,
+      "actualGear": 1,
+      "accStatus": 0.0,
+      "brakeStatus": 1.0
+    },
+    {
+      "arrival_s": 0.24934330000542104,
+      "steps": 9,
+      "timestamp_ac": 601.1501229,
+      "speed": 2.204294443130493,
+      "velocity_vertical_mps": -2.204294443130493,
+      "velocity_planar_mps": 0.0003104838542625109,
+      "actualGear": 1,
+      "accStatus": 0.0,
+      "brakeStatus": 1.0
+    },
+    {
+      "arrival_s": 0.288382200000342,
+      "steps": 10,
+      "timestamp_ac": 601.1892494,
+      "speed": 1.8564362525939941,
+      "velocity_vertical_mps": -1.8554227352142334,
+      "velocity_planar_mps": 0.061335266831055335,
+      "actualGear": 1,
+      "accStatus": 0.0,
+      "brakeStatus": 1.0
+    },
+    {
+      "arrival_s": 0.3285095999890473,
+      "steps": 11,
+      "timestamp_ac": 601.2293998,
+      "speed": 0.45890751481056213,
+      "velocity_vertical_mps": 0.4264243245124817,
+      "velocity_planar_mps": 0.1695830087930128,
+      "actualGear": 1,
+      "accStatus": 0.0,
+      "brakeStatus": 1.0
+    },
+    {
+      "arrival_s": 0.36871109998901375,
+      "steps": 12,
+      "timestamp_ac": 601.2694523,
+      "speed": 1.2072616815567017,
+      "velocity_vertical_mps": 1.204993724822998,
+      "velocity_planar_mps": 0.07396522103533991,
+      "actualGear": 1,
+      "accStatus": 0.0,
+      "brakeStatus": 1.0
+    },
+    {
+      "arrival_s": 0.4117809000017587,
+      "steps": 13,
+      "timestamp_ac": 601.3126712,
+      "speed": 0.7367881536483765,
+      "velocity_vertical_mps": 0.7340058088302612,
+      "velocity_planar_mps": 0.06397027937191181,
+      "actualGear": 1,
+      "accStatus": 0.0,
+      "brakeStatus": 1.0
+    },
+    {
+      "arrival_s": 0.4545343999925535,
+      "steps": 14,
+      "timestamp_ac": 601.3547843,
+      "speed": 0.34406086802482605,
+      "velocity_vertical_mps": 0.3381379246711731,
+      "velocity_planar_mps": 0.06356590410031565,
+      "actualGear": 1,
+      "accStatus": 0.0,
+      "brakeStatus": 1.0
+    },
+    {
+      "arrival_s": 0.5069978999963496,
+      "steps": 15,
+      "timestamp_ac": 601.4065465,
+      "speed": 0.1443113386631012,
+      "velocity_vertical_mps": -0.1415746659040451,
+      "velocity_planar_mps": 0.027971041211697946,
+      "actualGear": 1,
+      "accStatus": 0.0,
+      "brakeStatus": 1.0
+    }
+  ]
+}

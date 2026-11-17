@@ -49,6 +49,22 @@ OUT = ROOT / 'docs/results/shanghai_line_setup'
 WIDTHS_M = (4.5, 3.5, 3.0, 2.6)          # w_veh allowances, single QP (2.6 = 2.07 m car + ~0.25 m/side)
 WIDTHS_IQP_M = (4.5, 4.0, 3.5, 3.0, 2.6)  # the same, iterated QP
 OCP_LINE = ROOT / 'docs/results/sf70h_f1/ocp_solution_sha_f1_0.5m.csv'
+# --track: per-track output folder, extra IQP widths and OCP line (Shanghai = the original run).
+# Catalunya adds IQP 2.0 / 1.7 (Ibrahim, 17 Nov 2026: IQP 1.7 m allowance for the Barcelona run).
+TRACKS = {
+    'Shanghai': dict(out='docs/results/shanghai_line_setup', widths=WIDTHS_M, widths_iqp=WIDTHS_IQP_M,
+                     ocp='docs/results/sf70h_f1/ocp_solution_sha_f1_0.5m.csv'),
+    'Catalunya': dict(out='docs/results/bcn_line_setup', widths=WIDTHS_M, widths_iqp=WIDTHS_IQP_M + (2.0, 1.7),
+                      ocp='docs/results/sf70h_f1/ocp_solution_bcn_f1_0.5m.csv'),
+}
+
+
+def configure(track):
+    """Point the module globals (TRACK, OUT, widths, OCP_LINE) at `track` (a key of TRACKS)."""
+    global TRACK, OUT, WIDTHS_M, WIDTHS_IQP_M, OCP_LINE
+    c = TRACKS[track]
+    TRACK, OUT, WIDTHS_M, WIDTHS_IQP_M, OCP_LINE = (track, ROOT / c['out'], c['widths'], c['widths_iqp'],
+                                                   ROOT / c['ocp'])
 CHECK_STEP_M = .5
 FIT_MIN = .995                                       # "fits the footprint" threshold (task spec)
 
@@ -362,7 +378,9 @@ def part_sweep(line):
 if __name__ == '__main__':
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('part', choices=('lines', 'sweep'))
+    p.add_argument('--track', default='Shanghai', choices=sorted(TRACKS), help='racetrack-database track')
     p.add_argument('--line', default=None, help='sweep: line tag from lines.json (default: fastest that fits)')
     a = p.parse_args()
+    configure(a.track)
     OUT.mkdir(parents=True, exist_ok=True)
     part_lines() if a.part == 'lines' else part_sweep(a.line)

@@ -40,22 +40,22 @@ State on 17 Nov 2026: AC is installed, CSP is installed, the SF70H and Barcelona
    ```
    The worker settings are the Lenovo's (`START_LENOVO_FULL.cmd` v11): `ocd_path` reference (`data\ac\ocd_path_reference_barcelona.json`), 3750 steps / 180 s per drive, exploration 0.3, an evaluation drive every 10th, and 5 consecutive failures allowed. Ctrl+C stops it; run it again to continue.
 
-## Missing from the Mac (blocks step 7)
-These were never pushed and aren't on this PC:
-1. `rlsetup/assetto/learn.py`: `ACLearner`, `LearnerConfig`, `read_chunk`, `replay_identity`, imported by the server in `distributed.py`. Also any tests or scripts that go with it.
-2. The **source actor bundle** given to `--actor-bundle` (`actor.pt`, `config.json`, `manifest.json`; manifest sha256 `e4cdf256…` in `data/ac/lenovo_v11_BUILD.json`). It can also be made here with `python -m rlsetup.assetto.actor export --checkpoint <bcn .zip> --config <its config.json> --output <dir>` if the Barcelona sf70h_tum checkpoint is copied over.
-3. The **server command line** (`--critic-updates`, `--updates`, `--batch-size`, `--warmup-transitions`, `--transitions-per-update`, `--keep-learners`).
-4. Optional, to continue the Mac run rather than start fresh: the Mac server work dir.
+## Learner code (from the Mac branch `ac-barcelona-transfer`, 095d6d8)
+`learn.py`, the newer `distributed.py` (adds `--critic-init`; worker side unchanged), the `tests/test_ac_*` suite, `scripts/ac_*` and `docs/AC_QUICKSTART.md` / `docs/handoff/AC_*.md` are taken from that branch as-is (the rest of the branch, slides and C2 work, is not merged). On this PC the 257 AC tests pass, and so does `scripts/ac_loopback_smoke.py` (real learner and worker processes against a simulated 25 Hz AC, with a random stand-in actor via `--actor-bundle`). The harness needed one Windows fix: ignore `ConnectionResetError` on UDP `recvfrom`, as the real plugin does.
 
-On the Mac, in the repo:
+## Still missing from the Mac (blocks step 7)
+Model files are git-ignored, so copy them over by hand (USB or cloud), keeping the paths:
+1. `runs/ac/source_actor/` (`actor.pt`, `config.json`, `manifest.json`; manifest sha256 `e4cdf256…` in `data/ac/lenovo_v11_BUILD.json`).
+2. `runs/mac/D2/bcn/seed0/checkpoints/best.zip` and `runs/mac/D2/bcn/seed0/config.json`. These are for `--critic-init`, which accepts only that exact checkpoint. With them, (1) can also be re-exported here: `python -m rlsetup.assetto.actor export --checkpoint ...best.zip --config ...config.json --output runs\ac\source_actor`.
+3. `runs/ac/tcp-launch/START_MAC_FULL.command`, for the exact `--updates` and `--batch-size` (the rest of the schedule is in `ac_server.ps1`).
+4. Optional, to continue the Mac run rather than start fresh: the Mac server work dir `runs/ac/tcp-full-002`.
+
+On the Mac:
 ```bash
-git fetch && git status                      # rlsetup/assetto/*.py show as untracked or modified
-git switch -c ac-mac-learner                 # keeps the Mac copies; nothing is overwritten
-git add rlsetup/assetto tests scripts        # whatever belongs to the AC learner
-git commit -m "AC learner (learn.py) from the Mac" && git push -u origin ac-mac-learner
-zip -r ac_source_actor.zip <source actor dir>   # *.pt is git-ignored: copy this zip over by hand
+cd <repo> && zip -r ac_for_windows.zip runs/ac/source_actor runs/mac/D2/bcn/seed0/checkpoints/best.zip \
+    runs/mac/D2/bcn/seed0/config.json runs/ac/tcp-launch/START_MAC_FULL.command
 ```
-Then merge `ac-mac-learner` here. The `rlsetup/assetto` files committed here are byte-identical to the v11 bundle, so any newer Mac versions just show up as changes.
+Unzip it into the repo root here.
 
 ## Upstream trainer (optional)
 `setup_acenv.ps1` builds `acenv` (a clone of ocdenv plus `requirements-ac.txt`, numpy < 2.5 for numba's `cross2d`). `train_ac.ps1` runs upstream `train.py` with `ac_local.overrides`. Its car configs cover only `dallara_f317` (a mod), `bmw_z4_gt3` and `ks_mazda_miata`, not the SF70H. Output goes to `..\assetto_corsa_gym\outputs\<timestamp>\` (upstream crashes if `work_dir` is set).
