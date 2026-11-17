@@ -226,6 +226,13 @@ nohup cloudflared tunnel --no-autoupdate --url http://127.0.0.1:6006 > runs/mac/
 ```
 Best models: `models/`. Line result: RL 103.06 → 102.57 s. Judge this setup at about 5M steps.
 
+## 17 Nov 2026 — Barcelona run `bcn_f1_r4` RUNNING on Windows (launched 18:47, commit 65767ef; DECISIONS #28)
+- What: sf70h_f1 on Catalunya, R4 reward from scratch + corner line penalty (k 0.0705, free 0.5 m, cap 0.5/m), setup `bcn_f1_best`, xi_ref IQP w3.0. Notes `docs/results/bcn_line_setup/NOTES.md`. No stop rule: runs until Ibrahim stops it.
+- Shares the PC with Assetto Corsa: the keeper sets BelowNormal priority on the whole training tree every 30 s.
+- Keeper: `platforms\windows\start_detached.ps1 -Log runs\windows\keeper_bcn_f1_r4.log platforms\windows\keeper.ps1 bcn_f1_r4 5 BelowNormal` (TB mirror every 3 min, resumes a crash from last.zip, at most 5).
+- Stop (resumable): `powershell -ExecutionPolicy Bypass -File platforms\windows\stop_run.ps1 bcn_f1_r4` (stop flag, waits for the next 100k checkpoint + buffer save, kills the tree). Resume: delete `runs\windows\D2cn_f1_r4\seed0\STOP_KEEPER`, then `platforms\windows\start_detached.ps1 -Log runs\windowscn_f1_r4_stdout.log platforms\windows	rain.ps1 --resume --preset bcn_f1_r4 --seed 0 --run-name bcn_f1_r4 --allow-code-change --allow-dirty`, then the keeper.
+- TensorBoard: `python -m tensorboard.main --logdir runs\windows\D2cn_f1_r4\seed0 --host 127.0.0.1 --port 6006`, public via `%USERPROFILE%in\cloudflared.exe tunnel --no-autoupdate --url http://127.0.0.1:6006` (quick-tunnel URL in `runs\windows\cloudflared.log.err`; it changes on every restart).
+
 ## 17 Nov 2026 — Windows box set up for OCD (branch `sf70h-f1`) and Assetto Corsa
 - **OCD:** this repo on `sf70h-f1`; `ocd_first_lap` on its `sf70h-f1` branch (Python-only change, existing `ocd_native` build kept). Env `C:\Users\imk14\ocdenv` unchanged. Full test suite passes on Windows (`platforms/windows/README.md` § Tests).
 - **Windows fixes:** `.gitattributes` `* -text` (CRLF checkouts changed every source hash); `vec_start_method` default `spawn` on Windows; `runs.replace_file` retries `os.replace` on PermissionError (a reader holding a checkpoint open killed saves); `runs.file_lock` replaces `fcntl`; `rlsetup/paths.py` replaces hard-coded Mac `ocd_first_lap` paths; `cars.py` added to `OCD_LAP_EXTRA_SOURCES` (W1 gap 3b; provenance.json only, demo keys unchanged, a resume needs `--allow-code-change`). Per-platform goldens in `tests/platform_golden.py` (Windows LEGACY / PBRS digests generated on the pre-R1 7a2bee2 and pre-R4 ad3b879 trees; equal to the current tree's).
