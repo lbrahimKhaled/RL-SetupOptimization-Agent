@@ -1,4 +1,4 @@
-"""Thin AC collector: explicit centerline guidance, frozen actor, bounded UDP control.
+"""Thin AC collector: explicit geometric guidance, frozen actor, bounded UDP control.
 
 Coordinates are (AC z, AC x), x forward/y left in the body frame. All times
 are seconds, distances metres and angles radians. No game reset or gear command.
@@ -19,7 +19,7 @@ import time
 
 import numpy as np
 
-from .actor import ActorRuntime, SOURCE_OBS, source_contract_sha256
+from .actor import ActorRuntime, SOURCE_OBS, _json, source_contract_sha256
 from .management import ConnectionConfig, ManagementClient
 from .telemetry import CaptureConfig, _numeric, _open_socket, _packet
 
@@ -38,30 +38,80 @@ def number(packet, key):
     return float(packet[key])
 
 
+REFERENCES = ('centerline', 'fast_lane', 'ocd_path')
+OCD_REFERENCE_SCHEMA = 'rlsetup.ac.ocd-reference.v1'
+
+
+def ac_borders_sha256(left, right):
+    """Identity of the exact AC border rows (float64, row order) a reference file is bound to."""
+    return hashlib.sha256(np.ascontiguousarray(
+        np.stack([np.asarray(left, dtype=np.float64), np.asarray(right, dtype=np.float64)])).tobytes()).hexdigest()
+
+
+def load_reference(track, reference, reference_file=None):
+    """Return (track dict usable by Geometry, reference file sha256 or None).
+
+    'ocd_path' rows come from scripts/ac_ocd_reference.py and must be bound to these exact
+    AC borders; the other references come from the live AC track data and take no file.
+    """
+    if reference not in REFERENCES:
+        raise ValueError('explicit reference=centerline, fast_lane or ocd_path required')
+    if reference != 'ocd_path':
+        if reference_file is not None:
+            raise ValueError('a reference file is only used with reference=ocd_path')
+        return track, None
+    if reference_file is None:
+        raise ValueError('reference=ocd_path requires --reference-file')
+    data = Path(reference_file).read_bytes()
+    saved = _json(data)
+    rows = np.asarray(saved.get('rows'), dtype=float)
+    if (saved.get('schema') != OCD_REFERENCE_SCHEMA or saved.get('reference') != 'ocd_path'
+            or rows.ndim != 2 or rows.shape != np.asarray(track['left_lane'], dtype=float).shape):
+        raise ValueError('invalid OCD reference file for this AC track')
+    if saved.get('ac_borders_sha256') != ac_borders_sha256(track['left_lane'], track['right_lane']):
+        raise ValueError('OCD reference file was made for different AC track borders')
+    return dict(track, ocd_path=rows.tolist()), hashlib.sha256(data).hexdigest()
+
+
 class Geometry:
-    """Closed corresponding borders; reference is explicitly their midpoint.
+    """Closed corresponding borders and midpoint, AC AI fast-lane or OCD training-line reference.
 
     Labels are validated against forward tangents, never automatically reversed.
     Four oriented body corners are checked against local border cross-sections.
     """
     def __init__(self, track, *, reference):
-        if reference != 'centerline':
-            raise ValueError('explicit reference=centerline required')
+        if reference not in REFERENCES:
+            raise ValueError('explicit reference=centerline, fast_lane or ocd_path required')
         self.left = np.asarray(track['left_lane'], dtype=float)
         self.right = np.asarray(track['right_lane'], dtype=float)
         if (self.left.ndim != 2 or self.left.shape[1] != 2 or len(self.left) < 4
                 or self.right.shape != self.left.shape
                 or not np.isfinite(self.left).all() or not np.isfinite(self.right).all()):
             raise ValueError('finite corresponding Nx2 borders required')
-        if np.linalg.norm((self.left[0]+self.right[0]-self.left[-1]-self.right[-1])/2) < 1e-6:
-            self.left, self.right = self.left[:-1], self.right[:-1]
-        self.ref = (self.left + self.right) / 2
+        if reference == 'centerline':
+            if np.linalg.norm((self.left[0]+self.right[0]-self.left[-1]-self.right[-1])/2) < 1e-6:
+                self.left, self.right = self.left[:-1], self.right[:-1]
+            self.ref = (self.left + self.right) / 2
+        else:
+            self.ref = np.asarray(track.get(reference), dtype=float)
+            if self.ref.shape != self.left.shape or not np.isfinite(self.ref).all():
+                raise ValueError(f'finite {reference} Nx2 matching border rows required')
+            if np.linalg.norm(self.ref[0]-self.ref[-1]) < 1e-6:
+                if (np.linalg.norm(self.left[0]-self.left[-1]) >= 1e-6
+                        or np.linalg.norm(self.right[0]-self.right[-1]) >= 1e-6):
+                    raise ValueError(f'{reference} closure must match corresponding borders')
+                self.ref, self.left, self.right = self.ref[:-1], self.left[:-1], self.right[:-1]
         self.delta = np.roll(self.ref, -1, axis=0) - self.ref
         self.lengths = np.linalg.norm(self.delta, axis=1)
         width = np.linalg.norm(self.left-self.right, axis=1)
         cross = self.delta[:, 0]*(self.left-self.right)[:, 1] - self.delta[:, 1]*(self.left-self.right)[:, 0]
         if np.any(self.lengths <= 1e-6) or np.any(width <= 0) or np.any(cross <= 0):
             raise ValueError('degenerate geometry or incorrectly labelled left/right borders')
+        if reference != 'centerline':
+            left, right = self.left-self.ref, self.right-self.ref
+            if (np.any(self.delta[:, 0]*left[:, 1]-self.delta[:, 1]*left[:, 0] <= 0)
+                    or np.any(self.delta[:, 0]*right[:, 1]-self.delta[:, 1]*right[:, 0] >= 0)):
+                raise ValueError(f'{reference} must lie between corresponding left/right borders')
         self.stations = np.r_[0., np.cumsum(self.lengths)]
         self.length = float(self.stations[-1])
         self.preview = SOURCE_OBS.preview_horizon_m * (np.arange(1, 21)/20)**SOURCE_OBS.preview_exponent
@@ -233,8 +283,18 @@ class CollectConfig:
     port: int = 2345
     management_port: int = 2347
     setup_id: str = 'default_user_confirmed'
+    final_brake: bool = False
+    exploration_std_scale: float = 0.  # 0 = deterministic policy mean
+    exploration_seed: int = 0
 
     def __post_init__(self):
+        if type(self.final_brake) is not bool:
+            raise ValueError('final_brake must be a boolean')
+        if (isinstance(self.exploration_std_scale, bool)
+                or not isinstance(self.exploration_std_scale, (int, float))
+                or not 0 <= self.exploration_std_scale <= 1
+                or type(self.exploration_seed) is not int or self.exploration_seed < 0):
+            raise ValueError('exploration_std_scale must be in [0, 1] and seed a nonnegative int')
         CaptureConfig(self.host, port=self.port)
         if type(self.max_steps) is not int or not 0 < self.max_steps <= 100000:
             raise ValueError('max_steps must be in 1..100000')
@@ -318,7 +378,8 @@ class Session:
             try:
                 # Release does not require a supported steering target: neutral command is
                 # measured at zero road angle; pedals are always explicitly released.
-                release = dict(steer=self.steering.command(0.), acc=-1., brake=-1.,
+                release = dict(steer=self.steering.command(0.), acc=-1.,
+                               brake=1. if self.config.final_brake else -1.,
                                server_steps=int(self.last['steps']) if self.last else 0,
                                enable_gear_shift=False, shift_up=False, shift_down=False)
                 self.sock.send(json.dumps(release).encode())
@@ -360,14 +421,16 @@ def write_chunk(path, rows, metadata):
         os.unlink(temporary)
 
 
-def collect(config, actor_bundle, calibration, *, reference, output, execute=False):
+def collect(config, actor_bundle, calibration, *, reference, output, execute=False, reference_file=None):
     """One explicit handover/chunk; dry run validates local inputs without connecting."""
     steering = SteeringMap(json.loads(Path(calibration).read_text()))
     actor = ActorRuntime(actor_bundle)
     if Path(output).exists():
         raise FileExistsError(output)
-    if reference != 'centerline':
-        raise ValueError('explicit --reference centerline required')
+    if reference not in REFERENCES:
+        raise ValueError('explicit --reference centerline, fast_lane or ocd_path required')
+    if (reference == 'ocd_path') != (reference_file is not None):
+        raise ValueError('--reference-file is required with, and only with, --reference ocd_path')
     if not execute:
         return {'execute': False, 'message': 'local actor/calibration valid; no server connection or control'}
     client = ManagementClient(ConnectionConfig(config.host, port=config.management_port, timeout_s=config.timeout_s))
@@ -375,6 +438,7 @@ def collect(config, actor_bundle, calibration, *, reference, output, execute=Fal
     steering.verify(static, server, config.setup_id)
     if server.get('ego_sampling_freq') != 25:
         raise ValueError('source requires 25 Hz decision telemetry')
+    track, reference_file_sha256 = load_reference(track, reference, reference_file)
     geometry = Geometry(track, reference=reference)
     observation = Observation(geometry, steering.baseline)
     rows, reason = [], 'max_steps'
@@ -389,7 +453,18 @@ def collect(config, actor_bundle, calibration, *, reference, output, execute=Fal
                     steering_saturation=config.steering_saturation, saturation_count=0,
                     release_history_action=RELEASE_ACTION.tolist(),
                     calibration_sha256=hashlib.sha256(Path(calibration).read_bytes()).hexdigest(),
-                    track_geometry_sha256=hashlib.sha256(json.dumps(track, sort_keys=True).encode()).hexdigest())
+                    track_geometry_sha256=hashlib.sha256(json.dumps(track, sort_keys=True).encode()).hexdigest(),
+                    reference_geometry_sha256=hashlib.sha256(np.ascontiguousarray(
+                        np.stack([geometry.ref, geometry.left, geometry.right])).tobytes()).hexdigest(),
+                    reference_length_m=geometry.length, reference_file_sha256=reference_file_sha256,
+                    terminal_evidence=None,
+                    rollout_mode='explore' if config.exploration_std_scale > 0 else 'deterministic',
+                    exploration_std_scale=float(config.exploration_std_scale),
+                    exploration_seed=config.exploration_seed)
+    generator = None
+    if config.exploration_std_scale > 0:
+        import torch
+        generator = torch.Generator(device='cpu').manual_seed(config.exploration_seed)
     try:
         with Session(config, steering) as session:
             obs = None
@@ -411,7 +486,9 @@ def collect(config, actor_bundle, calibration, *, reference, output, execute=Fal
             if number(current, 'numberOfTyresOut') >= 1:
                 raise ValueError('handover wheels outside track')
             for _ in range(config.max_steps):
-                action = actor.predict(obs)
+                action = (actor.predict(obs) if generator is None else
+                          actor.predict(obs, deterministic=False, generator=generator,
+                                        std_scale=config.exploration_std_scale))
                 command = session.send(action)
                 following = session.receive(deadline)
                 next_obs = observation.build(following, action)
@@ -423,8 +500,10 @@ def collect(config, actor_bundle, calibration, *, reference, output, execute=Fal
                 speed = math.hypot(number(following, 'velocity_z'), number(following, 'velocity_x'))
                 if abs(ds) > speed*dt*2+1:
                     raise ValueError('projection jump/reset; transition discarded')
-                failure = (number(following, 'numberOfTyresOut') >= 1
-                           or abs(wrap(yaw-heading)) > math.pi/2)
+                tyres_out = number(following, 'numberOfTyresOut')
+                heading_error = float(wrap(yaw-heading))
+                wheel_off_track, wrong_way = tyres_out >= 1, abs(heading_error) > math.pi/2
+                failure = wheel_off_track or wrong_way
                 progress_total += ds
                 lap = progress_total >= geometry.length
                 desired = .6*float(action[0])
@@ -438,7 +517,13 @@ def collect(config, actor_bundle, calibration, *, reference, output, execute=Fal
                                  desired_road_angle=desired, executed_road_angle=effective))
                 current, obs, old_s, old_e = following, next_obs, station, e
                 if failure or lap:
-                    reason = 'failure' if failure else 'lap_complete'
+                    if failure:
+                        reason = ('wheel_off_track_and_wrong_way' if wheel_off_track and wrong_way
+                                  else 'wheel_off_track' if wheel_off_track else 'wrong_way')
+                        metadata['terminal_evidence'] = dict(numberOfTyresOut=tyres_out,
+                                                             heading_error_rad=heading_error)
+                    else:
+                        reason = 'lap_complete'
                     break
     except KeyboardInterrupt:
         reason = 'interrupted'
@@ -448,8 +533,10 @@ def collect(config, actor_bundle, calibration, *, reference, output, execute=Fal
         if rows and not rows[-1]['terminated']:
             rows[-1]['truncated'] = True
         metadata['stop_reason'] = reason
+        metadata['progress_m'] = float(progress_total)
         write_chunk(output, rows, metadata)
-    return dict(transitions=len(rows), stop_reason=reason, output=str(output))
+    return dict(transitions=len(rows), stop_reason=reason, progress_m=float(progress_total),
+                mode=metadata['rollout_mode'], output=str(output))
 
 
 def main(argv=None):
@@ -459,7 +546,8 @@ def main(argv=None):
     for name in ('actor-bundle', 'calibration', 'output'):
         run.add_argument('--'+name, type=Path, required=True)
     run.add_argument('--host', default=os.environ.get('AC_HOST'))
-    run.add_argument('--reference', choices=['centerline'], required=True)
+    run.add_argument('--reference', choices=list(REFERENCES), required=True)
+    run.add_argument('--reference-file', type=Path, help='required with --reference ocd_path')
     run.add_argument('--steering-saturation', choices=['clip', 'reject'], default='reject')
     run.add_argument('--max-steps', type=int, required=True)
     run.add_argument('--max-dt', type=float, default=.08)
@@ -471,7 +559,7 @@ def main(argv=None):
     config = CollectConfig(args.host, args.max_steps, steering_saturation=args.steering_saturation,
                            max_dt=args.max_dt, min_dt=args.min_dt, max_wall_s=args.max_wall_s, setup_id=args.setup_id)
     print(json.dumps(collect(config, args.actor_bundle, args.calibration, reference=args.reference,
-                             output=args.output, execute=args.execute)))
+                             output=args.output, execute=args.execute, reference_file=args.reference_file)))
 
 
 if __name__ == '__main__':

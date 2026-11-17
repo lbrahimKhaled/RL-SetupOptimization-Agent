@@ -45,6 +45,53 @@ def test_closed_geometry_projection_preview_labels_and_footprint():
         Geometry(dict(left_lane=g.right, right_lane=g.left), reference='centerline')
 
 
+def test_fast_lane_uses_reference_arc_stations_and_corresponding_borders():
+    center = geometry()
+    angles = np.arange(720)*2*np.pi/720
+    fast = np.c_[(96+2*np.sin(angles))*np.cos(angles),
+                 (96+2*np.sin(angles))*np.sin(angles)]
+    track = dict(left_lane=center.left, right_lane=center.right, fast_lane=fast)
+    g = Geometry(track, reference='fast_lane')
+    i, fraction = 100, .3
+    station = g.stations[i]+fraction*g.lengths[i]
+    ref, left, right = g.at(station)
+    for actual, points in ((ref, fast), (left, center.left), (right, center.right)):
+        np.testing.assert_allclose(actual, points[i]+fraction*(points[i+1]-points[i]))
+    projected, e, _ = g.project(ref)
+    assert projected == pytest.approx(station) and e == pytest.approx(0, abs=1e-10)
+    assert g.progress(g.length-.5, .5) == pytest.approx(1)
+    np.testing.assert_allclose(g.at(g.length)[0], fast[0])
+    assert g.length != pytest.approx(center.length)
+    closed = {key: np.vstack([value, value[0]]) for key, value in track.items()}
+    np.testing.assert_array_equal(Geometry(closed, reference='fast_lane').ref, fast)
+    builder = Observation(g, .01)
+    for j in range(1, 6):
+        obs = builder.build(packet(j), RELEASE_ACTION)
+    preview = np.stack(g.at(g.preview+g.project(np.array([100., 0.]))[0]), axis=1)-[100, 0]
+    local = np.stack([preview[..., 1], -preview[..., 0]], axis=-1)
+    np.testing.assert_allclose(obs[12:132], (local/np.maximum(g.preview, 10)[:, None, None]).ravel(), atol=1e-6)
+
+
+@pytest.mark.parametrize('bad', ['missing', 'shape', 'nan', 'outside', 'duplicate', 'reversed'])
+def test_fast_lane_rejects_invalid_or_unpaired_geometry(bad):
+    g = geometry()
+    track = dict(left_lane=g.left, right_lane=g.right, fast_lane=g.ref.copy())
+    if bad == 'missing':
+        del track['fast_lane']
+    elif bad == 'shape':
+        track['fast_lane'] = g.ref[:-1]
+    elif bad == 'nan':
+        track['fast_lane'][0, 0] = np.nan
+    elif bad == 'outside':
+        track['fast_lane'] = 1.2*g.ref
+    elif bad == 'duplicate':
+        track['fast_lane'][1] = track['fast_lane'][0]
+    else:
+        track = {key: points[::-1] for key, points in track.items()}
+    with pytest.raises(ValueError):
+        Geometry(track, reference='fast_lane')
+
+
 def test_observation_source_columns_real_history_and_body_frame():
     g = geometry()
     builder = Observation(g, .01)
@@ -140,6 +187,22 @@ def test_udp_counter_echo_gap_and_cleanup():
     assert sock.sent[-1] == b'disconnect' and sock.closed
 
 
+@pytest.mark.parametrize('failure', [None, ValueError, KeyboardInterrupt])
+def test_automatic_collector_cleanup_keeps_full_brake_without_changing_manual_default(failure):
+    config = CollectConfig('localhost', 1, final_brake=True)
+    session = Session(config, steering())
+    sock = FakeSocket([])
+    session.sock = sock
+    session.last = {'steps': 42}
+    session.__exit__(failure, failure() if failure else None, None)
+    command = json.loads(sock.sent[-2])
+    assert command['brake'] == 1. and command['acc'] == -1. and command['server_steps'] == 42
+    assert sock.sent[-1] == b'disconnect' and sock.closed
+    assert CollectConfig('localhost', 1).final_brake is False
+    with pytest.raises(ValueError, match='boolean'):
+        CollectConfig('localhost', 1, final_brake=1)
+
+
 def test_numeric_chunk_roundtrip_exclusive(tmp_path):
     row = dict(obs=np.zeros(159), next_obs=np.ones(159), actions=np.zeros(3), rewards=1.,
                terminated=False, truncated=True, dt=.04, episode_id=0, seq=5,
@@ -156,7 +219,10 @@ def test_numeric_chunk_roundtrip_exclusive(tmp_path):
         write_chunk(path, [row], {})
 
 
-def test_collector_stops_boundary_and_discards_invalid_next(monkeypatch, tmp_path):
+@pytest.mark.parametrize('tyres,yaw_shift,reason', [
+    (1, 0., 'wheel_off_track'), (0, math.pi, 'wrong_way'),
+    (1, math.pi, 'wheel_off_track_and_wrong_way')])
+def test_collector_stops_boundary_and_discards_invalid_next(monkeypatch, tmp_path, tyres, yaw_shift, reason):
     import rlsetup.assetto.driving as d
     bundle = tmp_path/'actor'
     bundle.mkdir()
@@ -169,7 +235,9 @@ def test_collector_stops_boundary_and_discards_invalid_next(monkeypatch, tmp_pat
         manifest = {}
         def __init__(self, _path):
             pass
-        def predict(self, obs):
+        calls = []
+        def predict(self, obs, **kwargs):
+            Actor.calls.append(kwargs)
             return np.array([.1, -.8, -.8], np.float32)
     monkeypatch.setattr(d, 'ActorRuntime', Actor)
     g = geometry()
@@ -209,7 +277,8 @@ def test_collector_stops_boundary_and_discards_invalid_next(monkeypatch, tmp_pat
             def receive_failure(self, deadline):
                 result = original_receive(self, deadline)
                 if self.i >= 6:
-                    result['numberOfTyresOut'] = 1
+                    result['numberOfTyresOut'] = tyres
+                    result['yaw'] += yaw_shift
                 return result
             FakeSession.receive = receive_failure
         output = tmp_path/f'chunk{invalid}{failure_lap}.npz'
@@ -219,11 +288,29 @@ def test_collector_stops_boundary_and_discards_invalid_next(monkeypatch, tmp_pat
             assert len(chunk['obs']) == (1 if invalid or failure_lap else 2)
             if failure_lap:
                 assert chunk['terminated'][-1] and not chunk['truncated'][-1]
+                metadata = json.loads(chunk['metadata_json'].item())
+                assert result['stop_reason'] == reason
+                assert metadata['terminal_evidence']['numberOfTyresOut'] == tyres
+                assert abs(metadata['terminal_evidence']['heading_error_rad']) == pytest.approx(yaw_shift, abs=.005)
             else:
                 assert chunk['truncated'][-1] and not chunk['terminated'].any()
             assert np.isfinite(chunk['next_obs']).all()
             if not invalid and not failure_lap:
                 np.testing.assert_array_equal(chunk['next_obs'][0], chunk['obs'][1])
+    assert Actor.calls and all(call == {} for call in Actor.calls)  # default stays deterministic
+    Actor.calls.clear()
+    output = tmp_path/'explore.npz'
+    result = d.collect(CollectConfig('localhost', 2, exploration_std_scale=.3, exploration_seed=7),
+                       bundle, calibration, reference='centerline', output=output, execute=True)
+    assert result['mode'] == 'explore' and Actor.calls
+    assert all(c['deterministic'] is False and c['std_scale'] == .3 for c in Actor.calls)
+    with np.load(output, allow_pickle=False) as chunk:
+        metadata = json.loads(chunk['metadata_json'].item())
+    assert (metadata['rollout_mode'], metadata['exploration_std_scale'], metadata['exploration_seed']) == ('explore', .3, 7)
+    assert metadata['progress_m'] == result['progress_m']
+    for bad in (-.1, 1.5, True):
+        with pytest.raises(ValueError, match='exploration'):
+            CollectConfig('localhost', 2, exploration_std_scale=bad)
             assert result['transitions'] == len(chunk['obs'])
 
 
@@ -297,3 +384,42 @@ def test_startup_wait_allows_120ms_but_retains_active_and_overall_limits(monkeyp
     assert json.loads(sock.sent[-2])['acc'] == -1.
     assert json.loads(sock.sent[-2])['brake'] == -1.
     assert sock.sent[-1] == b'disconnect' and sock.closed
+
+
+def _ocd_reference_file(tmp_path, track, ref_rows, **changes):
+    from rlsetup.assetto.driving import ac_borders_sha256
+    data = dict(schema='rlsetup.ac.ocd-reference.v1', reference='ocd_path',
+                ac_borders_sha256=ac_borders_sha256(track['left_lane'], track['right_lane']),
+                rows=np.asarray(ref_rows).tolist())
+    data.update(changes)
+    path = tmp_path/f'ref{len(list(tmp_path.glob("ref*")))}.json'
+    path.write_text(json.dumps(data))
+    return path
+
+
+def test_ocd_path_reference_is_bound_to_exact_ac_borders(tmp_path):
+    from rlsetup.assetto.driving import load_reference
+    a = np.arange(720)*2*np.pi/720
+    track = dict(left_lane=np.c_[90*np.cos(a), 90*np.sin(a)].tolist(),
+                 right_lane=np.c_[110*np.cos(a), 110*np.sin(a)].tolist())
+    rows = np.c_[97*np.cos(a), 97*np.sin(a)]
+    path = _ocd_reference_file(tmp_path, track, rows)
+    loaded, digest = load_reference(track, 'ocd_path', path)
+    g = Geometry(loaded, reference='ocd_path')
+    np.testing.assert_allclose(g.ref, rows)
+    assert len(digest) == 64 and 'ocd_path' not in track
+    station, e, _ = g.project(np.array([100., 0.]))
+    assert e == pytest.approx(-3., abs=1e-3)  # 3 m right of the 97 m line (borders: left inner)
+    moved = dict(track, left_lane=(np.asarray(track['left_lane'])+[.001, 0]).tolist())
+    with pytest.raises(ValueError, match='different AC track borders'):
+        load_reference(moved, 'ocd_path', path)
+    with pytest.raises(ValueError, match='requires'):
+        load_reference(track, 'ocd_path')
+    with pytest.raises(ValueError, match='only used'):
+        load_reference(track, 'fast_lane', path)
+    for bad in (dict(schema='other'), dict(rows=rows[:-1].tolist())):
+        with pytest.raises(ValueError, match='invalid OCD reference'):
+            load_reference(track, 'ocd_path', _ocd_reference_file(tmp_path, track, rows, **bad))
+    outside = _ocd_reference_file(tmp_path, track, np.c_[115*np.cos(a), 115*np.sin(a)])
+    with pytest.raises(ValueError, match='between'):
+        Geometry(load_reference(track, 'ocd_path', outside)[0], reference='ocd_path')

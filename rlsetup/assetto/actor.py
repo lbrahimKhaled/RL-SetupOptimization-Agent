@@ -79,7 +79,7 @@ def _json(data: bytes) -> dict:
 
     try:
         result = json.loads(data, object_pairs_hook=pairs, parse_constant=invalid)
-    except (UnicodeError, json.JSONDecodeError) as exc:
+    except (UnicodeError, json.JSONDecodeError, RecursionError) as exc:
         raise ValueError('invalid JSON') from exc
     if not isinstance(result, dict):
         raise ValueError('JSON root must be an object')
@@ -378,16 +378,21 @@ class ActorRuntime:
 
     @torch.inference_mode()
     def predict(self, observation: np.ndarray, *, deterministic: bool = True,
-                generator: torch.Generator | None = None) -> np.ndarray:
-        """Return normalized [steering, throttle, brake]; stochastic calls need a seeded CPU generator."""
+                generator: torch.Generator | None = None, std_scale: float = 1.) -> np.ndarray:
+        """Return normalized [steering, throttle, brake]; stochastic calls need a seeded CPU generator.
+
+        std_scale multiplies the policy's own pre-squash standard deviation (1 = SAC sampling).
+        """
         if type(deterministic) is not bool:
             raise ValueError('deterministic must be bool')
+        if isinstance(std_scale, bool) or not isinstance(std_scale, (int, float)) or not 0 <= std_scale <= 1:
+            raise ValueError('std_scale must be in [0, 1]')
         mean, log_std = self.mean_log_std(observation)
         mean, log_std = torch.from_numpy(mean), torch.from_numpy(log_std)
         if not deterministic:
             if not isinstance(generator, torch.Generator) or generator.device.type != 'cpu':
                 raise ValueError('stochastic prediction requires an explicit seeded CPU torch.Generator')
-            mean = mean + log_std.exp() * torch.randn(mean.shape, generator=generator,
+            mean = mean + float(std_scale) * log_std.exp() * torch.randn(mean.shape, generator=generator,
                                                      device='cpu', dtype=torch.float32)
         action = mean.tanh().numpy().copy()
         if not np.isfinite(action).all():

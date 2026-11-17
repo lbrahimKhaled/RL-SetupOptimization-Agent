@@ -39,6 +39,7 @@ class LearnerConfig:
     tau: float = .005
     ent_coef: str = 'auto_0.1'
     torch_threads: int = 1
+    critic_init: str | None = None  # source SB3 checkpoint: initial critics, targets and alpha
 
     def validate(self):
         for name in ('batch_size', 'buffer_size', 'torch_threads'):
@@ -47,7 +48,8 @@ class LearnerConfig:
         if (type(self.seed) is not int or self.seed < 0 or self.device not in ('cpu', 'mps')
                 or self.gamma != .992 or self.n_steps != 1 or self.buffer_size < self.batch_size
                 or self.learning_rate <= 0 or self.actor_lr <= 0 or not 0 < self.tau <= 1
-                or self.ent_coef != 'auto_0.1'):
+                or self.ent_coef != 'auto_0.1'
+                or not (self.critic_init is None or (isinstance(self.critic_init, str) and self.critic_init))):
             raise ValueError('unsupported AC learner configuration')
 
 
@@ -77,9 +79,50 @@ def build_learner(bundle: str | Path, config: LearnerConfig) -> StagedSAC:
                                      'share_features_extractor': False},
                       seed=config.seed, device=config.device, verbose=0)
     model.actor.load_state_dict(runtime._actor.state_dict(), strict=True)
+    if config.critic_init is not None:
+        load_source_critics(model, config.critic_init, runtime)
     model.actor_lr = config.actor_lr
     model.set_logger(configure(folder=None, format_strings=[]))
     return model
+
+
+CRITIC_PREFIXES = ('critic.', 'critic_target.')
+
+
+def load_source_critics(model: StagedSAC, checkpoint: str | Path, runtime: ActorRuntime) -> None:
+    """Copy critics, target critics and log alpha from the actor's own OCD checkpoint.
+
+    Only the exact checkpoint the actor bundle was exported from is accepted (SHA-256 in the
+    bundle manifest), and its actor tensors must equal the bundle's. Members are read with
+    torch.load(weights_only=True); optimizer states and replay are not used. Alpha keeps the
+    OCD-trained value (0.063 for D2 bcn seed0): the source critics were fit with it.
+    """
+    import io
+    import zipfile
+    data = Path(checkpoint).read_bytes()
+    if _sha(data) != runtime.manifest['source']['checkpoint_sha256']:
+        raise ValueError('critic checkpoint is not the actor bundle source checkpoint')
+    with zipfile.ZipFile(io.BytesIO(data)) as archive:
+        weights = torch.load(io.BytesIO(archive.read('policy.pth')), weights_only=True, map_location='cpu')
+        variables = torch.load(io.BytesIO(archive.read('pytorch_variables.pth')), weights_only=True,
+                               map_location='cpu')
+    own = model.policy.state_dict()
+    critic = {k: v for k, v in weights.items() if k.startswith(CRITIC_PREFIXES)}
+    if (set(critic) != {k for k in own if k.startswith(CRITIC_PREFIXES)}
+            or any(own[k].shape != v.shape or not torch.isfinite(v).all() for k, v in critic.items())):
+        raise ValueError('source checkpoint critics do not match the AC learner networks')
+    actor = {k: v for k, v in weights.items() if k.startswith('actor.')}
+    if set(actor) != {k for k in own if k.startswith('actor.')} or any(
+            not torch.equal(v, own[k].cpu()) for k, v in actor.items()):
+        raise ValueError('source checkpoint actor differs from the actor bundle')
+    log_alpha = variables.get('log_ent_coef')
+    if (not isinstance(log_alpha, torch.Tensor) or log_alpha.shape != model.log_ent_coef.shape
+            or not torch.isfinite(log_alpha).all()):
+        raise ValueError('source checkpoint has no usable entropy coefficient')
+    own.update(critic)
+    model.policy.load_state_dict(own, strict=True)
+    with torch.no_grad():
+        model.log_ent_coef.copy_(log_alpha.to(model.log_ent_coef.device))
 
 
 _AUDIT = {'timestamp_ac': (), 'next_timestamp_ac': (), 'command': (3,),
@@ -93,7 +136,8 @@ _ARRAYS = {'obs': (np.dtype('float32'), (159,)), 'next_obs': (np.dtype('float32'
 
 
 def read_chunk(path: str | Path, actor_manifest_sha256: str, contract_sha256: str,
-               gamma: float = .992, config_sha256: str | None = None) -> tuple[dict, dict, str]:
+               gamma: float = .992, config_sha256: str | None = None, *,
+               allow_empty: bool = False) -> tuple[dict, dict, str]:
     """Strict numeric-only NPZ; reject time/episode discontinuities before replay mutation."""
     data = Path(path).read_bytes()
     import io
@@ -114,7 +158,7 @@ def read_chunk(path: str | Path, actor_manifest_sha256: str, contract_sha256: st
     if arrays['obs'].ndim != 2:
         raise ValueError('obs must have shape N x 159')
     n = len(arrays['obs'])
-    if n == 0:
+    if n == 0 and not allow_empty:
         raise ValueError('empty chunk')
     for key, (dtype, shape) in _ARRAYS.items():
         value = arrays[key]
@@ -147,8 +191,13 @@ def read_chunk(path: str | Path, actor_manifest_sha256: str, contract_sha256: st
             or any(not isinstance(v, str) for v in target.values())
             or any(not target[k] for k in ('car_name', 'track_name', 'setup_id'))):
         raise ValueError('invalid chunk target')
+    if metadata['reference'] not in ('centerline', 'fast_lane', 'ocd_path'):
+        raise ValueError('reference must be centerline, fast_lane or ocd_path')
     if metadata['reference'] != 'centerline':
-        raise ValueError('reference must be centerline')
+        digest, length = metadata.get('reference_geometry_sha256'), metadata.get('reference_length_m')
+        if (not isinstance(digest, str) or re.fullmatch('[0-9a-f]{64}', digest) is None
+                or type(length) not in (int, float) or not np.isfinite(length) or length <= 0):
+            raise ValueError(f"{metadata['reference']} reference geometry provenance required")
     lo, hi = metadata['min_dt_s'], metadata['max_dt_s']
     if (type(lo) not in (int, float) or type(hi) not in (int, float)
             or not 0 < lo <= hi or np.any(arrays['dt'] < lo) or np.any(arrays['dt'] > hi)
@@ -163,9 +212,17 @@ def read_chunk(path: str | Path, actor_manifest_sha256: str, contract_sha256: st
               or arrays['seq'][i] != arrays['seq'][i-1]+1
               or not np.array_equal(arrays['obs'][i], arrays['next_obs'][i-1])):
             raise ValueError('discontinuity without episode boundary')
-    if not done[-1]:
+    if n and not done[-1]:
         raise ValueError('chunk must end at a terminated/truncated boundary')
     return arrays, metadata, _sha(data)
+
+
+def replay_identity(metadata: dict) -> dict:
+    """Shared collector/learner identity; legacy centerline transactions stay unchanged."""
+    identity = {key: metadata[key] for key in ('target', 'reference', 'gamma', 'min_dt_s', 'max_dt_s', 'reward_mode')}
+    if metadata['reference'] != 'centerline':
+        identity.update({key: metadata[key] for key in ('reference_geometry_sha256', 'reference_length_m')})
+    return identity
 
 
 class ACLearner:
@@ -186,7 +243,7 @@ class ACLearner:
         if digest in self.imported:
             return False
         arrays, metadata, digest = read_chunk(path, self.actor_hash, self.contract_hash, self.config.gamma, self.config_hash)
-        identity = {key: metadata[key] for key in ('target', 'reference', 'gamma', 'min_dt_s', 'max_dt_s', 'reward_mode')}
+        identity = replay_identity(metadata)
         if self.provenance is not None and identity != self.provenance:
             raise ValueError('chunk target/reference/timing differs from existing AC replay')
         self.provenance = identity
@@ -308,9 +365,11 @@ def main(argv: list[str] | None = None):
     parser.add_argument('--seed', type=int, default=0)
     parser.add_argument('--buffer-size', type=int, default=1_000_000)
     parser.add_argument('--device', choices=('cpu', 'mps'), default='cpu')
+    parser.add_argument('--critic-init', type=Path, help="the actor's source SB3 checkpoint (best.zip)")
     args = parser.parse_args(argv)
     config = LearnerConfig(seed=args.seed, device=args.device, batch_size=args.batch_size,
-                           buffer_size=args.buffer_size)
+                           buffer_size=args.buffer_size,
+                           critic_init=str(args.critic_init.resolve()) if args.critic_init else None)
     if args.output.exists():
         parser.error('--output must be a new transaction directory')
     learner = (ACLearner.resume(args.resume, args.actor_bundle, config) if args.resume

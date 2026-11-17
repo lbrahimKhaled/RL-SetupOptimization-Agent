@@ -315,3 +315,18 @@ print('actor-only runtime PASS')
                                cwd=Path(__file__).resolve().parents[1], timeout=15)
     assert completed.returncode == 0, completed.stderr
     assert completed.stdout.strip() == 'actor-only runtime PASS'
+
+
+def test_std_scale_zero_matches_mean_and_is_bounded(source, tmp_path):
+    runtime = ActorRuntime(bundle(source, tmp_path))
+    obs = np.zeros(159, np.float32)
+    zero = runtime.predict(obs, deterministic=False, generator=torch.Generator().manual_seed(1), std_scale=0.)
+    assert np.array_equal(zero, runtime.predict(obs))
+    small = runtime.predict(obs, deterministic=False, generator=torch.Generator().manual_seed(1), std_scale=.3)
+    full = runtime.predict(obs, deterministic=False, generator=torch.Generator().manual_seed(1))
+    mean = np.arctanh(np.clip(runtime.predict(obs), -.999999, .999999))
+    assert np.allclose(np.arctanh(np.clip(small, -.999999, .999999))-mean,
+                       .3*(np.arctanh(np.clip(full, -.999999, .999999))-mean), atol=1e-4)
+    for bad in (-.1, 1.5, True):
+        with pytest.raises(ValueError, match='std_scale'):
+            runtime.predict(obs, deterministic=False, generator=torch.Generator(), std_scale=bad)

@@ -8,7 +8,7 @@ import torch
 
 from rlsetup.assetto.actor import (ActorRuntime, MANIFEST_FILE, SOURCE_OBS, _Actor, _encoded,
                                   _manifest, _sha, source_contract_sha256)
-from rlsetup.assetto.learn import ACLearner, LearnerConfig, read_chunk
+from rlsetup.assetto.learn import ACLearner, LearnerConfig, read_chunk, replay_identity
 
 
 @pytest.fixture
@@ -146,3 +146,95 @@ def test_driver_chunk_writer_to_learner(bundle, tmp_path):
     assert learner.import_chunk(actual)
     learner.train(1, 1)
     assert learner.model.buffer_transitions() == 8
+
+
+def test_fast_lane_chunks_require_geometry_and_cannot_mix_reference_or_geometry(bundle, tmp_path):
+    config = LearnerConfig(batch_size=4, buffer_size=32)
+    learner = ACLearner(bundle, config)
+    fast = dict(reference='fast_lane', reference_geometry_sha256='a'*64, reference_length_m=4500.)
+    with pytest.raises(ValueError, match='provenance'):
+        learner.import_chunk(chunk(tmp_path/'missing.npz', bundle, reference='fast_lane'))
+    assert learner.import_chunk(chunk(tmp_path/'fast.npz', bundle, **fast))
+    for name, change in [('center', dict(reference='centerline')),
+                         ('changed', dict(fast, reference_geometry_sha256='b'*64))]:
+        with pytest.raises(ValueError, match='differs'):
+            learner.import_chunk(chunk(tmp_path/f'{name}.npz', bundle, **change))
+    assert learner.model.buffer_transitions() == 8
+    saved = learner.save(tmp_path/'fast_state')
+    resumed = ACLearner.resume(saved, saved/'actor', config)
+    with pytest.raises(ValueError, match='differs'):
+        resumed.import_chunk(chunk(tmp_path/'center_after_resume.npz', saved/'actor'))
+    assert resumed.model.buffer_transitions() == 8
+
+
+def test_ocd_path_chunks_need_geometry_provenance_and_do_not_mix(bundle, tmp_path):
+    runtime = ActorRuntime(bundle)
+    args = (_sha((bundle / MANIFEST_FILE).read_bytes()), source_contract_sha256(runtime.manifest))
+    with pytest.raises(ValueError, match='ocd_path reference geometry provenance'):
+        read_chunk(chunk(tmp_path / 'a.npz', bundle, reference='ocd_path'), *args)
+    good = chunk(tmp_path / 'b.npz', bundle, reference='ocd_path',
+                 reference_geometry_sha256='b'*64, reference_length_m=4602.)
+    _, metadata, _ = read_chunk(good, *args)
+    assert replay_identity(metadata)['reference_geometry_sha256'] == 'b'*64
+    learner = ACLearner(bundle, LearnerConfig(batch_size=4, buffer_size=32))
+    learner.import_chunk(good)
+    other = chunk(tmp_path / 'c.npz', bundle, reference='fast_lane',
+                  reference_geometry_sha256='b'*64, reference_length_m=4602.)
+    with pytest.raises(ValueError, match='differs'):
+        learner.import_chunk(other)
+
+
+def _checkpoint_bundle(bundle, tmp_path, *, actor_changed=False):
+    """Fake SB3 checkpoint holding the bundle actor + distinct critics; a bundle that names it."""
+    import io, zipfile
+    from rlsetup.assetto.learn import build_learner
+    model = build_learner(bundle, LearnerConfig(batch_size=4, buffer_size=32))
+    state = model.policy.state_dict()
+    with torch.no_grad():
+        for key in state:
+            if key.startswith(('critic.', 'critic_target.')) or (actor_changed and key.startswith('actor.')):
+                state[key] = state[key] + .5
+    def member(value):
+        buffer = io.BytesIO(); torch.save(value, buffer); return buffer.getvalue()
+    checkpoint = tmp_path / 'best.zip'
+    with zipfile.ZipFile(checkpoint, 'w') as archive:
+        archive.writestr('policy.pth', member(state))
+        archive.writestr('pytorch_variables.pth', member({'log_ent_coef': torch.tensor([-2.7698581])}))
+    named = tmp_path / 'named'
+    named.mkdir()
+    for name in ('config.json', 'actor.pt'):
+        (named / name).write_bytes((bundle / name).read_bytes())
+    config = json.loads((bundle / 'config.json').read_text())
+    manifest = _manifest(config, {'checkpoint_name': 'best.zip', 'checkpoint_sha256': _sha(checkpoint.read_bytes()),
+                                  'num_timesteps': 100}, _sha((bundle / 'config.json').read_bytes()),
+                         _sha((bundle / 'actor.pt').read_bytes()))
+    (named / MANIFEST_FILE).write_bytes(_encoded(manifest))
+    return checkpoint, named, state
+
+
+def test_critic_init_copies_source_critics_and_alpha_only_from_actor_checkpoint(bundle, tmp_path):
+    from rlsetup.assetto.learn import build_learner
+    checkpoint, named, state = _checkpoint_bundle(bundle, tmp_path)
+    model = build_learner(named, LearnerConfig(batch_size=4, buffer_size=32, critic_init=str(checkpoint)))
+    loaded = model.policy.state_dict()
+    for key, value in state.items():
+        assert torch.equal(loaded[key], value), key  # critics copied, actor unchanged
+    assert float(model.log_ent_coef.exp()) == pytest.approx(.0627, abs=1e-4)
+    fresh = build_learner(named, LearnerConfig(batch_size=4, buffer_size=32))
+    assert float(fresh.log_ent_coef.exp()) == pytest.approx(.1)
+    with pytest.raises(ValueError, match='not the actor bundle source'):
+        build_learner(bundle, LearnerConfig(batch_size=4, buffer_size=32, critic_init=str(checkpoint)))
+    other = tmp_path / 'other'
+    other.mkdir()
+    checkpoint2, named2, _ = _checkpoint_bundle(bundle, other, actor_changed=True)
+    with pytest.raises(ValueError, match='actor differs'):
+        build_learner(named2, LearnerConfig(batch_size=4, buffer_size=32, critic_init=str(checkpoint2)))
+    # Resume keeps the trained critics; the saved config carries the critic_init path.
+    learner = ACLearner(named, LearnerConfig(batch_size=4, buffer_size=32, critic_init=str(checkpoint)))
+    learner.import_chunk(chunk(tmp_path / 'c.npz', named))
+    learner.train(1, 0)
+    learner.save(tmp_path / 'saved')
+    resumed = ACLearner.resume(tmp_path / 'saved', tmp_path / 'saved' / 'actor',
+                               LearnerConfig(batch_size=4, buffer_size=32, critic_init=str(checkpoint)))
+    for key, value in learner.model.policy.state_dict().items():
+        assert torch.equal(resumed.model.policy.state_dict()[key], value), key
