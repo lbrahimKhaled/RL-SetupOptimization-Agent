@@ -111,7 +111,7 @@ def live():
             s.settimeout(5)
             info = ast.literal_eval(s.recv(2**20).decode())
         check('plugin reachable on 127.0.0.1:2347', True,
-              f"car={info.get('CarModel')} track={info.get('TrackName')} {info.get('TrackConfiguration') or ''}".strip())
+              f"track={info.get('TrackName')} {info.get('TrackConfiguration') or ''}".strip())   # static info has no car name
     except Exception as e:   # noqa: BLE001
         check('plugin reachable on 127.0.0.1:2347', False, f'{type(e).__name__}: {e} (is a Hotlap session running?)')
 
