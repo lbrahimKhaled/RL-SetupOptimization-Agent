@@ -85,6 +85,11 @@ def game_side():
               and 'self.sampling_freq = 100' in text)
     check('AC socket libs in system\\x64', (AC_INSTALL / 'system' / 'x64' / 'Lib').is_dir())
     check('Vjoy.ini controller preset', (AC_DOCS / 'cfg' / 'controllers' / 'savedsetups' / 'Vjoy.ini').exists())
+    # X86=1 makes the launcher start acs_x86.exe: the plugin then fails to import the system\x64 socket/ctypes
+    # libs ("DLL load failed: %1 is not a valid Win32 application" in logs\py_log.txt) and never opens its ports.
+    launcher = AC_DOCS / 'cfg' / 'launcher.ini'
+    x86 = launcher.exists() and any(l.strip() == 'X86=1' for l in launcher.read_text(errors='replace').splitlines())
+    check('AC runs 64-bit (launcher.ini X86=0)', not x86, 'set X86=0 in ' + str(launcher) if x86 else '')
     check(f'car {CAR}', (AC_INSTALL / 'content' / 'cars' / CAR).is_dir())
     check(f'track {TRACK}', (AC_INSTALL / 'content' / 'tracks' / TRACK).is_dir())
 
