@@ -18,7 +18,18 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
 AC_GYM = Path(os.environ.get('AC_GYM', REPO.parent / 'assetto_corsa_gym'))
 AC_INSTALL = Path(os.environ.get('AC_INSTALL', r'C:\Program Files (x86)\Steam\steamapps\common\assettocorsa'))
-AC_DOCS = Path.home() / 'Documents' / 'Assetto Corsa'
+def _documents():
+    """The Windows Documents known folder, which AC uses for cfg/ and logs/. On AUB machines it is
+    redirected to a network share, not %USERPROFILE%\\Documents."""
+    if sys.platform == 'win32':
+        import ctypes
+        buf = ctypes.create_unicode_buffer(260)
+        if ctypes.windll.shell32.SHGetFolderPathW(None, 5, None, 0, buf) == 0:   # CSIDL_PERSONAL
+            return Path(buf.value)
+    return Path.home() / 'Documents'
+
+
+AC_DOCS = _documents() / 'Assetto Corsa'
 VJOY_DLL = Path(r'C:\Program Files\vJoy\x64\vJoyInterface.dll')   # path hard-coded in AssettoCorsaEnv/vjoy.py
 HOST, MGMT_PORT = '127.0.0.1', 2347
 CAR, TRACK = 'ks_ferrari_sf70h', 'ks_barcelona'   # rlsetup.assetto: SF70H on Barcelona GP (Parked guard)
