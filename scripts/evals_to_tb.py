@@ -87,7 +87,7 @@ def scalars_of(e):
     # --- R4 (docs/specs/R4_review.md req 6); absent keys -> nothing written ---
     r4 = e.get('lap2_r4') or {}
     for k in ('entry_sum', 'exit_sum', 'taken_back', 'terms_sum', 'mean_g', 'shaping_v_sum', 'shaping_e_sum',
-              'front_lock_fraction'):
+              'front_lock_fraction', 'line_penalty_sum'):
         if k in r4:
             scalars[f'r4/lap2_{k}'] = r4[k]
     for name, st in (r4.get('straights') or {}).items():
@@ -98,7 +98,8 @@ def scalars_of(e):
             if k in c:
                 scalars[f'corner/{k}_{unit}'] = c[k]
     tr = e.get('train_r4') or {}
-    for k in ('ep_shaping_v_mean', 'ep_corner_terms_mean', 'ep_taken_back_mean', 'takebacks', 'episodes_with_takeback'):
+    for k in ('ep_shaping_v_mean', 'ep_corner_terms_mean', 'ep_taken_back_mean', 'takebacks', 'episodes_with_takeback',
+              'ep_line_penalty_mean'):
         if k in tr:
             scalars[f'train_r4/{k}'] = tr[k]
     return scalars

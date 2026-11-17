@@ -48,6 +48,13 @@
           front to +0.09 cm at 90 m/s), aero_level 0.7 / 0.75 (-0.6 / -0.9 s, front below the
           ground at 90 m/s with this aero balance), aero_level >= 0.9 (90 m/s settle collapses),
           lower ride height / rake (SENSIBLE rule of scripts/bcn_setup_sweep.py).
+  bcn_f1_best  car 'sf70h_f1' only: QSS-best setup for Barcelona (Catalunya), 15 kN m, ERS/DRS off, chosen
+          by Ibrahim on 17 Nov 2026 (`scripts/sha_line_setup.py sweep --track Catalunya --line iqp_w3`, 40
+          g-g-v measurements, docs/results/bcn_line_setup/sweep.json): sha_f1_best + heave_freq_front_hz 10.
+          QSS lap [s]: IQP w3.0 line 82.409 (p1_TUM_f1) -> 80.111, IQP w3.5 80.449, safe line 84.742. All
+          g-g-v rows valid; front ride height in a 90 m/s hold +0.1 cm. Flags as sha_f1_best (ramp-steer
+          spin, PLACEHOLDER aero map). Not taken: aero_level 0.7 / 0.75 (-1.0 / -1.3 s, front below the ground
+          at 90 m/s), lower ride height / rake (SENSIBLE rule).
 """
 from ocd_lap.car_setup import Setup
 
@@ -67,6 +74,10 @@ CAR_SETUPS = {
     'sha_f1_best': ('p1_TUM', 'sf70h_f1', ('brake_bias_front',),
                     {'heave_damping_ratio': HEAVE_DAMPING_F1, 'aero_front_share': .5384,
                      'roll_stiffness_front_share': .40, 'roll_stiffness_Nm_per_rad': 4.0e5}),
+    'bcn_f1_best': ('p1_TUM', 'sf70h_f1', ('brake_bias_front',),
+                    {'heave_damping_ratio': HEAVE_DAMPING_F1, 'aero_front_share': .5384,
+                     'roll_stiffness_front_share': .40, 'roll_stiffness_Nm_per_rad': 4.0e5,
+                     'heave_freq_front_hz': 10.}),
 }
 
 

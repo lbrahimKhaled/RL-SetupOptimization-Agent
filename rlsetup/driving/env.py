@@ -86,6 +86,10 @@ R4 (docs/specs/R4_review.md; speed_profile.py):
   entry_exit corner_bonus.mode 'entry_exit': info corner_bonus is the signed per-decision sum of the
              entry / exit terms and take-backs (speed_profile.EntryExitTracker); corner_events carry
              'point'; episode_corner_taken_back / episode_corner_takebacks. The reward is unchanged.
+Corner line penalty (reward.line_k > 0, time_pbrs; config.RewardConfig): per base tick whose end lies in a
+             corner window, min(line_k max(0, |e| - line_free_m), line_cap) max(0, ds) is subtracted
+             from the tick reward (not from any lap cost). info line_penalty (this decision),
+             episode_line_penalty. line_k = 0: nothing computed (reward bit-identical).
 Observation (fixed scales, clipped to +-ObsConfig.clip; ObsConfig documents the scales):
     ego (9): speed, v_x, v_y, yaw rate, a_x, a_y (body frame: a_x = dv_x/dt - r v_y,
              a_y = dv_y/dt + r v_x over the last decision, r and v at the interval midpoint),
@@ -194,7 +198,7 @@ class DrivingEnv(OCDRacingEnv):
         self.evaluation = cfg.evaluation
         # R2 training aids and R4 terms (None / unused when disabled)
         self.corners = None
-        if cfg.corner_bonus.enabled or cfg.focus.enabled or cfg.speed_on:
+        if cfg.corner_bonus.enabled or cfg.focus.enabled or cfg.speed_on or cfg.line_on:
             from . import corners as corners_mod
             self.corners = corners if corners is not None else corners_mod.for_env(self.track, cfg, self.qss, self.ref)
         cb = cfg.corner_bonus
@@ -205,6 +209,8 @@ class DrivingEnv(OCDRacingEnv):
         elif cb.enabled:
             self._tracker = CornerTracker(self.corners, cb.bonus, cb.floor_ratio)
         self._speed_on = cfg.speed_on
+        self._line_on = cfg.line_on
+        self._episode_line = 0.
         self.focus_weights = None
         self.n_focus_bins = int(math.ceil(float(self.track.length) / cfg.focus.bin_m))
 
@@ -445,6 +451,7 @@ class DrivingEnv(OCDRacingEnv):
         rw = self.cfg.reward       # Phi at hand-over (time_pbrs; 0 in ref_tracking)
         self._phi = -rw.shaping_k * abs(self._last_e) if rw.mode == 'time_pbrs' else 0.
         self._episode_shaping = 0.
+        self._episode_line = 0.
         if self._speed_on:         # R4: Phi_v at hand-over
             self._phi_v, self._g_v = self._speed_potential()
             self._episode_shaping_v = 0.
@@ -496,6 +503,14 @@ class DrivingEnv(OCDRacingEnv):
         given to the base env's progress counter)."""
         return self._dist
 
+    def _line_penalty(self, abs_e, ds):
+        """Corner line penalty of one base tick: min(k max(0, |e| - free), cap) max(0, ds) if the
+        tick ends (self.s) inside a corner window, else 0."""
+        if ds <= 0. or self.corners.unit_at(self.s) is None:
+            return 0.
+        rw = self.cfg.reward
+        return min(rw.line_k * max(0., abs_e - rw.line_free_m), rw.line_cap) * ds
+
     def _add_costs(self, target, costs, weight=1.):
         for key in COST_KEYS:
             target[key] += weight * costs[key]
@@ -526,6 +541,7 @@ class DrivingEnv(OCDRacingEnv):
         rw, cfg = self.cfg.reward, self.cfg
         pbrs = rw.mode == 'time_pbrs'
         total, step_cost = 0., _zero_costs()
+        line_pen = 0.
         terminated = truncated = False
         cause = None
         self._trunc_cause = None
@@ -577,6 +593,10 @@ class DrivingEnv(OCDRacingEnv):
                     if cause in TERMINAL_FAILURES:
                         costs['penalty'] = rw.penalty_const
                     r = costs['progress'] - costs['time'] - costs['penalty']
+                    if self._line_on and not nonfinite:   # corner line penalty, per metre driven
+                        p = self._line_penalty(abs(self._last_e), self._dist - d0)
+                        line_pen += p
+                        r -= p
                 elif cause in FAILURES:    # ref_tracking: base r, unchanged (bit-identical to full1)
                     costs['penalty'] = rw.failure_penalty(self._last_e, self.dt_tick)
                     r -= costs['penalty']
@@ -608,6 +628,7 @@ class DrivingEnv(OCDRacingEnv):
             total += shaping_v
             self._phi_v, self._g_v = phi_v_next, g_next
             self._episode_shaping_v += shaping_v
+        self._episode_line += line_pen
         if truncated and self._trunc_cause is None:
             self._trunc_cause = 'time_limit'
         self._add_costs(self._episode_cost, step_cost)
@@ -633,6 +654,8 @@ class DrivingEnv(OCDRacingEnv):
             info.update(e_ref=math.nan, heading_error=math.nan, speed=math.nan)
         if self.evaluation:
             info.update(line_crossings_s=list(self._crossings), laps=[dict(l) for l in self._laps])
+        if self._line_on:
+            info.update(line_penalty=line_pen, episode_line_penalty=self._episode_line)
         if self._speed_on:
             info.update(shaping_v=shaping_v, phi_v=self._phi_v, g_v=self._g_v,
                         episode_shaping_v=self._episode_shaping_v)

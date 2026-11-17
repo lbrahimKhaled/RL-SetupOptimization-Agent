@@ -1,0 +1,5394 @@
+{
+ "track": "Catalunya",
+ "car": "sf70h_f1",
+ "base": "p1_TUM_f1",
+ "brake_torque_Nm": 15000.0,
+ "ers": false,
+ "drs": false,
+ "target_line": "iqp_w3",
+ "lines": [
+  "iqp_w3",
+  "iqp_w3.5",
+  "safe (Track.path)",
+  "raceline (Track.reference)"
+ ],
+ "sweep": {
+  "aero_level": [
+   0.7,
+   0.9,
+   1.0
+  ],
+  "aero_front_share": [
+   0.42,
+   0.48
+  ],
+  "ride_height_front_m": [
+   0.025,
+   0.045
+  ],
+  "rake_m": [
+   0.03,
+   0.07
+  ],
+  "brake_bias_front": [
+   0.54,
+   0.62
+  ],
+  "final_drive_ratio": [
+   0.95,
+   1.05
+  ],
+  "roll_stiffness_front_share": [
+   0.4,
+   0.5
+  ],
+  "roll_stiffness_Nm_per_rad": [
+   200000.0,
+   400000.0
+  ],
+  "heave_freq_front_hz": [
+   10.0,
+   15.0
+  ],
+  "heave_freq_rear_hz": [
+   4.5,
+   7.0
+  ],
+  "heave_damping_ratio": [
+   0.5
+  ],
+  "ride_freq_front_hz": [
+   5.0
+  ],
+  "ride_freq_rear_hz": [
+   4.0
+  ],
+  "lsd_lock_drive": [
+   0.5
+  ],
+  "lsd_preload_Nm": [
+   100.0
+  ]
+ },
+ "min_gain_s": 0.005,
+ "n_ggv_evaluations": 40,
+ "base_laps_s": {
+  "iqp_w3": 82.4087261488849,
+  "iqp_w3.5": 82.74444352237848,
+  "safe (Track.path)": 87.14246932636891,
+  "raceline (Track.reference)": 81.42582637418141
+ },
+ "kept": [
+  {
+   "knob": "aero_front_share",
+   "value": 0.5384,
+   "single_gain_s": 2.196369073822794,
+   "lap_after_s": 80.2123570750621
+  },
+  {
+   "knob": "roll_stiffness_front_share",
+   "value": 0.4,
+   "single_gain_s": 0.10488151326748607,
+   "lap_after_s": 80.1817888449798
+  },
+  {
+   "knob": "roll_stiffness_Nm_per_rad",
+   "value": 400000.0,
+   "single_gain_s": 0.05184387777049437,
+   "lap_after_s": 80.12662945895492
+  },
+  {
+   "knob": "heave_freq_front_hz",
+   "value": 10.0,
+   "single_gain_s": 0.019095638738107823,
+   "lap_after_s": 80.11095211829044
+  }
+ ],
+ "excluded": [
+  {
+   "knob": "aero_level",
+   "value": 1.0,
+   "gain_s": 2.4599041424872468,
+   "why": "invalid g-g-v row (settle collapse) or below ground at 90 m/s"
+  },
+  {
+   "knob": "ride_height_front_m",
+   "value": 0.02,
+   "gain_s": 0.38174424587884914,
+   "why": "lowers the car"
+  }
+ ],
+ "best": {
+  "setup": {
+   "ride_freq_front_hz": 4.2347,
+   "ride_freq_rear_hz": 3.372,
+   "damping_ratio_front": 0.14412,
+   "damping_ratio_rear": 0.10593,
+   "rebound_bump_ratio": 1.0,
+   "fast_slow_ratio": 1.0,
+   "heave_freq_front_hz": 10.0,
+   "heave_freq_rear_hz": 5.8450729482422705,
+   "heave_damping_ratio": 0.3,
+   "roll_stiffness_Nm_per_rad": 400000.0,
+   "roll_stiffness_front_share": 0.4,
+   "ride_height_front_m": 0.035,
+   "rake_m": 0.05,
+   "aero_level": 0.5,
+   "aero_front_share": 0.5384,
+   "brake_bias_front": 0.58,
+   "final_drive_ratio": 1.0,
+   "camber_front_deg": 0.0,
+   "camber_rear_deg": 0.0,
+   "toe_front_deg": 0.0,
+   "toe_rear_deg": 0.0,
+   "lsd_preload_Nm": 0.0,
+   "lsd_lock_drive": 1.0,
+   "lsd_lock_coast": 0.0,
+   "packer_gap_front_m": 0.1,
+   "packer_gap_rear_m": 0.1
+  },
+  "changes_vs_base": {
+   "heave_freq_front_hz": 10.0,
+   "roll_stiffness_Nm_per_rad": 400000.0,
+   "roll_stiffness_front_share": 0.4,
+   "aero_front_share": 0.5384
+  },
+  "laps_s": {
+   "iqp_w3": 80.11095211829044,
+   "iqp_w3.5": 80.4490555164636,
+   "safe (Track.path)": 84.74190503400781,
+   "raceline (Track.reference)": 79.12333969268853
+  },
+  "lap_ggv75_s": 80.11112642847218,
+  "at_bound": [],
+  "ride_hold": {
+   "front_m": 0.0008523705089992398,
+   "rear_m": 0.04368144433599886,
+   "front_std_m": 0.00018190920289105382,
+   "front_min_m": 0.0004494219582221251
+  },
+  "understeer_deg_per_g": [
+   0.2653552693596686,
+   0.7363829612827126,
+   0.09348144880914466,
+   0.07411881539234169,
+   0.0092229861503549,
+   -0.08620249104083456
+  ]
+ },
+ "rows": [
+  {
+   "label": "p1_TUM_f1",
+   "phase": "base",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {},
+   "laps_s": {
+    "iqp_w3": 82.4087261488849,
+    "iqp_w3.5": 82.74444352237848,
+    "safe (Track.path)": 87.14246932636891,
+    "raceline (Track.reference)": 81.42582637418141
+   },
+   "lap_s": 82.4087261488849,
+   "lap_ggv75_s": 82.40903590469807,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.46283167074864,
+     16.56495986945056
+    ],
+    [
+     30.0,
+     21.90285662580407,
+     22.484836626561517
+    ],
+    [
+     45.0,
+     27.60910483066606,
+     29.814569203261193
+    ],
+    [
+     60.0,
+     33.1089126066361,
+     38.795827522844284
+    ],
+    [
+     75.0,
+     40.18057600037997,
+     49.441320112211784
+    ],
+    [
+     90.0,
+     47.965243199726544,
+     59.157455527926565
+    ]
+   ],
+   "traction": [
+    [
+     17.211630342333088,
+     13.836640101504969
+    ],
+    [
+     32.852285235660375,
+     17.164613566761496
+    ],
+    [
+     49.928541168921164,
+     23.357830756589834
+    ],
+    [
+     67.237709100287,
+     31.11567825697452
+    ],
+    [
+     80.10254956496331,
+     30.74283236662361
+    ],
+    [
+     110.67474484587967,
+     39.79713952457988
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.31201110224056033,
+    0.9432234491582053,
+    1.7044111247695914,
+    1.5483399278558125,
+    1.9631980433143135,
+    2.169984160935914
+   ],
+   "spun": false,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.009811575583491496,
+    "rear_m": 0.03532602307705341,
+    "front_std_m": 0.00014162434528718038,
+    "front_min_m": 0.009452144660548382
+   },
+   "below_ground": false,
+   "wall_s": 1.206243100001302
+  },
+  {
+   "label": "aero_level=0.7",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.7,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "aero_level": 0.7
+   },
+   "laps_s": {
+    "iqp_w3": 81.22794962747552,
+    "iqp_w3.5": 81.56258976802303,
+    "safe (Track.path)": 85.9382174918289,
+    "raceline (Track.reference)": 80.19690423598853
+   },
+   "lap_s": 81.22794962747552,
+   "lap_ggv75_s": 81.22801257044084,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.548330325672932,
+     16.674204472547373
+    ],
+    [
+     30.0,
+     22.875448378992395,
+     23.301942634965727
+    ],
+    [
+     45.0,
+     28.691343607368157,
+     31.654729911804097
+    ],
+    [
+     60.0,
+     35.29744505961893,
+     41.77464485257853
+    ],
+    [
+     75.0,
+     42.408848801316175,
+     54.076403070465076
+    ],
+    [
+     90.0,
+     49.78246854451635,
+     61.666032166338645
+    ]
+   ],
+   "traction": [
+    [
+     17.207258201101805,
+     14.099812552084952
+    ],
+    [
+     33.14204903481899,
+     18.079785961257407
+    ],
+    [
+     50.25281101819292,
+     25.459455800850673
+    ],
+    [
+     66.37998349050537,
+     30.942798301890228
+    ],
+    [
+     79.54296185227702,
+     30.613307588977992
+    ],
+    [
+     110.19057055455957,
+     47.044849659473556
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.32092665672267806,
+    0.916652984498262,
+    0.8652568842512458,
+    1.4146316566001962,
+    1.7254600958472497,
+    -0.07508699991210224
+   ],
+   "spun": true,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.00544558927186139,
+    "rear_m": 0.026483269422277335,
+    "front_std_m": 0.00029429813144766744,
+    "front_min_m": 0.004916430081424939
+   },
+   "below_ground": false,
+   "wall_s": 1.194246099999873
+  },
+  {
+   "label": "aero_level=0.9",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.9,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "aero_level": 0.9
+   },
+   "laps_s": {
+    "iqp_w3": 80.29748352172464,
+    "iqp_w3.5": 80.63088366334244,
+    "safe (Track.path)": 85.03764351542063,
+    "raceline (Track.reference)": 79.34153815705946
+   },
+   "lap_s": 80.29748352172464,
+   "lap_ggv75_s": 80.29749428666392,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.626730328166246,
+     16.773706798320365
+    ],
+    [
+     30.0,
+     23.5889816075084,
+     24.111216805826675
+    ],
+    [
+     45.0,
+     29.465465774133794,
+     33.463785928455025
+    ],
+    [
+     60.0,
+     37.15255335059138,
+     44.73281533943509
+    ],
+    [
+     75.0,
+     44.942951550557424,
+     56.30905714606614
+    ],
+    [
+     90.0,
+     51.5180830251612,
+     63.456608956354756
+    ]
+   ],
+   "traction": [
+    [
+     17.201159974632002,
+     14.303584639867438
+    ],
+    [
+     33.44901316736513,
+     19.07486508668809
+    ],
+    [
+     51.02375209084184,
+     27.21245204426503
+    ],
+    [
+     66.01685211610871,
+     30.804867810519436
+    ],
+    [
+     79.34654358190123,
+     30.52294664888592
+    ],
+    [
+     103.66950863015748,
+     33.28445912971688
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.3294254077306442,
+    0.875616117114445,
+    1.3752549472869449,
+    0.7096553001626529,
+    1.3481443551896437,
+    -0.1789517538291526
+   ],
+   "spun": true,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.0009536386552945361,
+    "rear_m": 0.016278665965938424,
+    "front_std_m": 0.0013833283551350202,
+    "front_min_m": -0.0016970584886469159
+   },
+   "below_ground": true,
+   "wall_s": 1.254425099999935
+  },
+  {
+   "label": "aero_level=1",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 1.0,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "aero_level": 1.0
+   },
+   "laps_s": {
+    "iqp_w3": 79.94882200639765,
+    "iqp_w3.5": 80.28746887595666,
+    "safe (Track.path)": 84.6853219598643,
+    "raceline (Track.reference)": 79.08564778008025
+   },
+   "lap_s": 79.94882200639765,
+   "lap_ggv75_s": 79.94882200639765,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    false
+   ],
+   "porpoise_or_collapse": true,
+   "ggv": [
+    [
+     15.0,
+     18.66357952722641,
+     16.81998536853447
+    ],
+    [
+     30.0,
+     23.865696901973827,
+     24.51297562389724
+    ],
+    [
+     45.0,
+     29.793040650204055,
+     34.35684968555388
+    ],
+    [
+     60.0,
+     37.692275855208656,
+     46.152023068928294
+    ],
+    [
+     75.0,
+     45.99633148813291,
+     57.72155437250248
+    ],
+    [
+     90.0,
+     270.2116293238467,
+     64.13898503396035
+    ]
+   ],
+   "traction": [
+    [
+     17.197585073478216,
+     14.387409554791645
+    ],
+    [
+     33.43160197888381,
+     19.47211391007078
+    ],
+    [
+     51.42388036312936,
+     28.10624996294412
+    ],
+    [
+     65.83482458458926,
+     30.743272283813166
+    ],
+    [
+     79.45968394727332,
+     30.448390952683503
+    ],
+    [
+     -18.576395106637978,
+     0.0
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.33348034426221884,
+    0.8639786616024019,
+    1.3293845665954769,
+    0.6674389553473805,
+    1.4219850528005518,
+    -0.05851199806221514
+   ],
+   "spun": true,
+   "at_bound": [
+    "aero_level"
+   ],
+   "ride_hold": {
+    "front_m": 0.025746871537172224,
+    "rear_m": 0.06682683311959904,
+    "front_std_m": 0.006127626275337768,
+    "front_min_m": 0.015331940782547251
+   },
+   "below_ground": false,
+   "wall_s": 1.1647809999994934
+  },
+  {
+   "label": "aero_front_share=0.42",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.42,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "aero_front_share": 0.42
+   },
+   "laps_s": {
+    "iqp_w3": 83.52697411534854,
+    "iqp_w3.5": 83.86026125456604,
+    "safe (Track.path)": 88.27557394178382,
+    "raceline (Track.reference)": 82.56706897589218
+   },
+   "lap_s": 83.52697411534854,
+   "lap_ggv75_s": 83.52727088881628,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.461151261864295,
+     16.416597416081572
+    ],
+    [
+     30.0,
+     21.800679010441584,
+     21.92978500116047
+    ],
+    [
+     45.0,
+     27.529418174671743,
+     28.666572092017113
+    ],
+    [
+     60.0,
+     32.665301650950106,
+     36.79664088618966
+    ],
+    [
+     75.0,
+     39.23464808456547,
+     45.12136819950588
+    ],
+    [
+     90.0,
+     47.083854785566956,
+     52.39218277312229
+    ]
+   ],
+   "traction": [
+    [
+     17.215003020038917,
+     13.939073358686842
+    ],
+    [
+     33.181518053302305,
+     17.44623477521556
+    ],
+    [
+     49.96225724749186,
+     24.22801320829432
+    ],
+    [
+     66.7451500904806,
+     30.998925180218823
+    ],
+    [
+     80.10591425035838,
+     30.70908568237636
+    ],
+    [
+     112.47381374224224,
+     44.01338102459552
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.32958507010096383,
+    1.012652032816445,
+    1.0151574736908835,
+    1.6106957700770426,
+    1.6353407596255785,
+    2.1581874125831773
+   ],
+   "spun": false,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.011702532597118676,
+    "rear_m": 0.03229038483547053,
+    "front_std_m": 0.00023142537513019446,
+    "front_min_m": 0.011302777986782003
+   },
+   "below_ground": false,
+   "wall_s": 1.1539541999991343
+  },
+  {
+   "label": "aero_front_share=0.48",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.48,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "aero_front_share": 0.48
+   },
+   "laps_s": {
+    "iqp_w3": 81.28408216920424,
+    "iqp_w3.5": 81.62325032973308,
+    "safe (Track.path)": 86.04448768378853,
+    "raceline (Track.reference)": 80.26416474421286
+   },
+   "lap_s": 81.28408216920424,
+   "lap_ggv75_s": 81.28443415577878,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.463447017685176,
+     16.70688280145194
+    ],
+    [
+     30.0,
+     21.979239423191448,
+     23.02986077477752
+    ],
+    [
+     45.0,
+     27.637865952931033,
+     30.944435275044775
+    ],
+    [
+     60.0,
+     33.7869830869764,
+     40.916532131514515
+    ],
+    [
+     75.0,
+     40.79079698522859,
+     52.2041596505268
+    ],
+    [
+     90.0,
+     48.664256473431095,
+     64.10465591740257
+    ]
+   ],
+   "traction": [
+    [
+     17.208176668161787,
+     13.730823351107091
+    ],
+    [
+     32.84314197686211,
+     16.925246102853926
+    ],
+    [
+     49.50058962625334,
+     22.786552847011773
+    ],
+    [
+     68.71953372042307,
+     31.26553091567783
+    ],
+    [
+     80.0984877078675,
+     30.780873356214585
+    ],
+    [
+     93.45757509525487,
+     30.53526778506434
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.29550950668802295,
+    0.8772027427954932,
+    1.5751100025313565,
+    1.4244233043724526,
+    0.05857197803211715,
+    0.148066298223206
+   ],
+   "spun": true,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.00799228295952137,
+    "rear_m": 0.03816636939570079,
+    "front_std_m": 0.00014605356366520709,
+    "front_min_m": 0.007617617654879703
+   },
+   "below_ground": false,
+   "wall_s": 1.1647334000008414
+  },
+  {
+   "label": "ride_height_front_m=0.025",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.025,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "ride_height_front_m": 0.025
+   },
+   "laps_s": {
+    "iqp_w3": 82.15428232007913,
+    "iqp_w3.5": 82.49076839068374,
+    "safe (Track.path)": 86.89522909230242,
+    "raceline (Track.reference)": 81.1576371131712
+   },
+   "lap_s": 82.15428232007913,
+   "lap_ggv75_s": 82.15457603264616,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.467646421701854,
+     16.50709429346339
+    ],
+    [
+     30.0,
+     21.90281913894004,
+     22.59883772549163
+    ],
+    [
+     45.0,
+     27.663476051624794,
+     30.10360958149462
+    ],
+    [
+     60.0,
+     33.366324976638865,
+     39.28468716426124
+    ],
+    [
+     75.0,
+     40.29753217147242,
+     50.20168527201938
+    ],
+    [
+     90.0,
+     48.134114276950775,
+     59.860045075795945
+    ]
+   ],
+   "traction": [
+    [
+     17.20863903019981,
+     13.749558964451303
+    ],
+    [
+     32.85120486550119,
+     17.156860729761508
+    ],
+    [
+     49.93162567153062,
+     23.504069267675952
+    ],
+    [
+     67.23507255943457,
+     31.077709774075256
+    ],
+    [
+     80.0950638192992,
+     30.718927474318683
+    ],
+    [
+     111.82136702265761,
+     40.634280772711335
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.31175881693823715,
+    0.9464033827231622,
+    1.6536804245941683,
+    1.4854325417577217,
+    1.9627704542266828,
+    2.1089760613214397
+   ],
+   "spun": false,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": -0.0007838935912198898,
+    "rear_m": 0.024435428511826566,
+    "front_std_m": 0.0001807965758722805,
+    "front_min_m": -0.0011870136661211311
+   },
+   "below_ground": true,
+   "wall_s": 1.1641797999982373
+  },
+  {
+   "label": "ride_height_front_m=0.045",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.045,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "ride_height_front_m": 0.045
+   },
+   "laps_s": {
+    "iqp_w3": 82.66092434415006,
+    "iqp_w3.5": 82.9951548095444,
+    "safe (Track.path)": 87.38630525840763,
+    "raceline (Track.reference)": 81.68768641198268
+   },
+   "lap_s": 82.66092434415006,
+   "lap_ggv75_s": 82.66122712792968,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.448791823018357,
+     16.62407847944077
+    ],
+    [
+     30.0,
+     21.897222451876686,
+     22.371327518150196
+    ],
+    [
+     45.0,
+     27.541954897344237,
+     29.525247064786193
+    ],
+    [
+     60.0,
+     32.99741343125589,
+     38.30877566287343
+    ],
+    [
+     75.0,
+     40.04993704863522,
+     48.790021721962894
+    ],
+    [
+     90.0,
+     47.761439794442595,
+     58.47741320653567
+    ]
+   ],
+   "traction": [
+    [
+     17.214489302375565,
+     13.919078326567234
+    ],
+    [
+     32.85336700231266,
+     17.172341493482556
+    ],
+    [
+     49.52366002742623,
+     23.292423445528836
+    ],
+    [
+     67.23963625173056,
+     31.145450785201383
+    ],
+    [
+     80.11000548638275,
+     30.76739406876844
+    ],
+    [
+     94.63072706765311,
+     30.500483307304407
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.31237929176832263,
+    0.9588636846062712,
+    1.6936291183096737,
+    1.5405276141467383,
+    2.0956136395780174,
+    2.240625602412324
+   ],
+   "spun": false,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.02040107240743934,
+    "rear_m": 0.046216390944538645,
+    "front_std_m": 0.00013888794218369527,
+    "front_min_m": 0.020047208445293632
+   },
+   "below_ground": false,
+   "wall_s": 1.1735843999995268
+  },
+  {
+   "label": "rake_m=0.03",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.03,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "rake_m": 0.03
+   },
+   "laps_s": {
+    "iqp_w3": 82.48717486780424,
+    "iqp_w3.5": 82.82337174214278,
+    "safe (Track.path)": 87.23174266876855,
+    "raceline (Track.reference)": 81.5030597981134
+   },
+   "lap_s": 82.48717486780424,
+   "lap_ggv75_s": 82.48747216790639,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.466247258023582,
+     16.45527496227788
+    ],
+    [
+     30.0,
+     21.869968997826533,
+     22.431325788903425
+    ],
+    [
+     45.0,
+     27.64219130766415,
+     29.76285897638918
+    ],
+    [
+     60.0,
+     33.10031354719465,
+     38.696967732599504
+    ],
+    [
+     75.0,
+     40.044857550053116,
+     49.444609802281846
+    ],
+    [
+     90.0,
+     47.766531204869445,
+     57.75949509653106
+    ]
+   ],
+   "traction": [
+    [
+     17.20953430967327,
+     13.777467432513774
+    ],
+    [
+     32.853809116323205,
+     17.224972648592345
+    ],
+    [
+     49.943387896220564,
+     23.818055492377248
+    ],
+    [
+     67.2391737759937,
+     31.024564805516125
+    ],
+    [
+     80.09552148996997,
+     30.707545794030054
+    ],
+    [
+     112.11497089755483,
+     41.114323557325115
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.31730745664479326,
+    0.9626254669334147,
+    1.6961167861959956,
+    1.5622674818794935,
+    1.9815461948034179,
+    1.7974573031075807
+   ],
+   "spun": false,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.00974032483976397,
+    "rear_m": 0.013464595988739338,
+    "front_std_m": 0.00020490458506083265,
+    "front_min_m": 0.009318766108648239
+   },
+   "below_ground": false,
+   "wall_s": 1.1769451000000117
+  },
+  {
+   "label": "rake_m=0.07",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.07,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "rake_m": 0.07
+   },
+   "laps_s": {
+    "iqp_w3": 82.3198520510958,
+    "iqp_w3.5": 82.65546623148639,
+    "safe (Track.path)": 87.04392462157689,
+    "raceline (Track.reference)": 81.33991259561431
+   },
+   "lap_s": 82.3198520510958,
+   "lap_ggv75_s": 82.32055904249903,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.44608023359033,
+     16.678321179997525
+    ],
+    [
+     30.0,
+     21.92037065172338,
+     22.543313553969693
+    ],
+    [
+     45.0,
+     27.5418027989151,
+     29.87180961554841
+    ],
+    [
+     60.0,
+     33.18229623048598,
+     38.937824024538145
+    ],
+    [
+     75.0,
+     40.259541651651645,
+     49.6151388238271
+    ],
+    [
+     90.0,
+     48.0402474319192,
+     61.526886747702264
+    ]
+   ],
+   "traction": [
+    [
+     17.213676118084653,
+     13.893994872706827
+    ],
+    [
+     32.85059785674668,
+     17.09898482637144
+    ],
+    [
+     49.51646751662776,
+     23.116833604742133
+    ],
+    [
+     67.73758605161525,
+     31.133852746272836
+    ],
+    [
+     80.10936389336467,
+     30.780857684980184
+    ],
+    [
+     93.85930142655616,
+     30.51709891216211
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.3067691259611514,
+    0.9422535582218267,
+    1.7118161305994608,
+    1.5338077640948624,
+    2.0753054532466857,
+    2.085730145201349
+   ],
+   "spun": false,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.009873302634221686,
+    "rear_m": 0.05718492834869249,
+    "front_std_m": 0.00013860871208349395,
+    "front_min_m": 0.009520266538859082
+   },
+   "below_ground": false,
+   "wall_s": 1.1799933000002056
+  },
+  {
+   "label": "brake_bias_front=0.54",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.54,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "brake_bias_front": 0.54
+   },
+   "laps_s": {
+    "iqp_w3": 82.28140961688794,
+    "iqp_w3.5": 82.61981344328133,
+    "safe (Track.path)": 87.01732199779954,
+    "raceline (Track.reference)": 81.29866642093903
+   },
+   "lap_s": 82.28140961688794,
+   "lap_ggv75_s": 82.2816972986237,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.296288593423856,
+     16.5649598694505
+    ],
+    [
+     30.0,
+     22.721642817540413,
+     22.484836626561517
+    ],
+    [
+     45.0,
+     27.888571874476828,
+     29.814569203261193
+    ],
+    [
+     60.0,
+     34.31213253151426,
+     38.795827522844284
+    ],
+    [
+     75.0,
+     42.189021684855064,
+     49.441320112211784
+    ],
+    [
+     90.0,
+     49.594818800613666,
+     59.157455527926565
+    ]
+   ],
+   "traction": [
+    [
+     17.21163033385495,
+     13.836639525002926
+    ],
+    [
+     32.852285235660375,
+     17.164613566761496
+    ],
+    [
+     49.928541168921164,
+     23.357830756589834
+    ],
+    [
+     67.237709100287,
+     31.11567825697452
+    ],
+    [
+     80.10254956496331,
+     30.74283236662361
+    ],
+    [
+     110.67474484587967,
+     39.79713952457988
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.31201110206180077,
+    0.9432234491582053,
+    1.7044111247695914,
+    1.5483399278558125,
+    1.9631980433143135,
+    2.169984160935914
+   ],
+   "spun": false,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.009811575583491496,
+    "rear_m": 0.03532602307705341,
+    "front_std_m": 0.00014162434528718038,
+    "front_min_m": 0.009452144660548382
+   },
+   "below_ground": false,
+   "wall_s": 1.1951401999976952
+  },
+  {
+   "label": "brake_bias_front=0.62",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.62,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "brake_bias_front": 0.62
+   },
+   "laps_s": {
+    "iqp_w3": 82.72357308703057,
+    "iqp_w3.5": 83.05726816566875,
+    "safe (Track.path)": 87.464094204242,
+    "raceline (Track.reference)": 81.73610854620645
+   },
+   "lap_s": 82.72357308703057,
+   "lap_ggv75_s": 82.72386173260305,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     17.943566331156866,
+     16.564959869450632
+    ],
+    [
+     30.0,
+     20.298706346757957,
+     22.484836626561517
+    ],
+    [
+     45.0,
+     26.554691762023687,
+     29.814569203261193
+    ],
+    [
+     60.0,
+     31.068072910014738,
+     38.795827522844284
+    ],
+    [
+     75.0,
+     38.081386575840654,
+     49.441320112211784
+    ],
+    [
+     90.0,
+     44.80218789369874,
+     59.157455527926565
+    ]
+   ],
+   "traction": [
+    [
+     17.211630350812975,
+     13.836640678058423
+    ],
+    [
+     32.852285235660375,
+     17.164613566761496
+    ],
+    [
+     49.928541168921164,
+     23.357830756589834
+    ],
+    [
+     67.237709100287,
+     31.11567825697452
+    ],
+    [
+     80.10254956496331,
+     30.74283236662361
+    ],
+    [
+     110.67474484587967,
+     39.79713952457988
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.3120111024193252,
+    0.9432234491582053,
+    1.7044111247695914,
+    1.5483399278558125,
+    1.9631980433143135,
+    2.169984160935914
+   ],
+   "spun": false,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.009811575583491496,
+    "rear_m": 0.03532602307705341,
+    "front_std_m": 0.00014162434528718038,
+    "front_min_m": 0.009452144660548382
+   },
+   "below_ground": false,
+   "wall_s": 1.1772031000000425
+  },
+  {
+   "label": "final_drive_ratio=0.95",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 0.95,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "final_drive_ratio": 0.95
+   },
+   "laps_s": {
+    "iqp_w3": 82.41435863309736,
+    "iqp_w3.5": 82.7534876926268,
+    "safe (Track.path)": 87.15372382749226,
+    "raceline (Track.reference)": 81.43070353443544
+   },
+   "lap_s": 82.41435863309736,
+   "lap_ggv75_s": 82.41466827434952,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.46283167074864,
+     16.56495986945056
+    ],
+    [
+     30.0,
+     21.90285662580407,
+     22.484836626561517
+    ],
+    [
+     45.0,
+     27.60910483066606,
+     29.814569203261193
+    ],
+    [
+     60.0,
+     33.1089126066361,
+     38.795827522844284
+    ],
+    [
+     75.0,
+     40.18057600037997,
+     49.441320112211784
+    ],
+    [
+     90.0,
+     47.965243199726544,
+     59.157455527926565
+    ]
+   ],
+   "traction": [
+    [
+     17.211630342333088,
+     13.836640101504969
+    ],
+    [
+     32.852285235660375,
+     17.164613566761496
+    ],
+    [
+     49.928541168921164,
+     23.357830756589834
+    ],
+    [
+     67.237709100287,
+     31.11567825697452
+    ],
+    [
+     80.10254956496331,
+     30.74283236662361
+    ],
+    [
+     110.67474484587967,
+     39.79713952457988
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.31201110224056033,
+    0.9432234491582053,
+    1.7044111247695914,
+    1.5483399278558125,
+    1.9631980433143135,
+    2.169984160935914
+   ],
+   "spun": false,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.009811575583491496,
+    "rear_m": 0.03532602307705341,
+    "front_std_m": 0.00014162434528718038,
+    "front_min_m": 0.009452144660548382
+   },
+   "below_ground": false,
+   "wall_s": 1.1879601000000548
+  },
+  {
+   "label": "final_drive_ratio=1.05",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.05,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "final_drive_ratio": 1.05
+   },
+   "laps_s": {
+    "iqp_w3": 82.41055121061581,
+    "iqp_w3.5": 82.74611216137481,
+    "safe (Track.path)": 87.14370417452156,
+    "raceline (Track.reference)": 81.43469666564427
+   },
+   "lap_s": 82.41055121061581,
+   "lap_ggv75_s": 82.41077698270857,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.46283167074864,
+     16.56495986945056
+    ],
+    [
+     30.0,
+     21.90285662580407,
+     22.484836626561517
+    ],
+    [
+     45.0,
+     27.60910483066606,
+     29.814569203261193
+    ],
+    [
+     60.0,
+     33.1089126066361,
+     38.795827522844284
+    ],
+    [
+     75.0,
+     40.18057600037997,
+     49.441320112211784
+    ],
+    [
+     90.0,
+     47.965243199726544,
+     59.157455527926565
+    ]
+   ],
+   "traction": [
+    [
+     17.211630342333088,
+     13.836640101504969
+    ],
+    [
+     32.852285235660375,
+     17.164613566761496
+    ],
+    [
+     49.928541168921164,
+     23.357830756589834
+    ],
+    [
+     67.237709100287,
+     31.11567825697452
+    ],
+    [
+     80.10254956496331,
+     30.74283236662361
+    ],
+    [
+     110.67474484587967,
+     39.79713952457988
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.31201110224056033,
+    0.9432234491582053,
+    1.7044111247695914,
+    1.5483399278558125,
+    1.9631980433143135,
+    2.169984160935914
+   ],
+   "spun": false,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.009811575583491496,
+    "rear_m": 0.03532602307705341,
+    "front_std_m": 0.00014162434528718038,
+    "front_min_m": 0.009452144660548382
+   },
+   "below_ground": false,
+   "wall_s": 1.2054244999999355
+  },
+  {
+   "label": "roll_stiffness_front_share=0.4",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "roll_stiffness_front_share": 0.4
+   },
+   "laps_s": {
+    "iqp_w3": 82.30384463561741,
+    "iqp_w3.5": 82.63882254266403,
+    "safe (Track.path)": 87.02792291888422,
+    "raceline (Track.reference)": 81.32056130884727
+   },
+   "lap_s": 82.30384463561741,
+   "lap_ggv75_s": 82.30416518200748,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.46283167074864,
+     16.641369584622034
+    ],
+    [
+     30.0,
+     21.90285662580407,
+     22.559954876393732
+    ],
+    [
+     45.0,
+     27.60910483066606,
+     29.902393683149178
+    ],
+    [
+     60.0,
+     33.1089126066361,
+     38.92147406617807
+    ],
+    [
+     75.0,
+     40.18057600037997,
+     49.65424112993303
+    ],
+    [
+     90.0,
+     47.965243199726544,
+     59.65900498734068
+    ]
+   ],
+   "traction": [
+    [
+     17.211630342333088,
+     13.836640101504969
+    ],
+    [
+     32.852285235660375,
+     17.164613566761496
+    ],
+    [
+     49.928541168921164,
+     23.357830756589834
+    ],
+    [
+     67.237709100287,
+     31.11567825697452
+    ],
+    [
+     80.10254956496331,
+     30.74283236662361
+    ],
+    [
+     110.67474484587967,
+     39.79713952457988
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.31307152451483283,
+    0.9458838926651998,
+    1.6457858647225363,
+    1.4786374656482226,
+    1.9589658583180782,
+    2.1872148984975177
+   ],
+   "spun": false,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.009811575583491496,
+    "rear_m": 0.03532602307705341,
+    "front_std_m": 0.00014162434528718038,
+    "front_min_m": 0.009452144660548382
+   },
+   "below_ground": false,
+   "wall_s": 1.168726500000048
+  },
+  {
+   "label": "roll_stiffness_front_share=0.5",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.5,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "roll_stiffness_front_share": 0.5
+   },
+   "laps_s": {
+    "iqp_w3": 82.52133571147931,
+    "iqp_w3.5": 82.85787632763898,
+    "safe (Track.path)": 87.26579392979083,
+    "raceline (Track.reference)": 81.53880424856737
+   },
+   "lap_s": 82.52133571147931,
+   "lap_ggv75_s": 82.52163384856186,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.46283167074864,
+     16.483214746281433
+    ],
+    [
+     30.0,
+     21.90285662580407,
+     22.404745621557502
+    ],
+    [
+     45.0,
+     27.60910483066606,
+     29.71991125928924
+    ],
+    [
+     60.0,
+     33.1089126066361,
+     38.6614371999072
+    ],
+    [
+     75.0,
+     40.18057600037997,
+     49.27497374240634
+    ],
+    [
+     90.0,
+     47.965243199726544,
+     58.669573209938726
+    ]
+   ],
+   "traction": [
+    [
+     17.211630342333088,
+     13.836640101504969
+    ],
+    [
+     32.852285235660375,
+     17.164613566761496
+    ],
+    [
+     49.928541168921164,
+     23.357830756589834
+    ],
+    [
+     67.237709100287,
+     31.11567825697452
+    ],
+    [
+     80.10254956496331,
+     30.74283236662361
+    ],
+    [
+     110.67474484587967,
+     39.79713952457988
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.3110238242174415,
+    0.9592143676328075,
+    1.7014669761112,
+    1.5477476108371657,
+    2.0977501618668453,
+    2.274853218443448
+   ],
+   "spun": false,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.009811575583491496,
+    "rear_m": 0.03532602307705341,
+    "front_std_m": 0.00014162434528718038,
+    "front_min_m": 0.009452144660548382
+   },
+   "below_ground": false,
+   "wall_s": 1.195854399997188
+  },
+  {
+   "label": "roll_stiffness_Nm_per_rad=200000",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 200000.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "roll_stiffness_Nm_per_rad": 200000.0
+   },
+   "laps_s": {
+    "iqp_w3": 82.79564759293783,
+    "iqp_w3.5": 83.13267936197954,
+    "safe (Track.path)": 87.56759541970669,
+    "raceline (Track.reference)": 81.81262659769602
+   },
+   "lap_s": 82.79564759293783,
+   "lap_ggv75_s": 82.79595378720069,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.46283167074864,
+     16.280485636195408
+    ],
+    [
+     30.0,
+     21.90285662580407,
+     22.21158676535948
+    ],
+    [
+     45.0,
+     27.60910483066606,
+     29.490912508293
+    ],
+    [
+     60.0,
+     33.1089126066361,
+     38.340089585238
+    ],
+    [
+     75.0,
+     40.18057600037997,
+     48.95643627897597
+    ],
+    [
+     90.0,
+     47.965243199726544,
+     57.5767231149522
+    ]
+   ],
+   "traction": [
+    [
+     17.211630342333088,
+     13.836640101504969
+    ],
+    [
+     32.852285235660375,
+     17.164613566761496
+    ],
+    [
+     49.928541168921164,
+     23.357830756589834
+    ],
+    [
+     67.237709100287,
+     31.11567825697452
+    ],
+    [
+     80.10254956496331,
+     30.74283236662361
+    ],
+    [
+     110.67474484587967,
+     39.79713952457988
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.30825190735886376,
+    0.9713589102702826,
+    0.947961165710608,
+    1.546285573498504,
+    2.108555559317913,
+    1.9660998065580562
+   ],
+   "spun": false,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.009811575583491496,
+    "rear_m": 0.03532602307705341,
+    "front_std_m": 0.00014162434528718038,
+    "front_min_m": 0.009452144660548382
+   },
+   "below_ground": false,
+   "wall_s": 1.177546800001437
+  },
+  {
+   "label": "roll_stiffness_Nm_per_rad=400000",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 400000.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "roll_stiffness_Nm_per_rad": 400000.0
+   },
+   "laps_s": {
+    "iqp_w3": 82.3568822711144,
+    "iqp_w3.5": 82.69174957766474,
+    "safe (Track.path)": 87.07979872944563,
+    "raceline (Track.reference)": 81.37592165185862
+   },
+   "lap_s": 82.3568822711144,
+   "lap_ggv75_s": 82.35719680754325,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.46283167074864,
+     16.650110969884633
+    ],
+    [
+     30.0,
+     21.90285662580407,
+     22.529926226967177
+    ],
+    [
+     45.0,
+     27.60910483066606,
+     29.84606694137077
+    ],
+    [
+     60.0,
+     33.1089126066361,
+     38.82349202082184
+    ],
+    [
+     75.0,
+     40.18057600037997,
+     49.46723890350921
+    ],
+    [
+     90.0,
+     47.965243199726544,
+     59.270594413204705
+    ]
+   ],
+   "traction": [
+    [
+     17.211630342333088,
+     13.836640101504969
+    ],
+    [
+     32.852285235660375,
+     17.164613566761496
+    ],
+    [
+     49.928541168921164,
+     23.357830756589834
+    ],
+    [
+     67.237709100287,
+     31.11567825697452
+    ],
+    [
+     80.10254956496331,
+     30.74283236662361
+    ],
+    [
+     110.67474484587967,
+     39.79713952457988
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.3130876029805678,
+    0.945446155612594,
+    1.7055138055329444,
+    1.548064306908458,
+    1.9629038977798725,
+    2.2098531990965355
+   ],
+   "spun": false,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.009811575583491496,
+    "rear_m": 0.03532602307705341,
+    "front_std_m": 0.00014162434528718038,
+    "front_min_m": 0.009452144660548382
+   },
+   "below_ground": false,
+   "wall_s": 1.17812000000049
+  },
+  {
+   "label": "heave_freq_front_hz=10",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 10.0,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "heave_freq_front_hz": 10.0
+   },
+   "laps_s": {
+    "iqp_w3": 82.38963051014679,
+    "iqp_w3.5": 82.72541198311322,
+    "safe (Track.path)": 87.12302786830055,
+    "raceline (Track.reference)": 81.40618799427759
+   },
+   "lap_s": 82.38963051014679,
+   "lap_ggv75_s": 82.38994830383811,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.43730016186428,
+     16.564201529283864
+    ],
+    [
+     30.0,
+     21.897050302728857,
+     22.482999164284923
+    ],
+    [
+     45.0,
+     27.738431629225985,
+     29.817854656194474
+    ],
+    [
+     60.0,
+     33.36219146570356,
+     38.82030469338977
+    ],
+    [
+     75.0,
+     40.170278134038256,
+     49.5206117369817
+    ],
+    [
+     90.0,
+     47.726385706375865,
+     59.39098991585805
+    ]
+   ],
+   "traction": [
+    [
+     17.211893772751704,
+     13.851893863281525
+    ],
+    [
+     32.85443238694135,
+     17.197865815150976
+    ],
+    [
+     49.523287893430926,
+     23.36390141699625
+    ],
+    [
+     67.23409089012917,
+     31.02358032629826
+    ],
+    [
+     80.10120487177029,
+     30.689977264764387
+    ],
+    [
+     112.66698658349003,
+     36.570278287248314
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.31201513041424106,
+    0.942900730381716,
+    1.7032462866591458,
+    1.5454717860510565,
+    1.951559314695127,
+    2.136097445927745
+   ],
+   "spun": false,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.007053800963373099,
+    "rear_m": 0.035325160313457366,
+    "front_std_m": 0.00015056800111207247,
+    "front_min_m": 0.006727299512487392
+   },
+   "below_ground": false,
+   "wall_s": 1.1734429999996792
+  },
+  {
+   "label": "heave_freq_front_hz=15",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 15.0,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "heave_freq_front_hz": 15.0
+   },
+   "laps_s": {
+    "iqp_w3": 82.41706909814025,
+    "iqp_w3.5": 82.75251694239648,
+    "safe (Track.path)": 87.14973415279306,
+    "raceline (Track.reference)": 81.43443268520757
+   },
+   "lap_s": 82.41706909814025,
+   "lap_ggv75_s": 82.4173728115714,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.470203843182432,
+     16.56527221971565
+    ],
+    [
+     30.0,
+     21.88990127444615,
+     22.485593036146557
+    ],
+    [
+     45.0,
+     27.534460627601202,
+     29.81318515412125
+    ],
+    [
+     60.0,
+     33.11115273138327,
+     38.785963523079666
+    ],
+    [
+     75.0,
+     40.17821139191136,
+     49.40811228276171
+    ],
+    [
+     90.0,
+     47.90241183513379,
+     59.059716190800025
+    ]
+   ],
+   "traction": [
+    [
+     17.211397930060883,
+     13.826102722087665
+    ],
+    [
+     32.85181768838229,
+     17.166590340803698
+    ],
+    [
+     49.52328789994817,
+     23.336193267927747
+    ],
+    [
+     67.23956933581243,
+     31.102521898291613
+    ],
+    [
+     80.10335514807834,
+     30.758858538677675
+    ],
+    [
+     112.40440275674611,
+     37.62750433980989
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.3120110398577465,
+    0.9433615816227693,
+    1.7048948090937714,
+    1.4795409287954724,
+    1.9684790718598457,
+    2.3025634003991375
+   ],
+   "spun": false,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.010940241494650393,
+    "rear_m": 0.0353300801884607,
+    "front_std_m": 0.00013142156723348512,
+    "front_min_m": 0.010605084945613116
+   },
+   "below_ground": false,
+   "wall_s": 1.1773764999998093
+  },
+  {
+   "label": "heave_freq_rear_hz=4.5",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 4.5,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "heave_freq_rear_hz": 4.5
+   },
+   "laps_s": {
+    "iqp_w3": 82.41211643215014,
+    "iqp_w3.5": 82.74679951342829,
+    "safe (Track.path)": 87.14059014419846,
+    "raceline (Track.reference)": 81.43025776305728
+   },
+   "lap_s": 82.41211643215014,
+   "lap_ggv75_s": 82.41239835535983,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.428613065429154,
+     16.565868921016794
+    ],
+    [
+     30.0,
+     21.72953178811663,
+     22.485170325350964
+    ],
+    [
+     45.0,
+     27.665969442803043,
+     29.81002117642244
+    ],
+    [
+     60.0,
+     33.78919210019701,
+     38.77051841555735
+    ],
+    [
+     75.0,
+     40.368703277998456,
+     49.40431539351186
+    ],
+    [
+     90.0,
+     47.42670703271273,
+     58.5254064878542
+    ]
+   ],
+   "traction": [
+    [
+     17.210256403205513,
+     13.801345746439527
+    ],
+    [
+     32.85705096523731,
+     17.28857836628219
+    ],
+    [
+     49.51862613444042,
+     23.235089840106845
+    ],
+    [
+     67.2390500361687,
+     30.952103343077507
+    ],
+    [
+     80.10063591186739,
+     30.691157268558836
+    ],
+    [
+     111.24981037612099,
+     40.684177418591666
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.3120534338541452,
+    0.9440298822479881,
+    1.7099955292841313,
+    1.4919539254510843,
+    1.9911268470686607,
+    2.2978601396867933
+   ],
+   "spun": false,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.009778199200326111,
+    "rear_m": 0.02534966043380853,
+    "front_std_m": 0.00012461110996011196,
+    "front_min_m": 0.009569544824602757
+   },
+   "below_ground": false,
+   "wall_s": 1.17243740000049
+  },
+  {
+   "label": "heave_freq_rear_hz=7",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 7.0,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "heave_freq_rear_hz": 7.0
+   },
+   "laps_s": {
+    "iqp_w3": 82.44725646333055,
+    "iqp_w3.5": 82.7811001487672,
+    "safe (Track.path)": 87.17308298207148,
+    "raceline (Track.reference)": 81.46477346359882
+   },
+   "lap_s": 82.44725646333055,
+   "lap_ggv75_s": 82.44750516538393,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.50845915635569,
+     16.56445276373103
+    ],
+    [
+     30.0,
+     21.80233807434893,
+     22.484675942402333
+    ],
+    [
+     45.0,
+     27.07393727868844,
+     29.81758310865178
+    ],
+    [
+     60.0,
+     33.3287949247589,
+     38.81137729734962
+    ],
+    [
+     75.0,
+     41.02084990312788,
+     49.503880037432964
+    ],
+    [
+     90.0,
+     47.16981614539586,
+     59.5380096382424
+    ]
+   ],
+   "traction": [
+    [
+     17.208556438281025,
+     13.751254464394806
+    ],
+    [
+     32.85561757759068,
+     17.31452930327141
+    ],
+    [
+     49.51184233649168,
+     22.956898819398326
+    ],
+    [
+     66.74047209581268,
+     31.04701501346591
+    ],
+    [
+     80.10686616274947,
+     30.773423557015764
+    ],
+    [
+     96.51819802133886,
+     30.50445544530527
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.312004073535228,
+    0.9427457090856185,
+    1.701213063256888,
+    1.457580921640349,
+    2.0892461099550474,
+    2.365793958409789
+   ],
+   "spun": false,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.009869587761730123,
+    "rear_m": 0.04081359615074242,
+    "front_std_m": 0.00041423479443380973,
+    "front_min_m": 0.009076367452791088
+   },
+   "below_ground": false,
+   "wall_s": 1.1678529999990133
+  },
+  {
+   "label": "heave_damping_ratio=0.5",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.5,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "heave_damping_ratio": 0.5
+   },
+   "laps_s": {
+    "iqp_w3": 82.40773104031166,
+    "iqp_w3.5": 82.74244364850803,
+    "safe (Track.path)": 87.13600504616441,
+    "raceline (Track.reference)": 81.42547192944114
+   },
+   "lap_s": 82.40773104031166,
+   "lap_ggv75_s": 82.40801236472167,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.454703339880925,
+     16.564959733085225
+    ],
+    [
+     30.0,
+     21.83258329950471,
+     22.484831776193662
+    ],
+    [
+     45.0,
+     27.48523142241941,
+     29.81453987758571
+    ],
+    [
+     60.0,
+     33.8833922703318,
+     38.79600651165245
+    ],
+    [
+     75.0,
+     40.35369481924618,
+     49.44260055474618
+    ],
+    [
+     90.0,
+     47.27728773010766,
+     59.148981393395474
+    ]
+   ],
+   "traction": [
+    [
+     17.211252503124594,
+     13.822207818604895
+    ],
+    [
+     32.854961862031246,
+     17.258915335024838
+    ],
+    [
+     49.518291069632866,
+     23.25656567921518
+    ],
+    [
+     67.23850600892192,
+     30.916071972699317
+    ],
+    [
+     80.10321293876652,
+     30.70630796031618
+    ],
+    [
+     112.1400061653677,
+     39.77280767318204
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.31201973273049294,
+    0.9432046198325302,
+    1.704552045800354,
+    1.479678660710426,
+    1.966048018502428,
+    2.2747008175921106
+   ],
+   "spun": false,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.00981961498421704,
+    "rear_m": 0.035338355450045815,
+    "front_std_m": 3.422022265026826e-05,
+    "front_min_m": 0.009773909185370782
+   },
+   "below_ground": false,
+   "wall_s": 1.1689196000006632
+  },
+  {
+   "label": "ride_freq_front_hz=5",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 5.0,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "ride_freq_front_hz": 5.0
+   },
+   "laps_s": {
+    "iqp_w3": 82.80560559688541,
+    "iqp_w3.5": 83.14207939629694,
+    "safe (Track.path)": 87.57160855677168,
+    "raceline (Track.reference)": 81.82488294256765
+   },
+   "lap_s": 82.80560559688541,
+   "lap_ggv75_s": 82.80590896977347,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.464051908062043,
+     16.325974672376635
+    ],
+    [
+     30.0,
+     21.901478250909026,
+     22.213255256572154
+    ],
+    [
+     45.0,
+     27.597669463008327,
+     29.46991268582017
+    ],
+    [
+     60.0,
+     33.10728958012421,
+     38.29184857515461
+    ],
+    [
+     75.0,
+     40.18147095106596,
+     48.82768656867804
+    ],
+    [
+     90.0,
+     47.960165512360014,
+     57.41845836880344
+    ]
+   ],
+   "traction": [
+    [
+     17.21159478787695,
+     13.835025288884028
+    ],
+    [
+     32.852198411909114,
+     17.16446561079535
+    ],
+    [
+     49.92839198270305,
+     23.35432077528352
+    ],
+    [
+     67.23800560087815,
+     31.115931504004585
+    ],
+    [
+     80.10266874017235,
+     30.74565135491963
+    ],
+    [
+     110.67477393279547,
+     39.64317001566366
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.3086930212888361,
+    0.9721002054525046,
+    0.9808781053981058,
+    1.5461531620374407,
+    2.112577458580931,
+    1.9951349629828172
+   ],
+   "spun": false,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.009987171710590614,
+    "rear_m": 0.03532664630270846,
+    "front_std_m": 0.00013993048458065094,
+    "front_min_m": 0.009628883824150319
+   },
+   "below_ground": false,
+   "wall_s": 1.1755002999998396
+  },
+  {
+   "label": "ride_freq_rear_hz=4",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 4.0,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "ride_freq_rear_hz": 4.0
+   },
+   "laps_s": {
+    "iqp_w3": 82.41932715838941,
+    "iqp_w3.5": 82.75484003066984,
+    "safe (Track.path)": 87.15273179399091,
+    "raceline (Track.reference)": 81.43638013445302
+   },
+   "lap_s": 82.41932715838941,
+   "lap_ggv75_s": 82.41961946430523,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.486912597663117,
+     16.56476967645801
+    ],
+    [
+     30.0,
+     21.93522554326591,
+     22.48474559039315
+    ],
+    [
+     45.0,
+     27.43713701041971,
+     29.81535264699206
+    ],
+    [
+     60.0,
+     32.9468397507457,
+     38.801427758505575
+    ],
+    [
+     75.0,
+     40.53284097925648,
+     49.46363813323133
+    ],
+    [
+     90.0,
+     48.03420430746107,
+     59.30798771838139
+    ]
+   ],
+   "traction": [
+    [
+     17.210813031065758,
+     13.81112690550863
+    ],
+    [
+     32.85101765877346,
+     17.154792698612397
+    ],
+    [
+     49.52435773932133,
+     23.31415728114252
+    ],
+    [
+     67.24101736409068,
+     31.18582323645584
+    ],
+    [
+     80.10377684872354,
+     30.79163652343601
+    ],
+    [
+     96.88545926258884,
+     30.476278227818312
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.31200193268798715,
+    0.9431209195742025,
+    1.7027766036888987,
+    1.5450781183178828,
+    1.9608161941157487,
+    2.2217319078694153
+   ],
+   "spun": false,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.009835188191560418,
+    "rear_m": 0.03740077883587862,
+    "front_std_m": 0.00021664227351233582,
+    "front_min_m": 0.009406092830616615
+   },
+   "below_ground": false,
+   "wall_s": 1.17216499999995
+  },
+  {
+   "label": "lsd_lock_drive=0.5",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 0.5,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "lsd_lock_drive": 0.5
+   },
+   "laps_s": {
+    "iqp_w3": 82.38030479536403,
+    "iqp_w3.5": 82.71977179095029,
+    "safe (Track.path)": 87.12361139970797,
+    "raceline (Track.reference)": 81.38610893656808
+   },
+   "lap_s": 82.38030479536403,
+   "lap_ggv75_s": 82.38125889427361,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.46283167074864,
+     16.598161360817873
+    ],
+    [
+     30.0,
+     21.90285662580407,
+     22.468445247784967
+    ],
+    [
+     45.0,
+     27.60910483066606,
+     29.73720245365697
+    ],
+    [
+     60.0,
+     33.1089126066361,
+     39.152878589880466
+    ],
+    [
+     75.0,
+     40.18057600037997,
+     50.367563662317636
+    ],
+    [
+     90.0,
+     47.965243199726544,
+     62.52680746555555
+    ]
+   ],
+   "traction": [
+    [
+     17.211630342333088,
+     13.836640101504969
+    ],
+    [
+     32.852285235660375,
+     17.164613566761496
+    ],
+    [
+     49.928541168921164,
+     23.357830756589834
+    ],
+    [
+     67.237709100287,
+     31.11567825697452
+    ],
+    [
+     80.10254956496331,
+     30.74283236662361
+    ],
+    [
+     110.67474484587967,
+     39.79713952457988
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.19147779213068086,
+    0.9154927520629292,
+    1.6879251821127694,
+    1.5153072034185906,
+    0.8072838315657778,
+    0.9529000099136555
+   ],
+   "spun": false,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.009811575583491496,
+    "rear_m": 0.03532602307705341,
+    "front_std_m": 0.00014162434528718038,
+    "front_min_m": 0.009452144660548382
+   },
+   "below_ground": false,
+   "wall_s": 1.224014300001727
+  },
+  {
+   "label": "lsd_preload_Nm=100",
+   "phase": "sweep",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 100.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "lsd_preload_Nm": 100.0
+   },
+   "laps_s": {
+    "iqp_w3": 82.4087261488849,
+    "iqp_w3.5": 82.74444352237848,
+    "safe (Track.path)": 87.14246932415615,
+    "raceline (Track.reference)": 81.4258263741814
+   },
+   "lap_s": 82.4087261488849,
+   "lap_ggv75_s": 82.40903590469807,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.46283167074864,
+     16.564959869450565
+    ],
+    [
+     30.0,
+     21.90285662580407,
+     22.484836626561517
+    ],
+    [
+     45.0,
+     27.60910483066606,
+     29.814569203261193
+    ],
+    [
+     60.0,
+     33.1089126066361,
+     38.795827522844284
+    ],
+    [
+     75.0,
+     40.18057600037997,
+     49.441320112211784
+    ],
+    [
+     90.0,
+     47.965243199726544,
+     59.157455527926565
+    ]
+   ],
+   "traction": [
+    [
+     17.211630342333088,
+     13.836640101504969
+    ],
+    [
+     32.852285235660375,
+     17.164613566761496
+    ],
+    [
+     49.928541168921164,
+     23.357830756589834
+    ],
+    [
+     67.237709100287,
+     31.11567825697452
+    ],
+    [
+     80.10254956496331,
+     30.74283236662361
+    ],
+    [
+     110.67474484587967,
+     39.79713952457988
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.3120111022405624,
+    0.9432234491582053,
+    1.7044111247695914,
+    1.5483399278558125,
+    1.9631980433143135,
+    2.169984160935914
+   ],
+   "spun": false,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.009811575583491496,
+    "rear_m": 0.03532602307705341,
+    "front_std_m": 0.00014162434528718038,
+    "front_min_m": 0.009452144660548382
+   },
+   "below_ground": false,
+   "wall_s": 1.222202400000242
+  },
+  {
+   "label": "aero_front_share=0.5092",
+   "phase": "extend",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.5092,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "aero_front_share": 0.5092
+   },
+   "laps_s": {
+    "iqp_w3": 80.45410171872057,
+    "iqp_w3.5": 80.78844617632632,
+    "safe (Track.path)": 85.18455312145772,
+    "raceline (Track.reference)": 79.45282728325043
+   },
+   "lap_s": 80.45410171872057,
+   "lap_ggv75_s": 80.45644584702654,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.463122723983403,
+     16.849708182661747
+    ],
+    [
+     30.0,
+     22.036789601861457,
+     23.59587301149645
+    ],
+    [
+     45.0,
+     27.688910479330957,
+     32.232951400815416
+    ],
+    [
+     60.0,
+     34.02267373884743,
+     41.491967567774054
+    ],
+    [
+     75.0,
+     41.36377134980237,
+     51.269432578438376
+    ],
+    [
+     90.0,
+     48.96972907205622,
+     62.659217810142444
+    ]
+   ],
+   "traction": [
+    [
+     17.20445450317857,
+     13.615920846448066
+    ],
+    [
+     32.83204529953636,
+     16.623549795651044
+    ],
+    [
+     49.0890278946698,
+     22.137210973032488
+    ],
+    [
+     66.16495582689761,
+     28.87619244196733
+    ],
+    [
+     80.09324877728046,
+     30.823909661502327
+    ],
+    [
+     93.07017074065351,
+     30.536585382413023
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.2789015271625887,
+    0.8117880593361843,
+    1.4294828018680807,
+    0.10983233942302419,
+    0.032626622572411695,
+    0.15187853474975738
+   ],
+   "spun": true,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.006153336259056626,
+    "rear_m": 0.04096545325774131,
+    "front_std_m": 0.0001531653285933218,
+    "front_min_m": 0.005745614972881501
+   },
+   "below_ground": false,
+   "wall_s": 1.200687000000471
+  },
+  {
+   "label": "aero_front_share=0.5384",
+   "phase": "extend",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.5384,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "aero_front_share": 0.5384
+   },
+   "laps_s": {
+    "iqp_w3": 80.2123570750621,
+    "iqp_w3.5": 80.5501045572276,
+    "safe (Track.path)": 84.88134813258513,
+    "raceline (Track.reference)": 79.22064991894027
+   },
+   "lap_s": 80.2123570750621,
+   "lap_ggv75_s": 80.2127398103542,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.46186835809888,
+     16.993235246795166
+    ],
+    [
+     30.0,
+     22.399173027016175,
+     24.195470837355824
+    ],
+    [
+     45.0,
+     27.67950950327343,
+     32.38785273138839
+    ],
+    [
+     60.0,
+     33.964754471288124,
+     40.77881809628731
+    ],
+    [
+     75.0,
+     41.681332721736695,
+     50.1052088090602
+    ],
+    [
+     90.0,
+     49.02838372331733,
+     61.379469026954865
+    ]
+   ],
+   "traction": [
+    [
+     16.938047745962415,
+     13.520790854931082
+    ],
+    [
+     32.52067801324679,
+     16.27826911912747
+    ],
+    [
+     49.06209397025902,
+     21.486048028235718
+    ],
+    [
+     65.66343599023448,
+     27.71804002721996
+    ],
+    [
+     80.08622605211684,
+     30.86787109631068
+    ],
+    [
+     93.08054423214224,
+     30.537584305262556
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.26241889859559747,
+    0.7467918292649895,
+    0.23660777590580054,
+    0.07749636108060282,
+    0.010406439497786479,
+    -0.08220088255053079
+   ],
+   "spun": true,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.004272244644893145,
+    "rear_m": 0.0436873571492661,
+    "front_std_m": 0.00016989187468766426,
+    "front_min_m": 0.003818584231022548
+   },
+   "below_ground": false,
+   "wall_s": 1.1979671999979473
+  },
+  {
+   "label": "ride_height_front_m=0.02",
+   "phase": "extend",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.02,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "ride_height_front_m": 0.02
+   },
+   "laps_s": {
+    "iqp_w3": 82.02698190300605,
+    "iqp_w3.5": 82.3633740943263,
+    "safe (Track.path)": 86.77318365026937,
+    "raceline (Track.reference)": 81.02325312936034
+   },
+   "lap_s": 82.02698190300605,
+   "lap_ggv75_s": 82.0272662784285,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.466589605939525,
+     16.479093838030114
+    ],
+    [
+     30.0,
+     21.900807498209772,
+     22.656021205846045
+    ],
+    [
+     45.0,
+     27.686426260636832,
+     30.248016090205592
+    ],
+    [
+     60.0,
+     33.448696723613004,
+     39.529616654288795
+    ],
+    [
+     75.0,
+     40.35176781214825,
+     50.661632869727725
+    ],
+    [
+     90.0,
+     48.19595207444326,
+     60.22224201467884
+    ]
+   ],
+   "traction": [
+    [
+     17.2070926543918,
+     13.704248359972594
+    ],
+    [
+     32.850665201560126,
+     17.152975746716226
+    ],
+    [
+     49.93300767334057,
+     23.57199095091252
+    ],
+    [
+     67.23355507011264,
+     31.05734853237478
+    ],
+    [
+     80.0913101634086,
+     30.707200948625456
+    ],
+    [
+     110.33481989468272,
+     40.44317098337848
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.3115636902934631,
+    0.9295592028911444,
+    1.6589035843726447,
+    1.4893409102373916,
+    2.0198040020790944,
+    2.1791833287384126
+   ],
+   "spun": true,
+   "at_bound": [
+    "ride_height_front_m"
+   ],
+   "ride_hold": {
+    "front_m": -0.006080458842610903,
+    "rear_m": 0.018989341423457623,
+    "front_std_m": 0.00019131678921568938,
+    "front_min_m": -0.006493309331318156
+   },
+   "below_ground": true,
+   "wall_s": 1.1857794999996258
+  },
+  {
+   "label": "rake_m=0.09",
+   "phase": "extend",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.09000000000000001,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "rake_m": 0.09000000000000001
+   },
+   "laps_s": {
+    "iqp_w3": 82.23925847230022,
+    "iqp_w3.5": 82.57459153994222,
+    "safe (Track.path)": 86.9525933135128,
+    "raceline (Track.reference)": 81.25876959752316
+   },
+   "lap_s": 82.23925847230022,
+   "lap_ggv75_s": 82.23980067201096,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.415998201026444,
+     16.792525787593267
+    ],
+    [
+     30.0,
+     21.92125979564122,
+     22.606322944986477
+    ],
+    [
+     45.0,
+     27.434539098441242,
+     29.933752618821526
+    ],
+    [
+     60.0,
+     33.071325280447425,
+     39.06648517315762
+    ],
+    [
+     75.0,
+     40.265712155416885,
+     49.77136737069867
+    ],
+    [
+     90.0,
+     48.035629365269344,
+     61.85307488905197
+    ]
+   ],
+   "traction": [
+    [
+     17.215671784620028,
+     13.949526972326014
+    ],
+    [
+     32.84873339995667,
+     17.02762254660797
+    ],
+    [
+     49.50654695677047,
+     22.80502636043564
+    ],
+    [
+     68.7264487538712,
+     31.354146124684924
+    ],
+    [
+     80.11591876228722,
+     30.821710433963712
+    ],
+    [
+     93.0914166296533,
+     30.580269144596194
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.3013302580580737,
+    0.9220432731534307,
+    1.6534184064794015,
+    1.5200822700868948,
+    2.0605562075577764,
+    2.1050914115705206
+   ],
+   "spun": false,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.009934883648339284,
+    "rear_m": 0.07904331606333774,
+    "front_std_m": 0.00013630454273767497,
+    "front_min_m": 0.009582759842308924
+   },
+   "below_ground": false,
+   "wall_s": 1.221362100000988
+  },
+  {
+   "label": "rake_m=0.1",
+   "phase": "extend",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.1,
+    "aero_level": 0.5,
+    "aero_front_share": 0.4508,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "rake_m": 0.1
+   },
+   "laps_s": {
+    "iqp_w3": 82.19600788008695,
+    "iqp_w3.5": 82.53129272489073,
+    "safe (Track.path)": 86.90473116470764,
+    "raceline (Track.reference)": 81.21067402411437
+   },
+   "lap_s": 82.19600788008695,
+   "lap_ggv75_s": 82.1963228041054,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.395938670509857,
+     16.84932164279006
+    ],
+    [
+     30.0,
+     21.914976977599856,
+     22.639360495825922
+    ],
+    [
+     45.0,
+     27.363807637032316,
+     29.966298313119633
+    ],
+    [
+     60.0,
+     32.96822467811487,
+     39.15883784493551
+    ],
+    [
+     75.0,
+     40.23233410912863,
+     50.06147545872678
+    ],
+    [
+     90.0,
+     48.00480933666716,
+     61.162069916500286
+    ]
+   ],
+   "traction": [
+    [
+     17.216650898712814,
+     13.97660926706151
+    ],
+    [
+     32.847730235111314,
+     16.989637260321622
+    ],
+    [
+     49.50046463217199,
+     22.61404533219582
+    ],
+    [
+     67.18311855579101,
+     30.120435152619493
+    ],
+    [
+     80.11907570299616,
+     30.843155407988633
+    ],
+    [
+     93.09827288649605,
+     30.5974614659293
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.29858405007282446,
+    0.911804723858291,
+    1.6877334761302105,
+    1.4693518098017837,
+    0.07944693470937238,
+    0.1589179247518169
+   ],
+   "spun": true,
+   "at_bound": [
+    "rake_m"
+   ],
+   "ride_hold": {
+    "front_m": 0.009965648748682545,
+    "rear_m": 0.08997181856454896,
+    "front_std_m": 0.00013586530558377791,
+    "front_min_m": 0.009611006871542177
+   },
+   "below_ground": false,
+   "wall_s": 1.184340700001485
+  },
+  {
+   "label": "combo +aero_level=0.7",
+   "phase": "combo",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.7,
+    "aero_front_share": 0.5384,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "aero_level": 0.7,
+    "aero_front_share": 0.5384
+   },
+   "laps_s": {
+    "iqp_w3": 79.08201344198544,
+    "iqp_w3.5": 79.42865927905183,
+    "safe (Track.path)": 83.75287718659386,
+    "raceline (Track.reference)": 78.0720127798464
+   },
+   "lap_s": 79.08201344198544,
+   "lap_ggv75_s": 79.08487666863901,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.547762408394092,
+     17.15809111597588
+    ],
+    [
+     30.0,
+     23.242688917358446,
+     25.318736228387962
+    ],
+    [
+     45.0,
+     28.927747593819134,
+     34.28392782113739
+    ],
+    [
+     60.0,
+     35.755923926955866,
+     43.70506426275735
+    ],
+    [
+     75.0,
+     44.359521964679566,
+     54.29686974594091
+    ],
+    [
+     90.0,
+     51.260811219179125,
+     67.36755283037618
+    ]
+   ],
+   "traction": [
+    [
+     17.19667325745546,
+     13.780128489755867
+    ],
+    [
+     32.78747806517121,
+     17.00670492116305
+    ],
+    [
+     49.34022947017807,
+     23.018295551819463
+    ],
+    [
+     67.31959894628514,
+     31.17417979972849
+    ],
+    [
+     79.5320935998669,
+     30.716618009396477
+    ],
+    [
+     107.3717951877181,
+     34.9245783424372
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.2646689837719922,
+    0.6870703178581564,
+    0.07908073834050648,
+    0.039314752995167665,
+    -0.02339456734239431,
+    -0.1111871222490589
+   ],
+   "spun": true,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": -0.0011019415268996987,
+    "rear_m": 0.03648081791316348,
+    "front_std_m": 0.00020239801524659482,
+    "front_min_m": -0.0015410916748917688
+   },
+   "below_ground": true,
+   "wall_s": 1.1817515000002459
+  },
+  {
+   "label": "combo +rake_m=0.1",
+   "phase": "combo",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.1,
+    "aero_level": 0.5,
+    "aero_front_share": 0.5384,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "rake_m": 0.1,
+    "aero_front_share": 0.5384
+   },
+   "laps_s": {
+    "iqp_w3": 80.92173553888311,
+    "iqp_w3.5": 81.26171718860978,
+    "safe (Track.path)": 85.5067048567471,
+    "raceline (Track.reference)": 79.95844674120144
+   },
+   "lap_s": 80.92173553888311,
+   "lap_ggv75_s": 80.92126363959456,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.375748968516476,
+     17.270128441523816
+    ],
+    [
+     30.0,
+     22.240241679672394,
+     24.40170385206095
+    ],
+    [
+     45.0,
+     27.07477674985298,
+     31.25311811212147
+    ],
+    [
+     60.0,
+     32.73921541910357,
+     38.69348029078054
+    ],
+    [
+     75.0,
+     40.106220253796,
+     47.07555359783525
+    ],
+    [
+     90.0,
+     47.65292916721181,
+     57.33757720203993
+    ]
+   ],
+   "traction": [
+    [
+     17.207439309878104,
+     13.697945300553847
+    ],
+    [
+     32.519198215789814,
+     16.20070829276734
+    ],
+    [
+     48.67860186028007,
+     21.041527231308976
+    ],
+    [
+     65.19476246507737,
+     26.779168044015393
+    ],
+    [
+     80.09364664366555,
+     30.945383701915112
+    ],
+    [
+     93.14780103324831,
+     30.621778902050607
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.25045634693828817,
+    0.7018924898851415,
+    0.06714702820375953,
+    0.06210755428284037,
+    0.011032975522764304,
+    -0.06682908791757913
+   ],
+   "spun": true,
+   "at_bound": [
+    "rake_m"
+   ],
+   "ride_hold": {
+    "front_m": 0.004409848342698742,
+    "rear_m": 0.09745095766971774,
+    "front_std_m": 0.00013439428033447569,
+    "front_min_m": 0.004118298740347498
+   },
+   "below_ground": false,
+   "wall_s": 1.1675144999971963
+  },
+  {
+   "label": "combo +brake_bias_front=0.54",
+   "phase": "combo",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4533,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.5384,
+    "brake_bias_front": 0.54,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "aero_front_share": 0.5384,
+    "brake_bias_front": 0.54
+   },
+   "laps_s": {
+    "iqp_w3": 80.31504089702868,
+    "iqp_w3.5": 80.65315532661461,
+    "safe (Track.path)": 84.98926759702981,
+    "raceline (Track.reference)": 79.32168937515189
+   },
+   "lap_s": 80.31504089702868,
+   "lap_ggv75_s": 80.31551931871913,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.229367110533975,
+     16.993235246795095
+    ],
+    [
+     30.0,
+     22.028119861430568,
+     24.195470837355824
+    ],
+    [
+     45.0,
+     27.096902594018875,
+     32.38785273138839
+    ],
+    [
+     60.0,
+     32.8951430450719,
+     40.77881809628731
+    ],
+    [
+     75.0,
+     40.50539540604315,
+     50.1052088090602
+    ],
+    [
+     90.0,
+     48.30235850611001,
+     61.379469026954865
+    ]
+   ],
+   "traction": [
+    [
+     16.938047754552873,
+     13.520790685862961
+    ],
+    [
+     32.52067801324679,
+     16.27826911912747
+    ],
+    [
+     49.06209397025902,
+     21.486048028235718
+    ],
+    [
+     65.66343599023448,
+     27.71804002721996
+    ],
+    [
+     80.08622605211684,
+     30.86787109631068
+    ],
+    [
+     93.08054423214224,
+     30.537584305262556
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.26241889842667654,
+    0.7467918292649895,
+    0.23660777590580054,
+    0.07749636108060282,
+    0.010406439497786479,
+    -0.08220088255053079
+   ],
+   "spun": true,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.004272244644893145,
+    "rear_m": 0.0436873571492661,
+    "front_std_m": 0.00016989187468766426,
+    "front_min_m": 0.003818584231022548
+   },
+   "below_ground": false,
+   "wall_s": 1.1807460000018182
+  },
+  {
+   "label": "combo +roll_stiffness_front_share=0.4",
+   "phase": "combo",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 275835.0,
+    "roll_stiffness_front_share": 0.4,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.5384,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "roll_stiffness_front_share": 0.4,
+    "aero_front_share": 0.5384
+   },
+   "laps_s": {
+    "iqp_w3": 80.1817888449798,
+    "iqp_w3.5": 80.51971143846774,
+    "safe (Track.path)": 84.8364921195498,
+    "raceline (Track.reference)": 79.19186081852574
+   },
+   "lap_s": 80.1817888449798,
+   "lap_ggv75_s": 80.18206090530106,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.46186835809888,
+     17.068308889332126
+    ],
+    [
+     30.0,
+     22.399173027016175,
+     24.285911963572353
+    ],
+    [
+     45.0,
+     27.67950950327343,
+     32.36692743499978
+    ],
+    [
+     60.0,
+     33.964754471288124,
+     40.71277236358349
+    ],
+    [
+     75.0,
+     41.681332721736695,
+     49.98649858803976
+    ],
+    [
+     90.0,
+     49.02838372331733,
+     61.25674350072372
+    ]
+   ],
+   "traction": [
+    [
+     16.938047745962415,
+     13.520790854931082
+    ],
+    [
+     32.52067801324679,
+     16.27826911912747
+    ],
+    [
+     49.06209397025902,
+     21.486048028235718
+    ],
+    [
+     65.66343599023448,
+     27.71804002721996
+    ],
+    [
+     80.08622605211684,
+     30.86787109631068
+    ],
+    [
+     93.08054423214224,
+     30.537584305262556
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.26341499132924406,
+    0.7490725094684181,
+    0.23299404041623034,
+    0.07678332792883104,
+    0.010073616797670234,
+    -0.08316202610016732
+   ],
+   "spun": true,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.004272244644893145,
+    "rear_m": 0.0436873571492661,
+    "front_std_m": 0.00016989187468766426,
+    "front_min_m": 0.003818584231022548
+   },
+   "below_ground": false,
+   "wall_s": 1.1733089000008476
+  },
+  {
+   "label": "combo +roll_stiffness_Nm_per_rad=400000",
+   "phase": "combo",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 400000.0,
+    "roll_stiffness_front_share": 0.4,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.5384,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "roll_stiffness_Nm_per_rad": 400000.0,
+    "roll_stiffness_front_share": 0.4,
+    "aero_front_share": 0.5384
+   },
+   "laps_s": {
+    "iqp_w3": 80.12662945895492,
+    "iqp_w3.5": 80.46465262837044,
+    "safe (Track.path)": 84.75601643823701,
+    "raceline (Track.reference)": 79.14000687504983
+   },
+   "lap_s": 80.12662945895492,
+   "lap_ggv75_s": 80.12676355780441,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.46186835809888,
+     17.21870784905104
+    ],
+    [
+     30.0,
+     22.399173027016175,
+     24.438953746535024
+    ],
+    [
+     45.0,
+     27.67950950327343,
+     32.3309011598548
+    ],
+    [
+     60.0,
+     33.964754471288124,
+     40.61349201360613
+    ],
+    [
+     75.0,
+     41.681332721736695,
+     49.83690879954081
+    ],
+    [
+     90.0,
+     49.02838372331733,
+     61.03987365504236
+    ]
+   ],
+   "traction": [
+    [
+     16.938047745962415,
+     13.520790854931082
+    ],
+    [
+     32.52067801324679,
+     16.27826911912747
+    ],
+    [
+     49.06209397025902,
+     21.486048028235718
+    ],
+    [
+     65.66343599023448,
+     27.71804002721996
+    ],
+    [
+     80.08622605211684,
+     30.86787109631068
+    ],
+    [
+     93.08054423214224,
+     30.537584305262556
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.2653561448363119,
+    0.73675474501995,
+    0.22719651090951895,
+    0.07547923620151159,
+    0.009550727696682462,
+    -0.0848930882055054
+   ],
+   "spun": true,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.004272244644893145,
+    "rear_m": 0.0436873571492661,
+    "front_std_m": 0.00016989187468766426,
+    "front_min_m": 0.003818584231022548
+   },
+   "below_ground": false,
+   "wall_s": 1.2173002000017732
+  },
+  {
+   "label": "combo +lsd_lock_drive=0.5",
+   "phase": "combo",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 12.945560083394613,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 400000.0,
+    "roll_stiffness_front_share": 0.4,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.5384,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 0.5,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "roll_stiffness_Nm_per_rad": 400000.0,
+    "roll_stiffness_front_share": 0.4,
+    "aero_front_share": 0.5384,
+    "lsd_lock_drive": 0.5
+   },
+   "laps_s": {
+    "iqp_w3": 80.15421569500616,
+    "iqp_w3.5": 80.4926303450316,
+    "safe (Track.path)": 84.79188009411068,
+    "raceline (Track.reference)": 79.16943039315942
+   },
+   "lap_s": 80.15421569500616,
+   "lap_ggv75_s": 80.15366319644326,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.46186835809888,
+     17.167524212268223
+    ],
+    [
+     30.0,
+     22.399173027016175,
+     24.394003883389875
+    ],
+    [
+     45.0,
+     27.67950950327343,
+     32.31419618035989
+    ],
+    [
+     60.0,
+     33.964754471288124,
+     40.638083937114956
+    ],
+    [
+     75.0,
+     41.681332721736695,
+     49.804540139050324
+    ],
+    [
+     90.0,
+     49.02838372331733,
+     62.619624215798474
+    ]
+   ],
+   "traction": [
+    [
+     16.938047745962415,
+     13.520790854931082
+    ],
+    [
+     32.52067801324679,
+     16.27826911912747
+    ],
+    [
+     49.06209397025902,
+     21.486048028235718
+    ],
+    [
+     65.66343599023448,
+     27.71804002721996
+    ],
+    [
+     80.08622605211684,
+     30.86787109631068
+    ],
+    [
+     93.08054423214224,
+     30.537584305262556
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.14481704997169068,
+    0.7069046362374793,
+    0.21861728186018364,
+    0.06083944556848854,
+    0.03157677936529128,
+    0.1548657727313198
+   ],
+   "spun": true,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.004272244644893145,
+    "rear_m": 0.0436873571492661,
+    "front_std_m": 0.00016989187468766426,
+    "front_min_m": 0.003818584231022548
+   },
+   "below_ground": false,
+   "wall_s": 1.1794941000007384
+  },
+  {
+   "label": "combo +heave_freq_front_hz=10",
+   "phase": "combo",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 10.0,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 400000.0,
+    "roll_stiffness_front_share": 0.4,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.5,
+    "aero_front_share": 0.5384,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "heave_freq_front_hz": 10.0,
+    "roll_stiffness_Nm_per_rad": 400000.0,
+    "roll_stiffness_front_share": 0.4,
+    "aero_front_share": 0.5384
+   },
+   "laps_s": {
+    "iqp_w3": 80.11095211829044,
+    "iqp_w3.5": 80.4490555164636,
+    "safe (Track.path)": 84.74190503400781,
+    "raceline (Track.reference)": 79.12333969268853
+   },
+   "lap_s": 80.11095211829044,
+   "lap_ggv75_s": 80.11112642847218,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.437496971299428,
+     17.21790581034372
+    ],
+    [
+     30.0,
+     22.341680238900874,
+     24.437191306395075
+    ],
+    [
+     45.0,
+     27.979007427599374,
+     32.332218106950386
+    ],
+    [
+     60.0,
+     34.049590194018506,
+     40.61209924666193
+    ],
+    [
+     75.0,
+     41.24798319921628,
+     49.8794912227336
+    ],
+    [
+     90.0,
+     49.19353756694164,
+     61.22705003867825
+    ]
+   ],
+   "traction": [
+    [
+     16.937949394953343,
+     13.51940361438292
+    ],
+    [
+     32.822932045130614,
+     16.348081550157964
+    ],
+    [
+     48.68771176295191,
+     21.37913578415014
+    ],
+    [
+     65.67322244653367,
+     27.960675324347832
+    ],
+    [
+     80.084053577429,
+     30.757670917542686
+    ],
+    [
+     93.0738889068247,
+     30.45510284346753
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.2653552693596686,
+    0.7363829612827126,
+    0.09348144880914466,
+    0.07411881539234169,
+    0.0092229861503549,
+    -0.08620249104083456
+   ],
+   "spun": true,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": 0.0008523705089992398,
+    "rear_m": 0.04368144433599886,
+    "front_std_m": 0.00018190920289105382,
+    "front_min_m": 0.0004494219582221251
+   },
+   "below_ground": false,
+   "wall_s": 1.1716883000008238
+  },
+  {
+   "label": "probe +aero_level=0.75",
+   "phase": "probe",
+   "setup": {
+    "ride_freq_front_hz": 4.2347,
+    "ride_freq_rear_hz": 3.372,
+    "damping_ratio_front": 0.14412,
+    "damping_ratio_rear": 0.10593,
+    "rebound_bump_ratio": 1.0,
+    "fast_slow_ratio": 1.0,
+    "heave_freq_front_hz": 10.0,
+    "heave_freq_rear_hz": 5.8450729482422705,
+    "heave_damping_ratio": 0.3,
+    "roll_stiffness_Nm_per_rad": 400000.0,
+    "roll_stiffness_front_share": 0.4,
+    "ride_height_front_m": 0.035,
+    "rake_m": 0.05,
+    "aero_level": 0.75,
+    "aero_front_share": 0.5384,
+    "brake_bias_front": 0.58,
+    "final_drive_ratio": 1.0,
+    "camber_front_deg": 0.0,
+    "camber_rear_deg": 0.0,
+    "toe_front_deg": 0.0,
+    "toe_rear_deg": 0.0,
+    "lsd_preload_Nm": 0.0,
+    "lsd_lock_drive": 1.0,
+    "lsd_lock_coast": 0.0,
+    "packer_gap_front_m": 0.1,
+    "packer_gap_rear_m": 0.1
+   },
+   "changes_vs_base": {
+    "heave_freq_front_hz": 10.0,
+    "roll_stiffness_Nm_per_rad": 400000.0,
+    "roll_stiffness_front_share": 0.4,
+    "aero_level": 0.75,
+    "aero_front_share": 0.5384
+   },
+   "laps_s": {
+    "iqp_w3": 78.76547183238975,
+    "iqp_w3.5": 79.11317235243202,
+    "safe (Track.path)": 83.39831868193033,
+    "raceline (Track.reference)": 77.77287326018693
+   },
+   "lap_s": 78.76547183238975,
+   "lap_ggv75_s": 78.76900361122496,
+   "ggv_rows_valid": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "porpoise_or_collapse": false,
+   "ggv": [
+    [
+     15.0,
+     18.542919736687352,
+     17.414064901051955
+    ],
+    [
+     30.0,
+     23.36030133527035,
+     25.863904586889035
+    ],
+    [
+     45.0,
+     29.37402688178586,
+     34.67014418253176
+    ],
+    [
+     60.0,
+     36.16817214938958,
+     44.24536222078812
+    ],
+    [
+     75.0,
+     44.48228961567712,
+     55.06481697611183
+    ],
+    [
+     90.0,
+     52.30884289415026,
+     68.41777927415421
+    ]
+   ],
+   "traction": [
+    [
+     17.19576429570725,
+     13.860046358413353
+    ],
+    [
+     32.780425667940776,
+     17.178542221149403
+    ],
+    [
+     49.30950862852526,
+     23.323136632084676
+    ],
+    [
+     67.23065821766922,
+     31.004863966160062
+    ],
+    [
+     79.39134329761623,
+     30.605415636047027
+    ],
+    [
+     103.61919151500648,
+     40.6031205228144
+    ]
+   ],
+   "understeer_deg_per_g": [
+    0.2679065189366195,
+    0.6713661529280736,
+    0.07333689305350516,
+    0.03389134481693456,
+    -0.033642258850854465,
+    0.0072571719965619464
+   ],
+   "spun": true,
+   "at_bound": [],
+   "ride_hold": {
+    "front_m": -0.006675133538431815,
+    "rear_m": 0.03465325639575617,
+    "front_std_m": 0.00022572508385784666,
+    "front_min_m": -0.007121350960389544
+   },
+   "below_ground": true,
+   "wall_s": 1.1806496000026527
+  }
+ ],
+ "provenance": {
+  "rlsetup": {
+   "path": "C:\\Users\\imk14\\Documents\\RL-SetupOptimization-Agent",
+   "commit": "1ba7272906550cc5024c6acf4ce5c7752a5f524f",
+   "dirty": true,
+   "untracked": true,
+   "diff_sha256": "51ec209a8d969e6ceea941c9999f480151a2d43c701ffe396317c155654cc206"
+  },
+  "rlsetup_sources_sha256": {
+   "rlsetup/__init__.py": "e54c1d042ab47972bb61868a40c841a34334c935b8628225ae2029cb7799f647",
+   "rlsetup/assetto/__init__.py": "8e32aa791cf83882ca1a788a5cffceddb013e5df7982eecace14f098f3f5d174",
+   "rlsetup/assetto/__main__.py": "7fc8423be4e282fee703b441ad66cf7ef108b7444cf48a1aee9a9b6f561fee90",
+   "rlsetup/assetto/actor.py": "95b300dbcad427478314173e84ad64a2d0ce507c95d03d04323fc53ef61f3273",
+   "rlsetup/assetto/calibration.py": "d8c1961f4cd46d458f0d2e333aeea694c92f67ac5344a321d7b3c56579da4c83",
+   "rlsetup/assetto/distributed.py": "a4e36ffc781e42191d442bed9b95976637383df43fdd8312fe771f0041582f8b",
+   "rlsetup/assetto/driving.py": "a077328ecfb86005cc1e0ab3947b57dc44b2331d4cfb5ea15199f2be7d8e3ca3",
+   "rlsetup/assetto/handover.py": "afb8d15ad631fc156a9a1af8d4bb86177dee85d5019ba45c15c65016f074ed37",
+   "rlsetup/assetto/learn.py": "37d607cd41ee8222d02443ecbbf4978950aeebbcc9c8999b53d1318aa060ce40",
+   "rlsetup/assetto/management.py": "8a6d30ac86ca82177714f9845a45d904af422e234d1b213b6afbfeeeb1b6cd57",
+   "rlsetup/assetto/telemetry.py": "a81b203e34127da09478abc93e3f7553d8feb0edffeb254a8ca2102174bb20dd",
+   "rlsetup/driving/__init__.py": "e51bed95f0dfa7bb68b0353ac1d1cc13d02e66a1f6c3b5eb92b95e176eb48eb9",
+   "rlsetup/driving/agent.py": "c51e2a7778971c5cde52f85c03366ecc3c8cbbae6424b08e6d6add2d1d6bf261",
+   "rlsetup/driving/bc.py": "0ecc9d18a552d3f4a36a56cc173fb915ca291c88a5296cd2225fe76aae254c0e",
+   "rlsetup/driving/buffers.py": "2eb78d704497c2e4ad80fbec0726d1095a7782378b19863e08f1370e2517fe63",
+   "rlsetup/driving/callbacks.py": "28d7cab6d5b5271df6eade1be8d5f5a697071f93220d2eb3b1a5d740f7c1829a",
+   "rlsetup/driving/config.py": "ebabd79ac2be74810a595a97ddbbd2ddc4da64dd26870804072826637fdd3d42",
+   "rlsetup/driving/corners.py": "c2f6cb699652d6060060599ce5251a057614c90ddfdb748a09d66ef9870ad185",
+   "rlsetup/driving/demo_driver.py": "d429efc6287fc09aaeb78422ffa43f6adf8002d78ac557ad986c0870c605620a",
+   "rlsetup/driving/demos.py": "998db8c301095c0db1c26c36ec9b82b9b501c88cdfe113ac602f2ca54e05d57c",
+   "rlsetup/driving/env.py": "9eb450dc341f4666d91f74be7125b462e18fa9a5d982f5865742e445fad5f9d7",
+   "rlsetup/driving/evaluate.py": "550551380ce57cfb9d2cd66c5761da043f4894e5117579eec1866220efc4fa80",
+   "rlsetup/driving/policy.py": "e9103392f284d121e4301d6511c9116ffd6b2994fbbbd11402486de0806e597c",
+   "rlsetup/driving/qss_profile.py": "40a3624e8d0905a9fdc89f56749a80fad6d71c9fc5bd2da57021a347cb1d8d3f",
+   "rlsetup/driving/reference.py": "058597d050f20f93ce104544cae0bd0902912dcb9cb9cc419e0b523e6d677d3e",
+   "rlsetup/driving/relabel.py": "7dc699dabef36c75bb842cd22178ff94c7bb236f7ffe70e90f5e85401d707132",
+   "rlsetup/driving/setups.py": "0ac4930b721401934b498c6092cf2552d5c9c8379c0e2a8b2c0753f8b68cf5d5",
+   "rlsetup/driving/speed_profile.py": "ec783b405e47f16c8fc04fdcd9b3f333fdc7bd9d7669778ba69f5cfad86c1dcd",
+   "rlsetup/driving/train.py": "fdea007d9c166d97b52ce60ae347c3a13d8acd8067b6def47218339cb3897e29",
+   "rlsetup/driving/train_config.py": "db88bd8f1c14e81a43b0e287f1e87649450ed76e651fd11b734536520802b2a6",
+   "rlsetup/driving/vec.py": "dfdfe628e48c3caf35de4ff84625f871f5079e0097f578c83ad6cf10ecc7c137",
+   "rlsetup/ocp/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "rlsetup/ocp/ladder_model.py": "4d7b9567938080816528c5ab99c242bba56f34371981170c048f0173f5239c83",
+   "rlsetup/ocp/ladder_solve.py": "1ceb1b448d75a282953cf593e18db4ac7ab39e41fff4dd2e05e4a508b8580f7a",
+   "rlsetup/ocp/ocd_car.py": "4e3424ef60c674fa64974996079a188b9a436c9d5d66a12b29beed4fcf37fcbc",
+   "rlsetup/ocp/pl14_model.py": "31dad5a1379b24ddd0d59b64c433515315f2a1b3365148adbf836a31c2cd17fa",
+   "rlsetup/ocp/solve.py": "ce5d7e376c2873321d98a04f3dff7547e7b1734d04f77a33757b9d9af586aa23",
+   "rlsetup/ocp/track.py": "8c36f2506e7bc2bd639e81f416422a8adc320b18e01b7789944e8bda576b9119",
+   "rlsetup/ocp/verify.py": "ba601266168ca850e530d8641e1f4f8536e004d1a6d69c39640250241ba51641",
+   "rlsetup/paths.py": "a524ca271def14e0859b1de99fcda37a4b02a23aaaf8b6647f9de29c0f58c7d1",
+   "rlsetup/provenance.py": "35f72900f611e2bd12d5ddd5577cb894c0da928db540d2a70bf511e4dc282259",
+   "rlsetup/runs.py": "230d2e59a38b65dac3df7ad0e3773565a0b3b40ee3eb31d7f7f0fee38d4efc39"
+  },
+  "ocd_first_lap": {
+   "path": "C:\\Users\\imk14\\Documents\\ocd_first_lap",
+   "commit": "ee8668398d81711a4d529ff169b252989cdd9b7f",
+   "dirty": false,
+   "untracked": false,
+   "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "ocd_lap_code_version": "80ca85c03631",
+  "ocd_lap_extra_sources_sha256": {
+   "ocd_lap/__init__.py": "ba75b38ec95145c9a24be0b23265294b16b41d202464f6f7c640fbd81353065a",
+   "ocd_lap/cars.py": "b94095d6bacd9b2b6045111af1063323a6324a55961635d43e76b48825c186de",
+   "ocd_lap/env.py": "ecc30665a0a37da097b68d8062434a6eff9531953aef3e2202a60fdaa2ccb654",
+   "ocd_lap/qss_lap.py": "fe138681c9ba3738bae98ee8536f30a6c5a1fdd3dabf2f51f11ad38e5b95b3c9",
+   "ocd_lap/handling.py": "4372ecac0110536e5ef5794b303560d73fd74665739cd84a9631e976b3842195",
+   "ocd_lap/manoeuvres.py": "c0b75d06b03906886216549acda347636a2aef0e5d7e304b122b5f83cbd7ea3b",
+   "ocd_lap/rig.py": "c650c4ee1e67ab190fea52099dd887231274688f81de2de68c4f37aefe012381",
+   "ocd_lap/vertical_model.py": "ed95da469c99c52678af4fd4ee5533482b194c561be39af63bcb33c66c1394c8"
+  }
+ }
+}

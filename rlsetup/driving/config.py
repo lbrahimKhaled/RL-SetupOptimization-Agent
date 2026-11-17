@@ -16,6 +16,7 @@ REWARD_MODES = ('ref_tracking', 'time_pbrs')
 CORNER_BONUS_MODES = ('exit', 'entry_exit')
 R4_REWARD_KEYS = ('speed_k', 'speed_sigma')                       # omitted from to_dict while speed_k = 0
 R4_CORNER_KEYS = ('mode', 'bonus_in', 'bonus_out', 'sigma')        # omitted while mode = 'exit'
+LINE_REWARD_KEYS = ('line_k', 'line_free_m', 'line_cap')          # omitted from to_dict while line_k = 0
 
 
 @dataclass(frozen=True)
@@ -47,6 +48,14 @@ class RewardConfig:
     length s; added per decision as gamma Phi_v(s') - Phi_v(s) with the same terminal convention as
     Phi (0 after off track / non-finite / wrong way). speed_k = 0: not computed at all (bit-identical
     rewards); EnvConfig.to_dict then omits both fields.
+
+    Corner line penalty (Ibrahim, 17 Nov 2026; time_pbrs only, off with line_k = 0): per 50 Hz base
+    tick whose end lies inside a corner window (corners.py: QSS braking point -> exit),
+        r -= min(line_k * max(0, |e| - line_free_m), line_cap) * max(0, ds),
+    e = lateral offset to xi_ref at the tick end [m], ds = Track.path progress of the tick [m]. Charged
+    per metre driven, not per second, so the cost of a path does not depend on the speed it is driven
+    at; line_cap < a keeps forward progress net positive. NOT potential-based: it changes the optimum
+    (pulls the driver toward xi_ref in corners). line_k = 0: nothing computed; to_dict omits the fields.
     """
     a: float = 1.0                       # per metre of progress along Track.path. PLACEHOLDER
     b: float = 1.0                       # per second. PLACEHOLDER
@@ -62,6 +71,10 @@ class RewardConfig:
     penalty_const: float = 100.          # P for terminal failures in time_pbrs. PLACEHOLDER
     speed_k: float = 0.                  # R4: k_v of Phi_v [reward units]; 0 = off. f1_r4: 20 [ARCH]
     speed_sigma: float = .3              # R4: sigma of g (relative to v_qss) [ARCH]
+    line_k: float = 0.                   # corner line penalty [reward units per m driven per m of |e| past
+                                         # the free band]; 0 = off
+    line_free_m: float = .5              # free band around xi_ref [m] (Ibrahim)
+    line_cap: float = .5                 # max penalty per m driven [reward units / m] (< a)
 
     def __post_init__(self):
         if self.mode not in REWARD_MODES:
@@ -70,6 +83,12 @@ class RewardConfig:
             raise ValueError('shaping_k, penalty_const and speed_k must be finite and nonnegative')
         if not (math.isfinite(self.speed_sigma) and self.speed_sigma > 0):
             raise ValueError(f'speed_sigma must be finite and positive, got {self.speed_sigma}')
+        if not all(math.isfinite(x) and x >= 0 for x in (self.line_k, self.line_free_m, self.line_cap)):
+            raise ValueError('line_k, line_free_m and line_cap must be finite and nonnegative')
+        if self.line_k > 0 and self.mode != 'time_pbrs':
+            raise ValueError("line_k > 0 (corner line penalty) needs mode 'time_pbrs'")
+        if self.line_k > 0 and self.line_cap >= self.a:
+            raise ValueError('line_cap must stay below a (progress per metre), else driving forward can lose reward')
         if self.speed_k > 0 and self.mode != 'time_pbrs':
             raise ValueError("speed_k > 0 (R4 speed-profile potential) needs mode 'time_pbrs'")
         if not 0. < self.gamma <= 1.:
@@ -233,6 +252,11 @@ class EnvConfig:
         return self.corner_bonus.enabled and self.corner_bonus.mode == 'entry_exit'
 
     @property
+    def line_on(self):
+        """Corner line penalty on (reward.line_k > 0)."""
+        return self.reward.line_k > 0
+
+    @property
     def r4(self):
         return self.speed_on or self.entry_exit_on
 
@@ -249,6 +273,9 @@ class EnvConfig:
         rd = RewardConfig()
         if self.reward.speed_k == 0 and self.reward.speed_sigma == rd.speed_sigma:
             for k in R4_REWARD_KEYS:
+                del d['reward'][k]
+        if self.reward.line_k == 0 and all(getattr(self.reward, k) == getattr(rd, k) for k in LINE_REWARD_KEYS):
+            for k in LINE_REWARD_KEYS:
                 del d['reward'][k]
         if 'corner_bonus' in d and all(getattr(self.corner_bonus, k) == getattr(CornerBonusConfig(), k)
                                        for k in R4_CORNER_KEYS):

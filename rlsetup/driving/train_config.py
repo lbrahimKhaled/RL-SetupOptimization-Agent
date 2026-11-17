@@ -503,6 +503,29 @@ def _f1_r4_scratch():
                    bonus_schedule=replace(c.bonus_schedule, hold_until=None))
 
 
+LINE_BCN_IQP_W3 = 'csv:docs/results/bcn_line_setup/line_iqp_w3.csv'
+# Corner line penalty k of bcn_f1_r4 [reward units per m driven per m past the free band]. Sized (Ibrahim,
+# 17 Nov 2026) so that 1 m past the free band through every corner window costs as much as R4's maximum corner
+# terms: (10 + 10) x 8 units = 160 per lap (3.5 % of the 4602.6 m progress) / 2269.9 m of windows = 0.0705
+# (corner table 6313f2151e24, QSS 80.111 s on the line).
+BCN_LINE_K = .0705
+
+
+def _bcn_f1_r4():
+    """Barcelona (Catalunya) with the F1 car (Ibrahim, 17 Nov 2026): f1_r4_scratch (demos + BC, R4 reward:
+    speed potential 20 / sigma 0.3 + corner entry / exit terms 10 + 10, never fading; actor lr 1e-4 from the
+    unfreeze) with track Catalunya, setup bcn_f1_best (docs/results/bcn_line_setup/sweep.json; QSS 80.11 s on
+    the line), xi_ref = the iterated-QP min-curvature line with a 3.0 m width allowance (tightest IQP line
+    whose footprint fits everywhere, min clearance +0.01 m; lines.json) plus the corner line penalty
+    (RewardConfig.line_k = BCN_LINE_K, free band 0.5 m, cap 0.5 per m, inside the corner windows). No step /
+    wall cap and no plateau stop: runs until Ibrahim stops it. Run name: bcn_f1_r4."""
+    c = _f1_r4_scratch()
+    return replace(c, preset='bcn_f1_r4', total_timesteps=1_000_000_000, max_wall_h=None,
+                   env=replace(c.env, track='Catalunya', setup='bcn_f1_best', reference=LINE_BCN_IQP_W3,
+                               reward=replace(c.env.reward, line_k=BCN_LINE_K, line_free_m=.5, line_cap=.5)),
+                   stop=replace(c.stop, plateau=False))
+
+
 def _f1_r2_smoke():
     """f1_r2 compressed to 150k env steps (R2-9.2): w = 1 until 60k, fade to 0 at 120k,
     reportable from 150k (gap 30k); eval every 25k with 3 stochastic laps, probe every 5k,
@@ -519,7 +542,7 @@ def _f1_r2_smoke():
 
 PRESETS = {'full': lambda: TrainConfig(preset='full'), 'smoke': _smoke, 'r1_warm': _r1_warm,
            'r1_warm_smoke': _r1_warm_smoke, 'p1_TUM': _p1_tum,
-           'p0_TUMref': _p0_tumref, 'bcn': _bcn, 'f1_sha': _f1_sha, 'f1_sha_w35': _f1_sha_w35,
+           'p0_TUMref': _p0_tumref, 'bcn': _bcn, 'bcn_f1_r4': _bcn_f1_r4, 'f1_sha': _f1_sha, 'f1_sha_w35': _f1_sha_w35,
            'f1_best_w35': _f1_best_w35, 'f1_r2': _f1_r2, 'f1_r2_smoke': _f1_r2_smoke, 'f1_r3': _f1_r3,
            'f1_r4': _f1_r4, 'f1_r4_scratch': _f1_r4_scratch}
 

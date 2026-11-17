@@ -56,7 +56,7 @@ import torch as th
 
 TRACE_KEYS = ('s', 'x', 'y', 'speed', 'e', 'gear', 'slip_rl', 'slip_rr', 'track_position',
               'track_width', 'reward', 'lap_index', 'time_s', 'shaping', 'progress_m', 'corner_bonus')
-OPTIONAL_TRACE_KEYS = ('g_v', 'shaping_v')      # R4: recorded only when the env reports them
+OPTIONAL_TRACE_KEYS = ('g_v', 'shaping_v', 'line_penalty')   # R4 / corner line penalty: only when the env reports them
 
 
 @contextmanager
@@ -454,6 +454,7 @@ def lap_r4(rep, table, cfg, *, pedal_deadzone, lap=2, entry_exit=True):
     out = dict(sums, terms_sum=sums['entry_sum'] + sums['exit_sum'] - sums['taken_back'],
                mean_g=float(np.nanmean(tr['g_v'][m])) if 'g_v' in tr and m.any() else None,
                shaping_v_sum=float(np.sum(tr['shaping_v'][m])) if 'shaping_v' in tr else None,
+               **({'line_penalty_sum': float(np.sum(tr['line_penalty'][m]))} if 'line_penalty' in tr else {}),
                shaping_e_sum=float(np.sum(tr['shaping'][m])),
                front_lock_fraction=front_lock_fraction(tr['kappa'][m, 0], tr['kappa'][m, 1], cfg.front_lock_kappa)
                if m.any() else None, straights=straights)

@@ -259,12 +259,14 @@ class TrainStatsCallback(BaseCallback):
 
     @staticmethod
     def _empty_r4():
-        return {'shaping_v': [], 'terms': [], 'taken_back': [], 'takebacks': 0, 'with_takeback': 0}
+        return {'shaping_v': [], 'terms': [], 'taken_back': [], 'takebacks': 0, 'with_takeback': 0, 'line': []}
 
     @staticmethod
     def _add_r4(acc, info):
         if 'episode_shaping_v' in info:
             acc['shaping_v'].append(float(info['episode_shaping_v']))
+        if 'episode_line_penalty' in info:   # corner line penalty
+            acc['line'].append(float(info['episode_line_penalty']))
         if 'episode_corner_taken_back' in info:
             acc['terms'].append(float(info.get('episode_corner_bonus', 0.)))
             acc['taken_back'].append(float(info['episode_corner_taken_back']))
@@ -273,10 +275,12 @@ class TrainStatsCallback(BaseCallback):
 
     @staticmethod
     def _summarize_r4(acc):
-        if not (acc['shaping_v'] or acc['terms']):
+        if not (acc['shaping_v'] or acc['terms'] or acc['line']):
             return None
         mean = lambda x: float(np.mean(x)) if x else None
-        return {'episodes': max(len(acc['shaping_v']), len(acc['terms'])), 'ep_shaping_v_mean': mean(acc['shaping_v']),
+        out = {} if not acc['line'] else {'ep_line_penalty_mean': mean(acc['line'])}
+        return {**out, 'episodes': max(len(acc['shaping_v']), len(acc['terms']), len(acc['line'])),
+                'ep_shaping_v_mean': mean(acc['shaping_v']),
                 'ep_corner_terms_mean': mean(acc['terms']), 'ep_taken_back_mean': mean(acc['taken_back']),
                 'takebacks': acc['takebacks'], 'episodes_with_takeback': acc['with_takeback']}
 
