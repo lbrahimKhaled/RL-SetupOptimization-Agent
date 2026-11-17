@@ -1,0 +1,21 @@
+{
+  "change": "v10 + reference ocd_path: OCD training line (Track.path) mapped into AC coordinates, 2 m edge clearance; fresh work dir tcp-worker-full-002",
+  "created_utc": "2026-11-16T21:18:33.298824+00:00",
+  "mac_learner_paths_unchanged": false,
+  "reference_file_sha256": "e10ef4886a562225e1a2583af2f3f52679a9ad1251ff2afc591128e62b2c06cf",
+  "runtime_sha256": {
+    "rlsetup/__init__.py": "e54c1d042ab47972bb61868a40c841a34334c935b8628225ae2029cb7799f647",
+    "rlsetup/assetto/__init__.py": "8e32aa791cf83882ca1a788a5cffceddb013e5df7982eecace14f098f3f5d174",
+    "rlsetup/assetto/__main__.py": "7fc8423be4e282fee703b441ad66cf7ef108b7444cf48a1aee9a9b6f561fee90",
+    "rlsetup/assetto/actor.py": "95b300dbcad427478314173e84ad64a2d0ce507c95d03d04323fc53ef61f3273",
+    "rlsetup/assetto/calibration.py": "d8c1961f4cd46d458f0d2e333aeea694c92f67ac5344a321d7b3c56579da4c83",
+    "rlsetup/assetto/distributed.py": "7c32f85686c545254d3e469fc54960e3a41b7071584886254a24a701bc391d30",
+    "rlsetup/assetto/driving.py": "a077328ecfb86005cc1e0ab3947b57dc44b2331d4cfb5ea15199f2be7d8e3ca3",
+    "rlsetup/assetto/handover.py": "afb8d15ad631fc156a9a1af8d4bb86177dee85d5019ba45c15c65016f074ed37",
+    "rlsetup/assetto/management.py": "8a6d30ac86ca82177714f9845a45d904af422e234d1b213b6afbfeeeb1b6cd57",
+    "rlsetup/assetto/telemetry.py": "a81b203e34127da09478abc93e3f7553d8feb0edffeb254a8ca2102174bb20dd"
+  },
+  "schema": "rlsetup.ac.tcp.worker-build.v1",
+  "source_actor_manifest_sha256": "e4cdf2565718205e58fecc12648cc9655bef9642051d26fa7d7d5dd508916bbd",
+  "version": 11
+}

@@ -1,42 +1,60 @@
 # Assetto Corsa on this PC (game and learner on one machine)
 
-Interface: [assetto_corsa_gym](https://github.com/dasGringuen/assetto_corsa_gym) (Remonda et al., NeurIPS 2024, MIT), checked out next to this repo at `ef0fa50`. Target: SF70H (`ks_ferrari_sf70h`) on Shanghai (`china-gp`, a mod; assetto_corsa_gym ships its centre line and racing line).
+Two stacks:
+- **`rlsetup.assetto` (main):** the code that ran on the Lenovo (worker, bundle v11 from `ac-lenovo-tcp`, hashes in `data/ac/lenovo_v11_BUILD.json`) with the learner on the Mac. Here, both run on this PC over 127.0.0.1. SF70H (`ks_ferrari_sf70h`) on Barcelona GP (`ks_barcelona`, `layout_gp`). The source actor is an OCD SAC policy (sf70h_tum on Catalunya, 159 obs, 3 actions). Runs in `ocdenv`.
+- **Upstream `assetto_corsa_gym` trainer (optional):** `train_ac.ps1` in `acenv`. It's only used as a cross-check. Its in-game plugin (`sensors_par`) is shared by both stacks.
 
 ## How it fits on one PC
 ```
-acs.exe (High priority, 50 FPS cap)                 acenv python (learner, torch on CUDA)
-  apps/python/sensors_par  (AC's Python 3.3)          AssettoCorsaEnv client, 25 Hz
-    ego server        127.0.0.1:2345  <-- UDP -->       observations / actions
-    opponents server  127.0.0.1:2346
-    sim management    127.0.0.1:2347  <-- TCP -->       reset, static info
-  reads the vJoy device  <------------------------     vJoyInterface.dll (client drives vJoy)
+acs.exe (High priority, 100 FPS cap)              ocdenv python
+  apps/python/sensors_par (AC's Python 3.3)
+    ego server    127.0.0.1:2345 <-- UDP 25 Hz -->  worker (ac_worker.ps1): actor inference, CPU, 1 thread
+    management    127.0.0.1:2347 <-- TCP ------->     reset, static info
+    drives vJoy itself, 100 Hz tick                     | chunks (NPZ) / new actor (zip), token-authenticated
+                                                        v
+                                                    learner (ac_server.ps1), 127.0.0.1:2350  [learn.py: Mac]
 ```
-- Servers bind `127.0.0.1`, not upstream's `0.0.0.0` (`install_ac_plugin.ps1` patches the installed copy): nothing is exposed on the LAN and no firewall prompt appears.
-- The client uses `127.0.0.1`, not `localhost` (`ac_local.overrides`): with a hostname, every UDP `sendto` re-resolves it.
-- `vjoy_executed_by_server = False` with a 50 Hz plugin tick: upstream's local mode. The 100 Hz server-side vJoy mode is only for two machines.
-- Physics and control are real time. `train_ac.ps1` raises `acs.exe` to High priority and gives the learner 4 torch threads (of 32), so learner bursts can't drop AC below 50 FPS. Keep the AC window in front: AC ignores controller input when it's not focused.
-- Python envs: `ocdenv` (OCD training) is unchanged. `acenv` is a clone of it plus `requirements-ac.txt`, so the AC client's pins (gym, numba) can't change OCD numerics. Upstream pins (gym 0.21, numpy 1.23, Python 3.9) don't install on 3.12; the nearest working versions are used.
+- `install_ac_plugin.ps1` patches the installed plugin. The servers bind `127.0.0.1` (upstream binds `0.0.0.0`). `vjoy_executed_by_server = True` at 100 Hz, which `rlsetup.assetto` requires (`SteeringMap.verify`: "server-side vJoy controls required"; `Parked`: 100 / 25 Hz).
+- The worker raises `acs.exe` to High priority, so the learner's update bursts can't drop AC below its 100 Hz tick.
+- The TCP token is local: `runs\windows\ac\tcp-session.key` is created on first use and git-ignored. The Lenovo's key belonged to the Mac pairing, so it isn't reused here.
 
-## Setup (in order)
-| # | Step | Admin? | State on 17 Nov 2026 |
-|---|---|---|---|
-| 1 | Finish the Assetto Corsa download in Steam | no | **231 MB of 10.2 GB, paused** |
-| 2 | Install [vJoy](https://sourceforge.net/projects/vjoystick/) 2.x (driver, default path `C:\Program Files\vJoy`) | **yes** (ask AUB IT) | missing |
-| 3 | Content Manager (installed) > Settings > Custom Shaders Patch > Install (needed for resets) | no | after 1 |
-| 4 | SF70H DLC (`ks_ferrari_sf70h`) in Steam; the `china-gp` Shanghai track mod into `content\tracks` | no | after 1 |
-| 5 | `powershell -ExecutionPolicy Bypass -File platforms\windows\ac\setup_acenv.ps1` (assetto_corsa_gym clone + `acenv`) | no | **done** |
-| 6 | `powershell -ExecutionPolicy Bypass -File platforms\windows\ac\install_ac_plugin.ps1` (AC closed) | no | after 1 |
-| 7 | In AC: UI Modules > enable `sensors_par`; Controls > load `Vjoy`; Video > 50 FPS cap; assists as in upstream `INSTALL.md` §2.5 | no | after 6 |
-| 8 | SF70H control maps for the gym: `AssettoCorsaConfigs\cars\ks_ferrari_sf70h\steer_map.csv` (normalised action at full lock and the lock in degrees, same format as `dallara_f317`) and `brake_map.csv` | no | after 7 |
-| 9 | `acenv\python platforms\windows\ac\check_ac.py --live` with a Hotlap session running | no | after 8 |
+## Walkthrough
+State on 17 Nov 2026: AC is installed, CSP is installed, the SF70H and Barcelona are present, and the plugin is installed (step 3). `check_ac.py` shows what's left at any time:
+`C:\Users\imk14\ocdenv\python.exe platforms\windows\ac\check_ac.py` (add `--live` while a session runs).
 
-`check_ac.py` (no `--live`) can be run any time; it prints what is still missing.
+1. **vJoy (needs admin).** Run `Downloads\vJoySetup.exe` (vJoy 2.x) and accept the driver prompt. Then open **Configure vJoy**: device 1 must be enabled with axes **X, Y, Z** and at least **2 buttons** (the default device 1 has these). `Vjoy.ini` maps X = steering, Y = throttle, Z = brake, button 1 = gear up, button 2 = gear down.
+2. **Custom Shaders Patch:** done. The plugin's car reset needs it.
+3. **Plugin, socket libs, controller presets:** done by `install_ac_plugin.ps1`. It copied `sensors_par` into `assettocorsa\apps\python`, the socket DLLs and Lib into `system\x64`, and `Vjoy.ini` / `WASD.ini` into `Documents\Assetto Corsa\cfg\controllers\savedsetups`. On the Lenovo this was done by hand: dragging the files into Content Manager and the AC folders. To redo it, close AC and run it again.
+4. **Content Manager settings:**
+   - Settings > Assetto Corsa > Video: **framerate limit 100** (the plugin ticks at 100 Hz). Windowed or borderless makes it easier to keep the window focused.
+   - Settings > Assetto Corsa > Apps (Python apps): enable **sensors_par**.
+   - Settings > Assetto Corsa > Controls: **Load preset > Vjoy** (from `savedsetups`). The input should show "vJoy Device" for steer, throttle and brake.
+   - Assists: automatic gearbox ON (the actor has no gear output), auto clutch ON, TC / ABS / stability OFF, damage OFF, fuel and tyre wear OFF, tyre blankets ON (upstream `INSTALL.md` §2.5).
+5. **Start a session.** Drive > Hotlap, car **Ferrari SF70H**, track **Barcelona, layout GP**, then Go. In the game, open the right-hand app bar and turn on `sensors_par`. Then run `check_ac.py --live`: it should print `car=ks_ferrari_sf70h track=ks_barcelona`.
+6. **Steering calibration for this PC** (about 10 s): car stationary, **N** visible, you at the keyboard. Run `powershell -ExecutionPolicy Bypass -File platforms\windows\ac\ac_calibrate.ps1`, which writes `runs\windows\ac\steering.json`. The Lenovo map is kept in `data\ac\steering_sf70h_barcelona_lenovo.json` for comparison: about ±0.300 rad of road-wheel angle at full lock, reached by command ±0.5.
+7. **Train** (two windows, AC in front):
+   ```powershell
+   platforms\windows\ac\ac_server.ps1 -WorkDir runs\windows\ac\server-001 -ActorBundle <source actor dir> --critic-updates C --updates U --batch-size B ...
+   platforms\windows\ac\ac_worker.ps1 -WorkDir runs\windows\ac\worker-001
+   ```
+   The worker settings are the Lenovo's (`START_LENOVO_FULL.cmd` v11): `ocd_path` reference (`data\ac\ocd_path_reference_barcelona.json`), 3750 steps / 180 s per drive, exploration 0.3, an evaluation drive every 10th, and 5 consecutive failures allowed. Ctrl+C stops it; run it again to continue.
 
-## Train
-```powershell
-platforms\windows\ac\train_ac.ps1                       # SF70H on china-gp, assetto_corsa_gym SAC, CUDA
-platforms\windows\ac\train_ac.ps1 -Extra 'AssettoCorsa.car=dallara_f317','AssettoCorsa.track=ks_barcelona-layout_gp'   # upstream's tested pair
+## Missing from the Mac (blocks step 7)
+These were never pushed and aren't on this PC:
+1. `rlsetup/assetto/learn.py`: `ACLearner`, `LearnerConfig`, `read_chunk`, `replay_identity`, imported by the server in `distributed.py`. Also any tests or scripts that go with it.
+2. The **source actor bundle** given to `--actor-bundle` (`actor.pt`, `config.json`, `manifest.json`; manifest sha256 `e4cdf256…` in `data/ac/lenovo_v11_BUILD.json`). It can also be made here with `python -m rlsetup.assetto.actor export --checkpoint <bcn .zip> --config <its config.json> --output <dir>` if the Barcelona sf70h_tum checkpoint is copied over.
+3. The **server command line** (`--critic-updates`, `--updates`, `--batch-size`, `--warmup-transitions`, `--transitions-per-update`, `--keep-learners`).
+4. Optional, to continue the Mac run rather than start fresh: the Mac server work dir.
+
+On the Mac, in the repo:
+```bash
+git fetch && git status                      # rlsetup/assetto/*.py show as untracked or modified
+git switch -c ac-mac-learner                 # keeps the Mac copies; nothing is overwritten
+git add rlsetup/assetto tests scripts        # whatever belongs to the AC learner
+git commit -m "AC learner (learn.py) from the Mac" && git push -u origin ac-mac-learner
+zip -r ac_source_actor.zip <source actor dir>   # *.pt is git-ignored: copy this zip over by hand
 ```
-Output goes to `..\assetto_corsa_gym\outputs\<timestamp>\`. Upstream `train.py` crashes if `work_dir` is set (`args.work_dir` and top-level `config.track` don't exist at `ef0fa50`), so the launcher doesn't set it.
+Then merge `ac-mac-learner` here. The `rlsetup/assetto` files committed here are byte-identical to the v11 bundle, so any newer Mac versions just show up as changes.
 
-Not done yet: our own SAC driver (`rlsetup.driving`) on AC. It needs an adapter from `AssettoCorsaEnv` (gym 0.26 API, its own observation) to our 159-dim observation and 3 actions. That waits until the plugin runs on this PC (steps 1 to 9).
+## Upstream trainer (optional)
+`setup_acenv.ps1` builds `acenv` (a clone of ocdenv plus `requirements-ac.txt`, numpy < 2.5 for numba's `cross2d`). `train_ac.ps1` runs upstream `train.py` with `ac_local.overrides`. Its car configs cover only `dallara_f317` (a mod), `bmw_z4_gt3` and `ks_mazda_miata`, not the SF70H. Output goes to `..\assetto_corsa_gym\outputs\<timestamp>\` (upstream crashes if `work_dir` is set).

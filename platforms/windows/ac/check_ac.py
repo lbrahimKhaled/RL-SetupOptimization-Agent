@@ -21,7 +21,7 @@ AC_INSTALL = Path(os.environ.get('AC_INSTALL', r'C:\Program Files (x86)\Steam\st
 AC_DOCS = Path.home() / 'Documents' / 'Assetto Corsa'
 VJOY_DLL = Path(r'C:\Program Files\vJoy\x64\vJoyInterface.dll')   # path hard-coded in AssettoCorsaEnv/vjoy.py
 HOST, MGMT_PORT = '127.0.0.1', 2347
-CAR, TRACK = 'ks_ferrari_sf70h', 'china-gp'   # project target: SF70H on Shanghai (china-gp mod)
+CAR, TRACK = 'ks_ferrari_sf70h', 'ks_barcelona'   # rlsetup.assetto: SF70H on Barcelona GP (Parked guard)
 
 failed = []
 
@@ -36,17 +36,20 @@ def check(name, ok, detail='', required=True):
 
 def python_side():
     check('python 3.12', sys.version_info[:2] == (3, 12), sys.version.split()[0])
-    for p in (AC_GYM, AC_GYM / 'assetto_corsa_gym'):
+    for p in (REPO, AC_GYM, AC_GYM / 'assetto_corsa_gym'):
         if str(p) not in sys.path:
             sys.path.insert(0, str(p))
-    check('assetto_corsa_gym checkout', (AC_GYM / 'assetto_corsa_gym').is_dir(), str(AC_GYM))
-    for mod in ('gym', 'numba', 'pandas', 'omegaconf', 'torch', 'stable_baselines3',
-                'AssettoCorsaEnv.ac_env', 'AssettoCorsaEnv.assettoCorsa', 'rlsetup.driving.agent'):
+    check('assetto_corsa_gym checkout (plugin source)', (AC_GYM / 'assetto_corsa_gym').is_dir(), str(AC_GYM))
+    # rlsetup.assetto (the Lenovo worker / learner) needs only numpy + torch: ocdenv or acenv.
+    # The upstream assetto_corsa_gym trainer (train_ac.ps1) needs acenv: optional.
+    for mod, required in (('torch', True), ('rlsetup.assetto.distributed', True), ('rlsetup.driving.agent', True),
+                          ('AssettoCorsaEnv.ac_env', False), ('AssettoCorsaEnv.assettoCorsa', False)):
         try:
             importlib.import_module(mod)
             check(f'import {mod}', True)
         except Exception as e:   # noqa: BLE001 - report every import problem
-            check(f'import {mod}', False, f'{type(e).__name__}: {e}')
+            check(f'import {mod}', False, f'{type(e).__name__}: {e}' + ('' if required else ' (acenv only)'),
+                  required=required)
     try:
         import torch
         check('torch CUDA', torch.cuda.is_available(),
@@ -61,20 +64,28 @@ def game_side():
     check('Assetto Corsa installed', acs.exists(), str(AC_INSTALL) if acs.exists() else 'acs.exe missing: finish the Steam download')
     if not acs.exists():
         return
-    check('Custom Shaders Patch', (AC_INSTALL / 'extension').is_dir(), 'Content Manager > Settings > CSP > Install')
+    csp = (AC_INSTALL / 'extension').is_dir()
+    check('Custom Shaders Patch', csp, '' if csp else 'Content Manager > Settings > CSP > Install')
     cfg = AC_INSTALL / 'apps' / 'python' / 'sensors_par' / 'config.py'
     if check('sensors_par plugin', cfg.exists(), 'run install_ac_plugin.ps1' if not cfg.exists() else ''):
         text = cfg.read_text(errors='replace')
         check('plugin binds 127.0.0.1 (single PC)', '"0.0.0.0"' not in text)
-        check('plugin: client drives vJoy, 50 Hz', 'self.vjoy_executed_by_server = False' in text
-              and 'self.sampling_freq = 50' in text)
+        check('plugin: drives vJoy itself, 100 Hz (rlsetup.assetto)', 'self.vjoy_executed_by_server = True' in text
+              and 'self.sampling_freq = 100' in text)
     check('AC socket libs in system\\x64', (AC_INSTALL / 'system' / 'x64' / 'Lib').is_dir())
     check('Vjoy.ini controller preset', (AC_DOCS / 'cfg' / 'controllers' / 'savedsetups' / 'Vjoy.ini').exists())
-    check(f'car {CAR}', (AC_INSTALL / 'content' / 'cars' / CAR).is_dir(), 'Kunos DLC', required=False)
-    check(f'track {TRACK}', (AC_INSTALL / 'content' / 'tracks' / TRACK).is_dir(), 'mod, not shipped with AC', required=False)
-    maps = AC_GYM / 'assetto_corsa_gym' / 'AssettoCorsaConfigs' / 'cars' / CAR
-    check(f'{CAR} steer/brake maps for the gym', (maps / 'steer_map.csv').exists() and (maps / 'brake_map.csv').exists(),
-          'measure in game (README step 6)', required=False)
+    check(f'car {CAR}', (AC_INSTALL / 'content' / 'cars' / CAR).is_dir())
+    check(f'track {TRACK}', (AC_INSTALL / 'content' / 'tracks' / TRACK).is_dir())
+
+
+def rlsetup_side():
+    work = REPO / 'runs' / 'windows' / 'ac'
+    check('steering calibration (this PC)', (work / 'steering.json').exists(),
+          'run the calibration (README walkthrough step 6)', required=False)
+    key = (work / 'tcp-session.key').exists()
+    check('TCP token', key, '' if key else 'ac_server.ps1 / ac_worker.ps1 create it', required=False)
+    check('learner rlsetup/assetto/learn.py', (REPO / 'rlsetup' / 'assetto' / 'learn.py').exists(),
+          'only on the Mac, not committed: push it (README "Missing from the Mac")', required=False)
 
 
 def live():
@@ -95,6 +106,7 @@ if __name__ == '__main__':
     a = ap.parse_args()
     python_side()
     game_side()
+    rlsetup_side()
     if a.live:
         live()
     print('\nall required checks passed' if not failed else f'\n{len(failed)} required check(s) failed')

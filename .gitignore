@@ -24,3 +24,6 @@ comparison/figures/*.mp4
 /comparison/tum_original_fullspeed_20261028_185217Z/p0_25hz/tum_original_f1.csv
 /comparison/tum_original_fullspeed_20261028_185217Z/p1_25hz/tum_original_f1.csv
 /comparison/tum_original_fullspeed_20261028_185217Z/p1_25hz_repeat/tum_original_f1.csv
+
+# AC TCP shared secrets (rlsetup.assetto.distributed --token-file)
+*.key

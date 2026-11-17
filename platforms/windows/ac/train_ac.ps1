@@ -1,10 +1,11 @@
 # Trains in Assetto Corsa on this PC with assetto_corsa_gym's train.py (SAC / DisCor), game and
-# learner on the same machine. Start AC first (Hotlap session, Vjoy controls, 50 FPS cap) and keep
+# learner on the same machine. Optional cross-check; the main stack is ac_server.ps1 / ac_worker.ps1.
+# Start AC first (Hotlap session, Vjoy controls, 100 FPS cap: the plugin drives vJoy at 100 Hz) and keep
 # its window in front; then run, e.g.:
 #   platforms\windows\ac\train_ac.ps1
 #   platforms\windows\ac\train_ac.ps1 -Extra 'AssettoCorsa.car=dallara_f317','AssettoCorsa.track=ks_barcelona-layout_gp'
 # Single-PC measures:
-#   - acs.exe is raised to High priority, so a learner update burst cannot drop AC below 50 FPS
+#   - acs.exe is raised to High priority, so a learner update burst cannot drop AC below 100 FPS
 #     (the physics and the 25 Hz control loop are real time). High needs no admin rights.
 #   - the learner gets $TorchThreads intra-op threads (default 4 of 32), leaving cores to AC.
 #   - the plugin and client talk over 127.0.0.1 (ac_local.overrides, install_ac_plugin.ps1).

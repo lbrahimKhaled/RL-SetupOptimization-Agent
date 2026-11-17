@@ -3,7 +3,9 @@
 # Steam library is user-writable (the default); vJoy itself needs admin (see README).
 #   - apps\python\sensors_par            <- AssettoCorsaPlugin\plugins\sensors_par
 #       config.py patched: the three servers bind 127.0.0.1 instead of 0.0.0.0 (no LAN exposure,
-#       no firewall prompt), vjoy_executed_by_server = False (the client drives vJoy), 50 Hz tick
+#       no firewall prompt); vjoy_executed_by_server = True with a 100 Hz tick, the mode
+#       rlsetup.assetto requires (SteeringMap.verify, Parked: 100 / 25 Hz, plugin drives vJoy).
+#       This is the Lenovo setup; AC's framerate limit must then be 100 FPS.
 #   - system\x64\DLLs, system\x64\Lib    <- windows-libs (socket library for AC's Python 3.3)
 #   - Documents\Assetto Corsa\cfg\controllers\savedsetups\{Vjoy,WASD}.ini
 # Usage: powershell -ExecutionPolicy Bypass -File platforms\windows\ac\install_ac_plugin.ps1 [-WhatIf]
@@ -26,10 +28,11 @@ if ($PSCmdlet.ShouldProcess($dst, 'copy plugin')) {
     $cfg = Join-Path $dst 'config.py'
     $text = [IO.File]::ReadAllText($cfg)
     $text = $text -replace '(_host_name\s*=\s*)"0\.0\.0\.0"', '$1"127.0.0.1"'
-    $text = $text -replace '(self\.vjoy_executed_by_server\s*=\s*)True', '$1False'
-    $text = $text -replace '(self\.sampling_freq\s*=\s*)\d+', '${1}50'
+    $text = $text -replace '(self\.vjoy_executed_by_server\s*=\s*)False', '$1True'
+    $text = $text -replace '(self\.sampling_freq\s*=\s*)\d+', '${1}100'
     [IO.File]::WriteAllText($cfg, $text)
-    if ($text -match '"0\.0\.0\.0"') { throw "could not patch the bind address in $cfg" }
+    if ($text -match '"0\.0\.0\.0"' -or $text -notmatch 'self\.vjoy_executed_by_server\s*=\s*True' -or
+        $text -notmatch 'self\.sampling_freq\s*=\s*100\b') { throw "could not patch $cfg" }
 }
 
 foreach ($d in 'DLLs', 'Lib') {
@@ -46,9 +49,5 @@ if ($PSCmdlet.ShouldProcess($saved, 'copy Vjoy.ini, WASD.ini')) {
     Copy-Item -Force (Join-Path $libs 'Vjoy.ini'), (Join-Path $libs 'WASD.ini') $saved
 }
 
-Write-Host "Plugin installed (servers on 127.0.0.1:2345-2347). Next, in Content Manager / AC:"
-Write-Host "  1. Settings > Custom Shaders Patch > Install (needed for car resets)"
-Write-Host "  2. Options > General > UI Modules: enable sensors_par"
-Write-Host "  3. Options > Controls: load the 'Vjoy' preset"
-Write-Host "  4. Options > Video: framerate limit 50 FPS"
-Write-Host "Then: $AcPython $(Join-Path $PSScriptRoot 'check_ac.py') --live   (with a Hotlap session running)"
+Write-Host "Plugin installed (servers on 127.0.0.1:2345-2347, plugin drives vJoy at 100 Hz)."
+Write-Host "Next: platforms\windows\ac\README.md, 'Walkthrough' (controls, 100 FPS cap, Hotlap session)."
