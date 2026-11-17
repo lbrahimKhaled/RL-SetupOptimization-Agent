@@ -1,8 +1,10 @@
 # Windows keeper for one training run (port of the Mac keeper_f1.sh logic, without the auto-stop):
 #   every 3 min: mirror evals.jsonl into TensorBoard (scripts/evals_to_tb.py);
 #   if the training process is gone: resume it from last.zip (detached, at most -MaxResumes times),
-#   unless the run ended itself (status.json stop_reason set and state not 'error': completed, collapsed,
-#   plateau, wall-clock limit, demo / BC gate) or the stop flag <seed_dir>\STOP_KEEPER exists.
+#   unless the run ended itself (status.json phase 'done' = completed, plateau, wall-clock limit, collapsed;
+#   or state 'collapsed') or the stop flag <seed_dir>\STOP_KEEPER exists. stop_reason alone is not used: a
+#   failed BC gate that is not required (f1 presets) leaves it set while the run trains on. A gate failure
+#   that ends the run leaves no checkpoints\last.zip, so the keeper exits on that instead.
 # Never stops a run by itself: stop it with stop_run.ps1 (flag + wait for a fresh checkpoint save + kill).
 #
 #   platforms\windows\start_detached.ps1 -Log runs\windows\keeper_NAME.log platforms\windows\keeper.ps1 NAME [MAX_RESUMES] [PRIORITY]
@@ -55,8 +57,8 @@ while ($true) {
         if (Test-Path $Flag) { Log "stop flag present: keeper exits"; exit 0 }
         $st = $null
         try { $st = Get-Content (Join-Path $Seed 'status.json') -Raw | ConvertFrom-Json } catch {}
-        if ($st -and $st.stop_reason -and $st.state -ne 'error') {
-            Log "run ended itself (state $($st.state), stop_reason $($st.stop_reason)): keeper exits"; exit 0
+        if ($st -and ($st.phase -eq 'done' -or $st.state -eq 'collapsed')) {
+            Log "run ended itself (phase $($st.phase), state $($st.state), stop_reason $($st.stop_reason)): keeper exits"; exit 0
         }
         if (-not (Test-Path (Join-Path $Seed 'checkpoints\last.zip'))) {
             Log 'training not running and no checkpoints\last.zip to resume from: keeper exits'; exit 1
