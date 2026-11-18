@@ -9,7 +9,7 @@ import pytest
 from ocd_lap import cars
 from rlsetup.driving.config import EnvConfig, RewardConfig, CornerBonusConfig
 from rlsetup.driving.env import DrivingEnv
-from rlsetup.driving.train_config import PRESETS, config_json, train_config_from_dict, BCN_LINE_K
+from rlsetup.driving.train_config import PRESETS, config_json, train_config_from_dict, BCN_LINE_K, BCN_W4_LINE_K
 import speed_truth as ST
 
 needs_f1 = pytest.mark.skipif('sf70h_f1' not in cars.CARS, reason='sf70h_f1 needs ocd_first_lap branch sf70h-f1')
@@ -34,7 +34,7 @@ def test_to_dict_omits_the_keys_while_off_and_round_trips():
     for name, make in PRESETS.items():
         cfg = make()
         assert train_config_from_dict(json.loads(config_json(cfg))) == cfg, name
-        if name != 'bcn_f1_r4':
+        if not name.startswith('bcn_f1_r4'):
             assert '"line_k"' not in config_json(cfg), name
 
 
@@ -111,3 +111,14 @@ def test_preset_bcn_f1_r4_is_f1_r4_scratch_on_catalunya_plus_the_penalty():
     from rlsetup.driving import setups
     s, b = setups.get('bcn_f1_best'), setups.get('sha_f1_best')
     assert s.heave_freq_front_hz == 10. and s.replace(heave_freq_front_hz=b.heave_freq_front_hz) == b
+
+
+@needs_f1
+def test_preset_bcn_f1_r4_w4_is_bcn_f1_r4_on_iqp_w4_with_a_02m_band():
+    a, c = PRESETS['bcn_f1_r4'](), PRESETS['bcn_f1_r4_w4']()
+    assert c.env.reference == 'csv:docs/results/bcn_line_setup/line_iqp_w4.csv'
+    rw = c.env.reward
+    assert (rw.line_k, rw.line_free_m, rw.line_cap) == (BCN_W4_LINE_K, .2, .5) and BCN_W4_LINE_K == .0699
+    env = dataclasses.replace(c.env, reference=a.env.reference,
+                              reward=dataclasses.replace(rw, line_k=BCN_LINE_K, line_free_m=.5))
+    assert dataclasses.replace(c, preset=a.preset, env=env) == a

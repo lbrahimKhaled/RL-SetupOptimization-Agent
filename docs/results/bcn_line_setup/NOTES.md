@@ -43,3 +43,19 @@ U8 [3908, 4291] (T14-16, 3 apexes). The turn names are my reading of the s posit
 
 k = R4's maximum corner terms per lap / window length = (10 + 10) × 8 / 2269.9 m = **0.0705** per m driven per m
 past the 0.5 m free band (1 m past the band in every window costs 160 = 3.5 % of a lap's progress); cap 0.5 per m.
+
+## 5. Run bcn_f1_r4_w4 (18 Nov 2026): IQP w4.0, free band 0.2 m
+
+bcn_f1_r4 at 5.2M steps (best det lap 2 85.30 s at 3.2M, ~86 s since) completed the deterministic lap in only 30
+of 105 evaluations. Of the last 28 deterministic laps that left the track, 19 clipped an apex (|e| 0.4–0.6 m,
+rear slip ≤ 0.1, apex speed 5–15 % above v_qss: T1 833 m, T10 3465 m four evaluations running, T14 3963 m,
+T15 4102 m), 5 spun (rear slip ~0.93) and 4 ran wide (T7–8). On IQP w3.0 the footprint clears the edge by
+0.01 m at the tightest apex, so 0.5 m inside the line is off track while still inside the 0.5 m free band:
+the line penalty never fires before the edge. Ibrahim chose a fresh R4 run on **IQP w4.0** (min clearance
++0.51 m, QSS 80.818 s with bcn_f1_best) with a **0.2 m free band**: inside a corner window the penalty
+starts at least 0.31 m before any track edge (it also charges drift to the outside). On the 5.2M lap of
+bcn_f1_r4 a 0.2 m band would have cost 63.3 per lap instead of 38.9 (68 % of corner metres past the band).
+
+Corner table 59422f219dba (IQP w4.0): 8 units, windows 2287.9 m (49.7 %): U1 [737, 988], U2 [1131, 1316],
+U3 [1610, 1868], U4 [2012, 2274], U5 [2446, 2686], U6 [2825, 3027], U7 [3353, 3854], U8 [3907, 4296].
+k = 160 / 2287.9 = **0.0699**, cap 0.5 per m.

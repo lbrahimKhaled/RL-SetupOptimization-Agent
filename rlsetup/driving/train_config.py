@@ -526,6 +526,24 @@ def _bcn_f1_r4():
                    stop=replace(c.stop, plateau=False))
 
 
+LINE_BCN_IQP_W4 = 'csv:docs/results/bcn_line_setup/line_iqp_w4.csv'
+# k of bcn_f1_r4_w4, sized by the same rule as BCN_LINE_K: 160 / 2287.9 m of windows = 0.0699 (corner table
+# 59422f219dba on IQP w4.0, QSS 80.818 s on the line).
+BCN_W4_LINE_K = .0699
+
+
+def _bcn_f1_r4_w4():
+    """bcn_f1_r4 on a line with room at the apexes (Ibrahim, 18 Nov 2026): bcn_f1_r4 (5.2M steps, best lap 2
+    85.30 s) left the track mostly by clipping an apex by ~0.5 m, inside the 0.5 m free band, on a line with
+    +0.01 m footprint clearance. Here xi_ref = IQP w4.0 (min clearance +0.51 m; lines.json) and the free band is
+    0.2 m, so inside a corner window the line penalty starts at least 0.31 m before any track edge; k =
+    BCN_W4_LINE_K, cap 0.5 per m. Otherwise bcn_f1_r4 (from scratch). Run name: bcn_f1_r4_w4."""
+    c = _bcn_f1_r4()
+    return replace(c, preset='bcn_f1_r4_w4',
+                   env=replace(c.env, reference=LINE_BCN_IQP_W4,
+                               reward=replace(c.env.reward, line_k=BCN_W4_LINE_K, line_free_m=.2, line_cap=.5)))
+
+
 def _f1_r2_smoke():
     """f1_r2 compressed to 150k env steps (R2-9.2): w = 1 until 60k, fade to 0 at 120k,
     reportable from 150k (gap 30k); eval every 25k with 3 stochastic laps, probe every 5k,
@@ -542,7 +560,7 @@ def _f1_r2_smoke():
 
 PRESETS = {'full': lambda: TrainConfig(preset='full'), 'smoke': _smoke, 'r1_warm': _r1_warm,
            'r1_warm_smoke': _r1_warm_smoke, 'p1_TUM': _p1_tum,
-           'p0_TUMref': _p0_tumref, 'bcn': _bcn, 'bcn_f1_r4': _bcn_f1_r4, 'f1_sha': _f1_sha, 'f1_sha_w35': _f1_sha_w35,
+           'p0_TUMref': _p0_tumref, 'bcn': _bcn, 'bcn_f1_r4': _bcn_f1_r4, 'bcn_f1_r4_w4': _bcn_f1_r4_w4, 'f1_sha': _f1_sha, 'f1_sha_w35': _f1_sha_w35,
            'f1_best_w35': _f1_best_w35, 'f1_r2': _f1_r2, 'f1_r2_smoke': _f1_r2_smoke, 'f1_r3': _f1_r3,
            'f1_r4': _f1_r4, 'f1_r4_scratch': _f1_r4_scratch}
 
