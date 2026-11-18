@@ -9,14 +9,19 @@ SAC driving agent (pure RL policy; pure pursuit only made the BC demos and the 2
 
 Re-test on the Windows PC (`retest/`): each candidate drove the run's deterministic 2-lap evaluation and
 30 stochastic laps (seeds 5000-5029, identical for all). Candidates = the 4 fastest checkpoints per run
-whose own training evaluation had a clean deterministic lap and >= 8/10 clean stochastic laps.
+whose own training evaluation had a clean deterministic lap and >= 8/10 clean stochastic laps; after both runs
+were stopped (bcn_f1_r4 at 7.8M, bcn_f1_r4_w4 at 5.15M) the newer qualifying checkpoints were added (12 total).
 
 | run (line) | step | det lap 2 | stochastic clean | stochastic mean |
 |---|---|---|---|---|
 | **bcn_f1_r4 (w3.0)** | **6.4M** | **85.33 s** | **29/30** | **87.28 s** |
 | bcn_f1_r4_w4 (w4.0) | 3.2M | 85.87 s | 28/30 | 88.13 s |
 | bcn_f1_r4 (w3.0) | 3.2M | 85.28 s | 27/30 | 87.87 s |
+| bcn_f1_r4 (w3.0) | 3.7M | 85.58 s | 26/30 | 87.56 s |
+| bcn_f1_r4 (w3.0) | 7.1M | 85.62 s | 25/30 | 87.52 s |
 | bcn_f1_r4_w4 (w4.0) | 4.0M | 85.56 s | 25/30 | 87.71 s |
+| bcn_f1_r4 (w3.0) | 4.1M | off track | 24/30 | 87.65 s |
+| bcn_f1_r4 (w3.0) | 7.7M | 85.63 s | 23/30 | 87.59 s |
 | bcn_f1_r4 (w3.0) | 7.0M | 85.15 s | 24/30 | 87.25 s |
 | bcn_f1_r4_w4 (w4.0) | 3.6M | 86.46 s | 24/30 | 88.19 s |
 | bcn_f1_r4_w4 (w4.0) | 1.1M | 87.18 s | 22/30 | 89.24 s |
