@@ -227,7 +227,7 @@ nohup cloudflared tunnel --no-autoupdate --url http://127.0.0.1:6006 > runs/mac/
 Best models: `models/`. Line result: RL 103.06 → 102.57 s. Judge this setup at about 5M steps.
 
 ## 18 Nov 2026 — Barcelona run `bcn_f1_r4_w4` RUNNING on Windows (DECISIONS #29)
-- What: `bcn_f1_r4` (below) on xi_ref IQP w4.0 with the line penalty's free band 0.2 m (k 0.0699, cap 0.5/m), from scratch. Why: notes §5 of `docs/results/bcn_line_setup/NOTES.md`. No stop rule.
+- What: `bcn_f1_r4` (below) on xi_ref IQP w4.0 with the line penalty's free band 0.2 m (k 0.0699, cap 0.5/m), from scratch, with `--set guard.threshold=0.4` (the first launch collapsed at 40k under the 0.5 bar, DECISIONS #29; its folder is `runs\windows\D2\bcn_f1_r4_w4_collapsed40k`). Why: notes §5 of `docs/results/bcn_line_setup/NOTES.md`. No stop rule.
 - Keeper / stop / resume / TensorBoard: as for `bcn_f1_r4` below with the name `bcn_f1_r4_w4` (keeper log `runs\windows\keeper_bcn_f1_r4_w4.log`; TensorBoard logdir `runs\windows\D2`, both runs side by side).
 
 ## 17 Nov 2026 — Barcelona run `bcn_f1_r4` STOPPED on 18 Nov (resumable; replaced by `bcn_f1_r4_w4`; launched 18:47 on 17 Nov, commit 65767ef; DECISIONS #28)

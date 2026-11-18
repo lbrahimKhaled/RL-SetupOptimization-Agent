@@ -31,9 +31,12 @@ function Set-RunPriority {
     if (-not $Priority) { return }
     $all = @(Get-CimInstance Win32_Process)
     $ids = @($all | Where-Object { $_.Name -eq 'python.exe' -and $_.CommandLine -match $Pattern } | ForEach-Object { $_.ProcessId })
+    # visited set: Windows reuses PIDs, so a snapshot can hold a parent-id cycle (a process whose dead
+    # parent's PID went to its own descendant); without it this walk never ends (seen 18 Nov 2026)
     $tree = @($ids)
     while ($ids.Count) {
-        $ids = @($all | Where-Object { $ids -contains $_.ParentProcessId } | ForEach-Object { $_.ProcessId })
+        $ids = @($all | Where-Object { $ids -contains $_.ParentProcessId -and $tree -notcontains $_.ProcessId } |
+                 ForEach-Object { $_.ProcessId })
         $tree += $ids
     }
     foreach ($id in $tree) {
