@@ -15,7 +15,7 @@ import torch
 from stable_baselines3.common.torch_layers import FlattenExtractor
 from stable_baselines3.sac.policies import Actor
 
-from rlsetup.assetto.actor import ActorRuntime, SOURCE_OBS, export_actor, main
+from rlsetup.assetto.actor import ActorRuntime, SOURCE_OBS, export_actor, main, source_contract_sha256
 
 
 @pytest.fixture(scope='module', autouse=True)
@@ -269,13 +269,33 @@ def test_reject_unsupported_source(source, tmp_path, mutation):
     elif mutation == 'gear':
         config['env']['obs_gear'] = True
     elif mutation == 'car':
-        config['env']['car'] = 'sf70h_f1'
+        config['env']['car'] = 'av21'  # no AC counterpart / steering lock entry
     else:
         metadata['num_timesteps'] = None
     save()
     with pytest.raises(ValueError):
         export_actor(checkpoint, configuration, tmp_path / 'bundle')
     assert not (tmp_path / 'bundle').exists()
+
+
+@pytest.mark.parametrize('reference', ['path', 'csv:docs/results/bcn_line_setup/line_iqp_w3.csv', 'raceline', 'csv:'])
+def test_f1_source_lock_and_reference(source, tmp_path, reference):
+    """sf70h_f1 exports with its 0.30 rad lock (a new source contract); xi_ref may be Track.path or a
+    CSV line, never the raceline or an empty CSV name."""
+    _, metadata, config, checkpoint, configuration, save = source
+    legacy = ActorRuntime(bundle(source, tmp_path))
+    config['env']['car'] = 'sf70h_f1'
+    config['env']['reference'] = reference
+    save()
+    if reference in ('raceline', 'csv:'):
+        with pytest.raises(ValueError, match='reference'):
+            export_actor(checkpoint, configuration, tmp_path / 'f1')
+        return
+    runtime = ActorRuntime(export_actor(checkpoint, configuration, tmp_path / 'f1'))
+    assert legacy.steer_lock_rad == .6 and runtime.steer_lock_rad == .3
+    assert runtime.manifest['source_action']['steering_lock_rad'] == .3
+    assert runtime.source_config['env']['reference'] == reference
+    assert source_contract_sha256(runtime.manifest) != source_contract_sha256(legacy.manifest)
 
 
 def test_malformed_json_and_file_hashes(source, tmp_path):

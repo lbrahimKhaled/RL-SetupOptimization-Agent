@@ -233,6 +233,9 @@ def test_collector_stops_boundary_and_discards_invalid_next(monkeypatch, tmp_pat
     monkeypatch.setattr(d, 'source_contract_sha256', lambda manifest: 'a'*64)
     class Actor:
         manifest = {}
+        steer_lock_rad = .6  # legacy sf70h_tum source, R1 only
+        source_config = {'env': {'reward': dict(mode='time_pbrs', a=1., b=1., shaping_k=1.,
+                                                penalty_const=100., gamma=.992)}}
         def __init__(self, _path):
             pass
         calls = []

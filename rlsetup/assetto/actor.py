@@ -53,6 +53,9 @@ class SourceObservation:
 
 NETWORK = NetworkSpec()
 SOURCE_OBS = SourceObservation()
+# Supported OCD source cars -> road-wheel angle of steering action +-1 [rad]
+# (rlsetup.driving.demo_driver.steer_lock_rad: CarSpec.steer_max_rad, else ocd_lap MAX_STEER_RAD 0.6).
+SOURCE_STEER_LOCK_RAD = {'sf70h_tum': .6, 'sf70h_f1': .3}
 SCHEMA = 'rlsetup.ac3.source-actor'
 VERSION = 1
 WEIGHTS_FILE = 'actor.pt'
@@ -95,11 +98,17 @@ def _config(config: dict) -> dict:
     env = config.get('env')
     if not isinstance(env, dict):
         raise ValueError('source config must contain env')
-    expected = {'car': 'sf70h_tum', 'track': 'Catalunya', 'obs_gear': False,
-                'pedal_deadzone': True, 'reference': 'path', 'action_repeat': 2}
+    expected = {'track': 'Catalunya', 'obs_gear': False, 'pedal_deadzone': True, 'action_repeat': 2}
     for key, value in expected.items():
         if key not in env or type(env[key]) is not type(value) or env[key] != value:
             raise ValueError(f'unsupported source env.{key}')
+    if not isinstance(env.get('car'), str) or env['car'] not in SOURCE_STEER_LOCK_RAD:
+        raise ValueError('unsupported source env.car')
+    # xi_ref: Track.path or a repo CSV line; AC needs a matching reference file (ac_ocd_reference.py).
+    reference = env.get('reference')
+    if not isinstance(reference, str) or not (reference == 'path' or
+                                              (reference.startswith('csv:') and len(reference) > 4)):
+        raise ValueError('unsupported source env.reference')
     if env.get('obs') != asdict(SOURCE_OBS):
         raise ValueError('unsupported or incomplete source observation scales/layout')
     # bool is an int in Python; reject it explicitly in numeric configuration fields.
@@ -157,7 +166,7 @@ def _manifest(config: dict, source: dict, config_sha: str, weights_sha: str) -> 
         },
         'source_action': {
             'names': ['steering', 'throttle', 'brake'], 'bounds': [-1., 1.],
-            'steering_lock_rad': .6, 'steering_positive': 'left',
+            'steering_lock_rad': SOURCE_STEER_LOCK_RAD[env['car']], 'steering_positive': 'left',
             'pedal_formula': 'clip((a+0.5)/1.5,0,1)', 'decision_hz': 25.,
             'meaning': 'normalized source policy actions; AC controls require separately calibrated mapping',
         },
@@ -360,6 +369,9 @@ class ActorRuntime:
             self._actor = _Actor().cpu().eval().requires_grad_(False)
         self._actor.load_state_dict(weights, strict=True)
         self.manifest = manifest
+        self.source_config = _json(config_data)
+        # Road-wheel angle of steering action +-1 the source policy was trained with [rad].
+        self.steer_lock_rad = float(manifest['source_action']['steering_lock_rad'])
 
     def _observation(self, observation: np.ndarray) -> torch.Tensor:
         if (not isinstance(observation, np.ndarray) or observation.dtype != np.float32

@@ -40,6 +40,15 @@ def number(packet, key):
 
 REFERENCES = ('centerline', 'fast_lane', 'ocd_path')
 OCD_REFERENCE_SCHEMA = 'rlsetup.ac.ocd-reference.v1'
+# v2 (scripts/ac_ocd_reference.py --source-run): the source run's own xi_ref (Track.path or a CSV
+# line) plus, per AC row, the OCD Track.path station, the R4 corner-table speed and corner-window
+# flag, and the source env's settle/stall settings; bound to the source config by SHA-256.
+OCD_REFERENCE_SCHEMA_V2 = 'rlsetup.ac.ocd-reference.v2'
+SETTLE_KEYS = ('rear_axle_m', 'wheelbase_m', 'steer_lock_rad', 'lookahead_m', 'lookahead_s', 'speed_kp',
+               'speed_ki', 'integral_limit_m', 'brake_cap', 'traction_control', 'traction_slip_start',
+               'traction_slip_span', 'released_pedal_action', 'settle_s', 'start_speed_fraction',
+               'eval_speed_fraction', 'settle_window_margin_m', 'stall_speed_mps', 'stall_time_s',
+               'wrong_way_rad')
 
 
 def ac_borders_sha256(left, right):
@@ -65,12 +74,88 @@ def load_reference(track, reference, reference_file=None):
     data = Path(reference_file).read_bytes()
     saved = _json(data)
     rows = np.asarray(saved.get('rows'), dtype=float)
-    if (saved.get('schema') != OCD_REFERENCE_SCHEMA or saved.get('reference') != 'ocd_path'
+    if (saved.get('schema') not in (OCD_REFERENCE_SCHEMA, OCD_REFERENCE_SCHEMA_V2)
+            or saved.get('reference') != 'ocd_path'
             or rows.ndim != 2 or rows.shape != np.asarray(track['left_lane'], dtype=float).shape):
         raise ValueError('invalid OCD reference file for this AC track')
     if saved.get('ac_borders_sha256') != ac_borders_sha256(track['left_lane'], track['right_lane']):
         raise ValueError('OCD reference file was made for different AC track borders')
-    return dict(track, ocd_path=rows.tolist()), hashlib.sha256(data).hexdigest()
+    result = dict(track, ocd_path=rows.tolist())
+    if saved['schema'] == OCD_REFERENCE_SCHEMA_V2:
+        result['ocd_profile'] = _profile_fields(saved, len(rows))
+    return result, hashlib.sha256(data).hexdigest()
+
+
+def _profile_fields(saved, n):
+    """Validated v2 per-row profile, settle settings and source binding (JSON numbers/strings)."""
+    profile, settle, source = saved.get('profile'), saved.get('settle'), saved.get('source')
+    if not all(isinstance(x, dict) for x in (profile, settle, source)):
+        raise ValueError('v2 reference needs profile, settle and source objects')
+    arrays = {}
+    for key in ('s_path_m', 'v_qss_mps', 'v_start_mps', 'corner'):
+        value = np.asarray(profile.get(key), dtype=float)
+        if value.shape != (n,) or not np.isfinite(value).all():
+            raise ValueError(f'v2 reference profile.{key} must have one finite value per row')
+        arrays[key] = value
+    if (np.any(np.diff(arrays['s_path_m']) <= 0) or np.any(arrays['v_qss_mps'] <= 0)
+            or np.any(arrays['v_start_mps'] <= 0) or not np.isin(arrays['corner'], (0., 1.)).all()):
+        raise ValueError('v2 reference profile out of range (increasing s_path, speeds > 0, corner 0/1)')
+    length = profile.get('path_length_m')
+    # A closing duplicate row (first = last point) sits exactly one lap on.
+    if not _numeric(length) or length <= 0 or arrays['s_path_m'][-1]-arrays['s_path_m'][0] > length+1e-6:
+        raise ValueError('v2 reference profile needs the OCD Track.path length')
+    if set(settle) != set(SETTLE_KEYS) or not all(
+            (isinstance(settle[k], bool) if k == 'traction_control' else
+             isinstance(settle[k], list) and len(settle[k]) == 2 and all(_numeric(x) for x in settle[k])
+             if k == 'start_speed_fraction' else _numeric(settle[k])) for k in SETTLE_KEYS):
+        raise ValueError('v2 reference settle settings incomplete or not numeric')
+    digest = source.get('source_config_sha256')
+    if not isinstance(digest, str) or len(digest) != 64:
+        raise ValueError('v2 reference must name its source config SHA-256')
+    return dict(arrays, path_length_m=float(length), settle=dict(settle), source_config_sha256=digest)
+
+
+class Profile:
+    """OCD quantities at an AC reference station (v2 reference rows; linear, wrapping).
+
+    s_path(station): OCD Track.path arc length [m] (unwrapped by row); progress for the reward uses
+    its wrapped difference, as OCD's ds. v_qss(station): R4 corner-table speed [m/s] (QSS on xi_ref).
+    v_start_min(station, distance): minimum of the env's QSS profile on Track.path, which sets
+    OCD's start speed. corner(station): 1 inside a corner window (flag of the row segment).
+    """
+    def __init__(self, fields, geometry):
+        n = len(geometry.ref)  # Geometry drops a closing duplicate row
+        self.geometry, self.length = geometry, fields['path_length_m']
+        self.s_path_rows = fields['s_path_m'][:n]
+        self.v_rows, self.corner_rows = fields['v_qss_mps'][:n], fields['corner'][:n]
+        self.v_start_rows = fields['v_start_mps'][:n]
+        self.settle = fields['settle']
+        self._x = np.r_[geometry.stations[:-1], geometry.length]
+        self._s = np.r_[self.s_path_rows, self.s_path_rows[0]+self.length]
+
+    def s_path(self, station):
+        return float(np.interp(float(station) % self.geometry.length, self._x, self._s) % self.length)
+
+    def path_progress(self, old_station, new_station):
+        d = self.s_path(new_station)-self.s_path(old_station)
+        return float((d+self.length/2) % self.length-self.length/2)
+
+    def v_qss(self, station):
+        return float(np.interp(np.asarray(station, dtype=float) % self.geometry.length, self._x,
+                               np.r_[self.v_rows, self.v_rows[0]]).min())
+
+    def v_start(self, station):
+        return float(np.interp(np.asarray(station, dtype=float) % self.geometry.length, self._x,
+                               np.r_[self.v_start_rows, self.v_start_rows[0]]).min())
+
+    def v_start_min(self, start, distance):
+        """Minimum start-QSS speed over [start, start + distance] stations (1 m spacing)."""
+        return self.v_start(start+np.arange(0., max(distance, 0.)+1., 1.))
+
+    def corner(self, station):
+        station = float(station) % self.geometry.length
+        i = int(np.searchsorted(self.geometry.stations, station, side='right')-1)
+        return bool(self.corner_rows[min(i, len(self.corner_rows)-1)])
 
 
 class Geometry:
@@ -261,14 +346,106 @@ def reward(progress, dt, old_e, new_e, *, failure=False):
     return float(progress-dt+GAMMA*phi_next+abs(old_e)-(100. if failure else 0.))
 
 
-def controls(action, steering, seq, *, saturation='reject'):
+@dataclass(frozen=True)
+class RewardTerms:
+    """The source env.reward terms added to R1 (rlsetup/driving/config.py RewardConfig, time_pbrs):
+
+    speed potential  F_v = gamma Phi_v(s') - Phi_v(s), Phi_v = speed_k g(v, v_qss(s)),
+                     g = max(0, 1 - ((v - v*) / (speed_sigma v*))^2); Phi_v(s') = 0 after a terminal failure.
+    line penalty     min(line_k max(0, |e| - line_free_m), line_cap) max(0, ds) when the decision ends in a
+                     corner window (OCD applies it per 50 Hz tick; here once per 25 Hz decision).
+    All zero (R1 only) for sources trained without them.
+    """
+    speed_k: float = 0.
+    speed_sigma: float = .3
+    line_k: float = 0.
+    line_free_m: float = .5
+    line_cap: float = .5
+
+    @classmethod
+    def from_source(cls, config):
+        rw = config.get('env', {}).get('reward')
+        if not isinstance(rw, dict):
+            raise ValueError('source config has no env.reward')
+        # The AC R1 above hard-codes these source values; any other source reward is unsupported.
+        for key, value in dict(mode='time_pbrs', a=1., b=1., shaping_k=1., penalty_const=100., gamma=GAMMA).items():
+            if rw.get(key) != value:
+                raise ValueError(f'unsupported source env.reward.{key}={rw.get(key)!r} (AC implements {value!r})')
+        values = {name: rw.get(name, getattr(cls, name)) for name in
+                  ('speed_k', 'speed_sigma', 'line_k', 'line_free_m', 'line_cap')}
+        if any(not _numeric(v) or v < 0 for v in values.values()) or values['speed_sigma'] <= 0:
+            raise ValueError('source reward terms must be finite and nonnegative')
+        return cls(**{k: float(v) for k, v in values.items()})
+
+    @property
+    def active(self):
+        return self.speed_k > 0 or self.line_k > 0
+
+    def phi_v(self, speed, v_qss):
+        if not self.speed_k:
+            return 0.
+        x = (speed-v_qss)/(self.speed_sigma*v_qss)
+        return self.speed_k*max(0., 1.-x*x)
+
+    def line_penalty(self, abs_e, ds, in_corner):
+        if not self.line_k or not in_corner or ds <= 0:
+            return 0.
+        return min(self.line_k*max(0., abs_e-self.line_free_m), self.line_cap)*ds
+
+
+def controls(action, steering, seq, *, saturation='reject', steer_lock_rad=.6):
+    """AC command for a source action; steering action +-1 = +-steer_lock_rad road-wheel angle
+    (the source car's lock: 0.6 rad sf70h_tum, 0.30 rad sf70h_f1; ActorRuntime.steer_lock_rad)."""
     action = np.asarray(action)
     if action.shape != (3,) or not np.isfinite(action).all() or np.any(abs(action) > 1):
         raise ValueError('finite normalized action[3] required')
+    if not _numeric(steer_lock_rad) or not 0 < steer_lock_rad <= 1:
+        raise ValueError('steer_lock_rad must be in (0, 1] rad')
     pedals = np.clip((action[1:]+.5)/1.5, 0, 1)
-    return dict(steer=steering.command(.6*float(action[0]), saturation=saturation), acc=float(2*pedals[0]-1),
+    return dict(steer=steering.command(steer_lock_rad*float(action[0]), saturation=saturation), acc=float(2*pedals[0]-1),
                 brake=float(2*pedals[1]-1), server_steps=int(seq),
                 enable_gear_shift=False, shift_up=False, shift_down=False)
+
+
+def body_vx(packet):
+    """Forward speed in the car frame [m/s] (same formula as Observation.build)."""
+    yaw = number(packet, 'yaw')
+    return math.cos(yaw)*number(packet, 'velocity_z')+math.sin(yaw)*number(packet, 'velocity_x')
+
+
+class SettleDriver:
+    """OCD's settle / demo controller (rlsetup/driving/demo_driver.py DemoDriver) on the AC reference.
+
+    Pure pursuit from the rear axle to the reference point lookahead_m + lookahead_s v_x ahead,
+    steering atan(2 L sin(alpha) / d) within the lock; speed PI on the pedals (speed_kp per m/s,
+    speed_ki per m, integral clipped), brake pedal capped at brake_cap, throttle scaled down by
+    rear-slip traction control. Returns source actions (pedal_deadzone inverse, released pedal
+    action when a pedal is 0), so the policy's history at hand-over holds settle actions as in OCD.
+    """
+    def __init__(self, settle, geometry):
+        self.c, self.geometry = settle, geometry
+        self.integral = 0.
+
+    def act(self, packet, station, target_mps, dt):
+        c = self.c
+        position = np.array([number(packet, 'world_position_x'), number(packet, 'world_position_y')])
+        yaw, vx = number(packet, 'yaw'), body_vx(packet)
+        rear = position-c['rear_axle_m']*np.array([math.cos(yaw), math.sin(yaw)])
+        goal, _, _ = self.geometry.at(station-c['rear_axle_m']+c['lookahead_m']+c['lookahead_s']*max(vx, 0.))
+        d = goal-rear
+        alpha = math.atan2(d[1], d[0])-yaw
+        lock = c['steer_lock_rad']
+        steer = float(np.clip(math.atan2(2.*c['wheelbase_m']*math.sin(alpha), np.linalg.norm(d)), -lock, lock))
+        error = target_mps-vx
+        self.integral = float(np.clip(self.integral+error*dt, -c['integral_limit_m'], c['integral_limit_m']))
+        u = c['speed_kp']*error+c['speed_ki']*self.integral
+        throttle = min(1., max(0., u))
+        slip = max(abs(number(packet, 'tyre_slip_ratio_rl')), abs(number(packet, 'tyre_slip_ratio_rr')))
+        if c['traction_control'] and slip > c['traction_slip_start']:
+            throttle *= max(0., 1.-(slip-c['traction_slip_start'])/c['traction_slip_span'])
+        brake = min(c['brake_cap'], max(0., -u))
+        pedal = lambda p: -.5+1.5*p if p > 0. else c['released_pedal_action']
+        return np.array([np.clip(steer/lock, -1., 1.), pedal(throttle), pedal(brake)], dtype=np.float32)
 
 
 @dataclass(frozen=True)
@@ -286,6 +463,7 @@ class CollectConfig:
     final_brake: bool = False
     exploration_std_scale: float = 0.  # 0 = deterministic policy mean
     exploration_seed: int = 0
+    runup_max_s: float = 30.  # v2 reference: settle run-up must reach hand-over within this
 
     def __post_init__(self):
         if type(self.final_brake) is not bool:
@@ -298,7 +476,7 @@ class CollectConfig:
         CaptureConfig(self.host, port=self.port)
         if type(self.max_steps) is not int or not 0 < self.max_steps <= 100000:
             raise ValueError('max_steps must be in 1..100000')
-        for value in (self.min_dt, self.max_dt, self.max_wall_s, self.timeout_s):
+        for value in (self.min_dt, self.max_dt, self.max_wall_s, self.timeout_s, self.runup_max_s):
             if not math.isfinite(value) or value <= 0:
                 raise ValueError('dimensions/timing must be finite positive')
         if self.steering_saturation not in ('clip', 'reject'):
@@ -309,8 +487,9 @@ class CollectConfig:
 
 class Session:
     """Fresh contiguous UDP telemetry and counter echo; releases before disconnect."""
-    def __init__(self, config, steering):
+    def __init__(self, config, steering, steer_lock_rad=.6):
         self.config, self.steering = config, steering
+        self.steer_lock_rad = steer_lock_rad  # source car lock; parked/hold commands only steer 0
         self.sock = None
         self.last = None
         self.received = None
@@ -369,7 +548,8 @@ class Session:
     def send(self, action):
         if self.last is None or time.monotonic()-self.received > self.config.max_dt:
             raise ValueError('cannot control stale telemetry')
-        command = controls(action, self.steering, self.last['steps'], saturation=self.config.steering_saturation)
+        command = controls(action, self.steering, self.last['steps'], saturation=self.config.steering_saturation,
+                           steer_lock_rad=self.steer_lock_rad)
         self.sock.send(json.dumps(command, allow_nan=False).encode())
         return command
 
@@ -421,6 +601,49 @@ def write_chunk(path, rows, metadata):
         os.unlink(temporary)
 
 
+def _settle(session, observation, profile, geometry, state, current, config, deadline):
+    """OCD's reset on AC (rlsetup/driving/env.py 'reset', training): the settle driver drives the car
+    from the parked hand-over up to v0 = f min v_qss over [s, s + f v_qss(s) settle_s + margin] and
+    holds it for settle_s, then the policy takes over. The target is re-evaluated at the car's
+    station (OCD places the car at v0; AC must accelerate first, so the window moves with it).
+    f = eval_speed_fraction for deterministic drives, else f ~ U(start_speed_fraction) seeded by the
+    drive's exploration seed. Nothing of the run-up is stored. Returns (first policy observation or
+    None when the run-up failed, latest packet, start metadata)."""
+    c = profile.settle
+    if config.exploration_std_scale == 0:
+        fraction = float(c['eval_speed_fraction'])
+    else:
+        fraction = float(np.random.default_rng(config.exploration_seed).uniform(*c['start_speed_fraction']))
+    driver, action, obs = SettleDriver(c, geometry), RELEASE_ACTION, None
+    elapsed, hold_from, dt = 0., None, .04
+    start = dict(mode='ocd_settle', fraction=fraction, outcome=None)
+    _, _, (station, _, _) = state(current)
+    while True:
+        speed = math.hypot(number(current, 'velocity_z'), number(current, 'velocity_x'))
+        window = fraction*profile.v_start(station)*c['settle_s']+c['settle_window_margin_m']
+        target = fraction*profile.v_start_min(station, window)
+        start.update(runup_s=elapsed, speed_mps=speed, target_mps=target, station_m=station)
+        if hold_from is None and speed >= .9*target:
+            hold_from = elapsed
+        if obs is not None and hold_from is not None and elapsed-hold_from >= c['settle_s']:
+            start['outcome'] = 'handover'
+            return obs, current, start
+        if elapsed >= config.runup_max_s:
+            start['outcome'] = 'runup_timeout'
+            return None, current, start
+        action = driver.act(current, station, target, dt)
+        session.send(action)
+        following = session.receive(deadline)
+        dt = following['timestamp_ac']-current['timestamp_ac']
+        elapsed += dt
+        obs = observation.build(following, action)
+        _, yaw, (station, _, heading) = state(following)
+        current = following
+        if number(following, 'numberOfTyresOut') >= 1 or abs(wrap(yaw-heading)) > c['wrong_way_rad']:
+            start.update(outcome='runup_off_track', runup_s=elapsed)
+            return None, current, start
+
+
 def collect(config, actor_bundle, calibration, *, reference, output, execute=False, reference_file=None):
     """One explicit handover/chunk; dry run validates local inputs without connecting."""
     steering = SteeringMap(json.loads(Path(calibration).read_text()))
@@ -441,6 +664,23 @@ def collect(config, actor_bundle, calibration, *, reference, output, execute=Fal
     track, reference_file_sha256 = load_reference(track, reference, reference_file)
     geometry = Geometry(track, reference=reference)
     observation = Observation(geometry, steering.baseline)
+    profile = Profile(track['ocd_profile'], geometry) if 'ocd_profile' in track else None
+    terms = RewardTerms.from_source(actor.source_config)
+    source_env = actor.source_config['env']
+    stall_speed, stall_time = float(source_env.get('stall_speed_mps', 3.)), float(source_env.get('stall_time_s', 2.))
+    if terms.active and profile is None:
+        raise ValueError('the source reward has R4 terms: use a v2 reference file (ac_ocd_reference.py --source-run)')
+    if profile is not None:
+        if track['ocd_profile']['source_config_sha256'] != actor.manifest['source']['config_sha256']:
+            raise ValueError('v2 reference file was made for a different source run config')
+        if profile.settle['steer_lock_rad'] != actor.steer_lock_rad:
+            raise ValueError('v2 reference settle lock differs from the source actor lock')
+        stall_speed, stall_time = profile.settle['stall_speed_mps'], profile.settle['stall_time_s']
+    if actor.steer_lock_rad > max(-steering.angles[0], steering.angles[-1])+1e-9:
+        print(json.dumps(dict(warning='source steering lock exceeds the measured AC calibration domain; '
+                                      'large actions will saturate', steer_lock_rad=actor.steer_lock_rad,
+                              calibration_domain_rad=[float(steering.angles[0]), float(steering.angles[-1])])),
+              flush=True)
     rows, reason = [], 'max_steps'
     deadline = time.monotonic()+config.max_wall_s
     progress_total = 0.
@@ -453,20 +693,31 @@ def collect(config, actor_bundle, calibration, *, reference, output, execute=Fal
                     steering_saturation=config.steering_saturation, saturation_count=0,
                     release_history_action=RELEASE_ACTION.tolist(),
                     calibration_sha256=hashlib.sha256(Path(calibration).read_bytes()).hexdigest(),
-                    track_geometry_sha256=hashlib.sha256(json.dumps(track, sort_keys=True).encode()).hexdigest(),
+                    # v2 profile arrays are identified by reference_file_sha256, not hashed here.
+                    track_geometry_sha256=hashlib.sha256(json.dumps(
+                        {k: v for k, v in track.items() if k != 'ocd_profile'}, sort_keys=True).encode()).hexdigest(),
                     reference_geometry_sha256=hashlib.sha256(np.ascontiguousarray(
                         np.stack([geometry.ref, geometry.left, geometry.right])).tobytes()).hexdigest(),
                     reference_length_m=geometry.length, reference_file_sha256=reference_file_sha256,
                     terminal_evidence=None,
                     rollout_mode='explore' if config.exploration_std_scale > 0 else 'deterministic',
                     exploration_std_scale=float(config.exploration_std_scale),
-                    exploration_seed=config.exploration_seed)
+                    exploration_seed=config.exploration_seed,
+                    steer_lock_rad=actor.steer_lock_rad, start=None)
+    if profile is not None:
+        # MDP terms beyond legacy R1; part of the replay identity (learn.replay_identity).
+        metadata['source_terms'] = dict(asdict(terms), progress='ocd_track_path', start='ocd_settle',
+                                        stall_speed_mps=stall_speed, stall_time_s=stall_time)
     generator = None
     if config.exploration_std_scale > 0:
         import torch
         generator = torch.Generator(device='cpu').manual_seed(config.exploration_seed)
     try:
-        with Session(config, steering) as session:
+        with Session(config, steering, actor.steer_lock_rad) as session:
+            def state(packet):
+                pos = np.array([number(packet, 'world_position_x'), number(packet, 'world_position_y')])
+                yaw = number(packet, 'yaw')
+                return pos, yaw, geometry.project(pos)
             obs = None
             while obs is None:
                 current = session.receive(deadline)
@@ -478,14 +729,16 @@ def collect(config, actor_bundle, calibration, *, reference, output, execute=Fal
                         raise ValueError('handover requires released throttle/brake')
                 session.send(RELEASE_ACTION)
                 obs = observation.build(current, RELEASE_ACTION)
-            def state(packet):
-                pos = np.array([number(packet, 'world_position_x'), number(packet, 'world_position_y')])
-                yaw = number(packet, 'yaw')
-                return pos, yaw, geometry.project(pos)
+            if profile is not None:
+                obs, current, start = _settle(session, observation, profile, geometry, state, current, config, deadline)
+                metadata['start'] = start
             old_pos, old_yaw, (old_s, old_e, _) = state(current)
-            if number(current, 'numberOfTyresOut') >= 1:
+            if obs is not None and number(current, 'numberOfTyresOut') >= 1:  # obs None: failed run-up
                 raise ValueError('handover wheels outside track')
-            for _ in range(config.max_steps):
+            stall_s = 0.
+            phi_v = (terms.phi_v(math.hypot(number(current, 'velocity_z'), number(current, 'velocity_x')),
+                                 profile.v_qss(old_s)) if terms.active else 0.)
+            for _ in range(config.max_steps if obs is not None else 0):
                 action = (actor.predict(obs) if generator is None else
                           actor.predict(obs, deterministic=False, generator=generator,
                                         std_scale=config.exploration_std_scale))
@@ -506,25 +759,38 @@ def collect(config, actor_bundle, calibration, *, reference, output, execute=Fal
                 failure = wheel_off_track or wrong_way
                 progress_total += ds
                 lap = progress_total >= geometry.length
-                desired = .6*float(action[0])
+                # OCD progress is Track.path arc length; v2 references map AC stations onto it.
+                ds_reward = profile.path_progress(old_s, station) if profile is not None else ds
+                value = reward(ds_reward, dt, old_e, e, failure=failure)
+                if terms.active:
+                    phi_v_next = 0. if failure else terms.phi_v(speed, profile.v_qss(station))
+                    value += GAMMA*phi_v_next-phi_v
+                    value -= terms.line_penalty(abs(e), ds_reward, profile.corner(station))
+                    phi_v = phi_v_next
+                # OCD (time_pbrs): speed < stall_speed for > stall_time is a truncation, no penalty.
+                stall_s = stall_s+dt if speed < stall_speed else 0.
+                stalled = profile is not None and not failure and not lap and stall_s > stall_time
+                desired = actor.steer_lock_rad*float(action[0])
                 effective = float(np.clip(desired, steering.angles[0], steering.angles[-1]))
                 metadata['saturation_count'] += int(effective != desired)
-                rows.append(dict(obs=obs, next_obs=next_obs, actions=action,
-                                 rewards=reward(ds, dt, old_e, e, failure=failure),
-                                 terminated=failure, truncated=lap and not failure, dt=dt, episode_id=0, seq=current['steps'],
+                rows.append(dict(obs=obs, next_obs=next_obs, actions=action, rewards=value,
+                                 terminated=failure, truncated=(lap or stalled) and not failure, dt=dt, episode_id=0,
+                                 seq=current['steps'],
                                  timestamp_ac=current['timestamp_ac'], next_timestamp_ac=following['timestamp_ac'],
                                  command=[command['steer'], command['acc'], command['brake']],
                                  desired_road_angle=desired, executed_road_angle=effective))
                 current, obs, old_s, old_e = following, next_obs, station, e
-                if failure or lap:
+                if failure or lap or stalled:
                     if failure:
                         reason = ('wheel_off_track_and_wrong_way' if wheel_off_track and wrong_way
                                   else 'wheel_off_track' if wheel_off_track else 'wrong_way')
                         metadata['terminal_evidence'] = dict(numberOfTyresOut=tyres_out,
                                                              heading_error_rad=heading_error)
                     else:
-                        reason = 'lap_complete'
+                        reason = 'lap_complete' if lap else 'stall'
                     break
+            if obs is None:
+                reason = metadata['start']['outcome']
     except KeyboardInterrupt:
         reason = 'interrupted'
     except (OSError, ValueError, TimeoutError) as exc:

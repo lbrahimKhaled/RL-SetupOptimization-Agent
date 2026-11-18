@@ -198,6 +198,10 @@ def read_chunk(path: str | Path, actor_manifest_sha256: str, contract_sha256: st
         if (not isinstance(digest, str) or re.fullmatch('[0-9a-f]{64}', digest) is None
                 or type(length) not in (int, float) or not np.isfinite(length) or length <= 0):
             raise ValueError(f"{metadata['reference']} reference geometry provenance required")
+    terms = metadata.get('source_terms')  # v2 reference: R4 terms, OCD progress/start/stall
+    if terms is not None and (not isinstance(terms, dict) or not terms or any(
+            not (isinstance(v, str) or (type(v) in (int, float) and np.isfinite(v))) for v in terms.values())):
+        raise ValueError('invalid chunk source_terms')
     lo, hi = metadata['min_dt_s'], metadata['max_dt_s']
     if (type(lo) not in (int, float) or type(hi) not in (int, float)
             or not 0 < lo <= hi or np.any(arrays['dt'] < lo) or np.any(arrays['dt'] > hi)
@@ -222,6 +226,8 @@ def replay_identity(metadata: dict) -> dict:
     identity = {key: metadata[key] for key in ('target', 'reference', 'gamma', 'min_dt_s', 'max_dt_s', 'reward_mode')}
     if metadata['reference'] != 'centerline':
         identity.update({key: metadata[key] for key in ('reference_geometry_sha256', 'reference_length_m')})
+    if 'source_terms' in metadata:  # v2 reference chunks never mix with R1-only replay
+        identity['source_terms'] = metadata['source_terms']
     return identity
 
 
