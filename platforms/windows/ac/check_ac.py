@@ -90,6 +90,12 @@ def game_side():
     launcher = AC_DOCS / 'cfg' / 'launcher.ini'
     x86 = launcher.exists() and any(l.strip() == 'X86=1' for l in launcher.read_text(errors='replace').splitlines())
     check('AC runs 64-bit (launcher.ini X86=0)', not x86, 'set X86=0 in ' + str(launcher) if x86 else '')
+    # Without this CSP option, AC stops reading vJoy when it loses focus (screen lock, another window).
+    csp = AC_DOCS / 'cfg' / 'extension' / 'general.ini'
+    bg = csp.exists() and any(l.split(';')[0].replace(' ', '') == 'INACTIVE_ONLY_WHEN_COVERED=1'
+                              for l in csp.read_text(errors='replace').splitlines())
+    check('CSP keeps vJoy input when unfocused', bg, '' if bg else 'run install_ac_plugin.ps1, then restart AC',
+          required=False)
     check(f'car {CAR}', (AC_INSTALL / 'content' / 'cars' / CAR).is_dir())
     check(f'track {TRACK}', (AC_INSTALL / 'content' / 'tracks' / TRACK).is_dir())
 

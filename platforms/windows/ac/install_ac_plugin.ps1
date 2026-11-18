@@ -49,5 +49,22 @@ if ($PSCmdlet.ShouldProcess($saved, 'copy Vjoy.ini, WASD.ini')) {
     Copy-Item -Force (Join-Path $libs 'Vjoy.ini'), (Join-Path $libs 'WASD.ini') $saved
 }
 
+# CSP: keep reading controller (vJoy) input when AC is not the focused window. Without it, a screen
+# lock or a click on another window freezes the car on its last input (18 Nov 2026: the worker failed
+# 5 preparations and exited). Only an existing [CONTROL] INACTIVE_ONLY_WHEN_COVERED line is changed.
+$csp = Join-Path $AcDocs 'cfg\extension\general.ini'
+if ($PSCmdlet.ShouldProcess($csp, '[CONTROL] INACTIVE_ONLY_WHEN_COVERED=1')) {
+    New-Item -ItemType Directory -Force (Split-Path $csp) | Out-Null
+    $text = if (Test-Path $csp) { [IO.File]::ReadAllText($csp) } else { '' }
+    if ($text -match '(?m)^\s*INACTIVE_ONLY_WHEN_COVERED\s*=') {
+        $text = $text -replace '(?m)^(\s*INACTIVE_ONLY_WHEN_COVERED\s*=\s*)\d', '${1}1'
+    } elseif ($text -match '(?m)^\[CONTROL\]') {
+        $text = $text -replace '(?m)^\[CONTROL\]\r?\n', "[CONTROL]`r`nINACTIVE_ONLY_WHEN_COVERED=1`r`n"
+    } else {
+        $text = $text + "`r`n[CONTROL]`r`nINACTIVE_ONLY_WHEN_COVERED=1`r`n"
+    }
+    [IO.File]::WriteAllText($csp, $text)
+}
+
 Write-Host "Plugin installed (servers on 127.0.0.1:2345-2347, plugin drives vJoy at 100 Hz)."
 Write-Host "Next: platforms\windows\ac\README.md, 'Walkthrough' (controls, 100 FPS cap, Hotlap session)."
