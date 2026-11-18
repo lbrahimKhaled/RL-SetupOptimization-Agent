@@ -1,0 +1,364 @@
+{
+ "rlsetup": {
+  "path": "C:\\Users\\imk14\\Documents\\RL-SetupOptimization-Agent",
+  "commit": "d54bb027d53a581dbce947eadeba0cfa30e55084",
+  "dirty": false,
+  "untracked": false,
+  "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "rlsetup_sources_sha256": {
+  "rlsetup/__init__.py": "e54c1d042ab47972bb61868a40c841a34334c935b8628225ae2029cb7799f647",
+  "rlsetup/assetto/__init__.py": "8e32aa791cf83882ca1a788a5cffceddb013e5df7982eecace14f098f3f5d174",
+  "rlsetup/assetto/__main__.py": "7fc8423be4e282fee703b441ad66cf7ef108b7444cf48a1aee9a9b6f561fee90",
+  "rlsetup/assetto/actor.py": "95b300dbcad427478314173e84ad64a2d0ce507c95d03d04323fc53ef61f3273",
+  "rlsetup/assetto/calibration.py": "d8c1961f4cd46d458f0d2e333aeea694c92f67ac5344a321d7b3c56579da4c83",
+  "rlsetup/assetto/distributed.py": "a4e36ffc781e42191d442bed9b95976637383df43fdd8312fe771f0041582f8b",
+  "rlsetup/assetto/driving.py": "a077328ecfb86005cc1e0ab3947b57dc44b2331d4cfb5ea15199f2be7d8e3ca3",
+  "rlsetup/assetto/handover.py": "afb8d15ad631fc156a9a1af8d4bb86177dee85d5019ba45c15c65016f074ed37",
+  "rlsetup/assetto/learn.py": "37d607cd41ee8222d02443ecbbf4978950aeebbcc9c8999b53d1318aa060ce40",
+  "rlsetup/assetto/management.py": "8a6d30ac86ca82177714f9845a45d904af422e234d1b213b6afbfeeeb1b6cd57",
+  "rlsetup/assetto/telemetry.py": "a81b203e34127da09478abc93e3f7553d8feb0edffeb254a8ca2102174bb20dd",
+  "rlsetup/driving/__init__.py": "e51bed95f0dfa7bb68b0353ac1d1cc13d02e66a1f6c3b5eb92b95e176eb48eb9",
+  "rlsetup/driving/agent.py": "c51e2a7778971c5cde52f85c03366ecc3c8cbbae6424b08e6d6add2d1d6bf261",
+  "rlsetup/driving/bc.py": "0ecc9d18a552d3f4a36a56cc173fb915ca291c88a5296cd2225fe76aae254c0e",
+  "rlsetup/driving/buffers.py": "2eb78d704497c2e4ad80fbec0726d1095a7782378b19863e08f1370e2517fe63",
+  "rlsetup/driving/callbacks.py": "73c88a0fafa742eed523cd9ec5e1ddfc75f1a98669f4eaebf9ba54cdf279ab13",
+  "rlsetup/driving/config.py": "ebabd79ac2be74810a595a97ddbbd2ddc4da64dd26870804072826637fdd3d42",
+  "rlsetup/driving/corners.py": "c2f6cb699652d6060060599ce5251a057614c90ddfdb748a09d66ef9870ad185",
+  "rlsetup/driving/demo_driver.py": "d429efc6287fc09aaeb78422ffa43f6adf8002d78ac557ad986c0870c605620a",
+  "rlsetup/driving/demos.py": "998db8c301095c0db1c26c36ec9b82b9b501c88cdfe113ac602f2ca54e05d57c",
+  "rlsetup/driving/env.py": "9eb450dc341f4666d91f74be7125b462e18fa9a5d982f5865742e445fad5f9d7",
+  "rlsetup/driving/evaluate.py": "46071f92084ecd9263d8db96a8f5ec5ec1410129f8ccc0e9d148ededa45ac51b",
+  "rlsetup/driving/policy.py": "e9103392f284d121e4301d6511c9116ffd6b2994fbbbd11402486de0806e597c",
+  "rlsetup/driving/qss_profile.py": "40a3624e8d0905a9fdc89f56749a80fad6d71c9fc5bd2da57021a347cb1d8d3f",
+  "rlsetup/driving/reference.py": "058597d050f20f93ce104544cae0bd0902912dcb9cb9cc419e0b523e6d677d3e",
+  "rlsetup/driving/relabel.py": "7dc699dabef36c75bb842cd22178ff94c7bb236f7ffe70e90f5e85401d707132",
+  "rlsetup/driving/setups.py": "90dc619e93bd89836a75f7082237151f1b00655fac8759d1162083a7892c74a8",
+  "rlsetup/driving/speed_profile.py": "ec783b405e47f16c8fc04fdcd9b3f333fdc7bd9d7669778ba69f5cfad86c1dcd",
+  "rlsetup/driving/train.py": "fdea007d9c166d97b52ce60ae347c3a13d8acd8067b6def47218339cb3897e29",
+  "rlsetup/driving/train_config.py": "848cebf2f49319baf607b1a9b9828d1603d5aff7048406ef1caf9db40b74ff9c",
+  "rlsetup/driving/vec.py": "dfdfe628e48c3caf35de4ff84625f871f5079e0097f578c83ad6cf10ecc7c137",
+  "rlsetup/ocp/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "rlsetup/ocp/ladder_model.py": "4d7b9567938080816528c5ab99c242bba56f34371981170c048f0173f5239c83",
+  "rlsetup/ocp/ladder_solve.py": "1ceb1b448d75a282953cf593e18db4ac7ab39e41fff4dd2e05e4a508b8580f7a",
+  "rlsetup/ocp/ocd_car.py": "4e3424ef60c674fa64974996079a188b9a436c9d5d66a12b29beed4fcf37fcbc",
+  "rlsetup/ocp/pl14_model.py": "31dad5a1379b24ddd0d59b64c433515315f2a1b3365148adbf836a31c2cd17fa",
+  "rlsetup/ocp/solve.py": "ce5d7e376c2873321d98a04f3dff7547e7b1734d04f77a33757b9d9af586aa23",
+  "rlsetup/ocp/track.py": "8c36f2506e7bc2bd639e81f416422a8adc320b18e01b7789944e8bda576b9119",
+  "rlsetup/ocp/verify.py": "ba601266168ca850e530d8641e1f4f8536e004d1a6d69c39640250241ba51641",
+  "rlsetup/paths.py": "a524ca271def14e0859b1de99fcda37a4b02a23aaaf8b6647f9de29c0f58c7d1",
+  "rlsetup/provenance.py": "35f72900f611e2bd12d5ddd5577cb894c0da928db540d2a70bf511e4dc282259",
+  "rlsetup/runs.py": "230d2e59a38b65dac3df7ad0e3773565a0b3b40ee3eb31d7f7f0fee38d4efc39"
+ },
+ "ocd_first_lap": {
+  "path": "C:\\Users\\imk14\\Documents\\ocd_first_lap",
+  "commit": "ee8668398d81711a4d529ff169b252989cdd9b7f",
+  "dirty": false,
+  "untracked": false,
+  "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "ocd_lap_code_version": "80ca85c03631",
+ "ocd_lap_extra_sources_sha256": {
+  "ocd_lap/__init__.py": "ba75b38ec95145c9a24be0b23265294b16b41d202464f6f7c640fbd81353065a",
+  "ocd_lap/cars.py": "b94095d6bacd9b2b6045111af1063323a6324a55961635d43e76b48825c186de",
+  "ocd_lap/env.py": "ecc30665a0a37da097b68d8062434a6eff9531953aef3e2202a60fdaa2ccb654",
+  "ocd_lap/qss_lap.py": "fe138681c9ba3738bae98ee8536f30a6c5a1fdd3dabf2f51f11ad38e5b95b3c9",
+  "ocd_lap/handling.py": "4372ecac0110536e5ef5794b303560d73fd74665739cd84a9631e976b3842195",
+  "ocd_lap/manoeuvres.py": "c0b75d06b03906886216549acda347636a2aef0e5d7e304b122b5f83cbd7ea3b",
+  "ocd_lap/rig.py": "c650c4ee1e67ab190fea52099dd887231274688f81de2de68c4f37aefe012381",
+  "ocd_lap/vertical_model.py": "ed95da469c99c52678af4fd4ee5533482b194c561be39af63bcb33c66c1394c8"
+ },
+ "python": "3.12.16",
+ "packages": {
+  "torch": "2.11.0+cu128",
+  "stable-baselines3": "2.9.0",
+  "sb3-contrib": "2.9.0",
+  "gymnasium": "1.4.0",
+  "numpy": "2.5.0"
+ },
+ "platform": "Windows-11-10.0.26100-SP0",
+ "machine": "AMD64",
+ "hostname": "DSP000107017L",
+ "torch_num_threads": 2,
+ "n_envs": 16,
+ "argv": [
+  "C:\\Users\\imk14\\Documents\\RL-SetupOptimization-Agent\\rlsetup\\driving\\train.py",
+  "--set",
+  "runs_root=C:\\Users\\imk14\\Documents\\RL-SetupOptimization-Agent\\runs\\windows\\D2",
+  "--set",
+  "device=cuda",
+  "--set",
+  "vec_start_method=spawn",
+  "--set",
+  "n_envs=16",
+  "--set",
+  "gradient_steps=8",
+  "--set",
+  "torch_threads=2",
+  "--preset",
+  "bcn_f1_r4",
+  "--seed",
+  "0",
+  "--run-name",
+  "bcn_f1_r4"
+ ],
+ "utc_start": "2026-11-17T16:47:13+00:00",
+ "qss": {
+  "cache_key_sha256": "c6cc2281d02b11104006ae2145cf79be65cea2b5b422a6189526180a38691b60",
+  "lap_time_s": 84.74190503400781
+ },
+ "reference_digest": "20f7547d565248b6",
+ "track_path_sha256": "8c05ce986a2f86c596e3c94adcb0aa3157ce8082c2420598c62838c2824f71a8",
+ "demo_dataset_sha256": "b8dc1fbfb065ba4a96513a3ee9525551e5eeff6f1ca8f3af07678554fe4e0c7f",
+ "bc_actor_sha256": "1e21ddde77db63e06f39df49e98351aaceef5c899edd3e7a6d9e0384984a97ee",
+ "config_sha256": "05013a78406007465cfa3859200025dc7d1f5917a8b2a13090210aa4bcf2e844",
+ "allow_dirty": false,
+ "reference": {
+  "spec": "csv:docs/results/bcn_line_setup/line_iqp_w3.csv",
+  "csv_path": "C:\\Users\\imk14\\Documents\\RL-SetupOptimization-Agent\\docs\\results\\bcn_line_setup\\line_iqp_w3.csv",
+  "csv_sha256": "f14d366d65b1983da86811da289667a22a9079eaac851c7228eb5c946d716820",
+  "name": "csv:docs/results/bcn_line_setup/line_iqp_w3.csv",
+  "digest": "20f7547d565248b6",
+  "length_m": 4586.112970413186,
+  "drive_line_is_reference": true,
+  "qss_lap_on_line_s": 80.11095211829044,
+  "qss_lap_on_track_path_s": 84.74190503400781
+ },
+ "r2": {
+  "corner_table": {
+   "key": "6313f2151e2420ad13a4827fb1100daabd0adec521a38f9bf066e0d4e4fa8395",
+   "lap_time_s": 80.11095211829044,
+   "length_m": 4602.581106686095,
+   "units": [
+    {
+     "name": "U1",
+     "apexes_m": [
+      839.923556292922
+     ],
+     "v_apex": [
+      34.35725606819353
+     ],
+     "start_m": 736.9329297474803,
+     "exit_m": 989.923556292922,
+     "v_qss_exit": 55.91569952742411
+    },
+    {
+     "name": "U2",
+     "apexes_m": [
+      1166.8937978498095
+     ],
+     "v_apex": [
+      61.589089710145046
+     ],
+     "start_m": 1131.896983004271,
+     "exit_m": 1316.8937978498095,
+     "v_qss_exit": 72.77454220743232
+    },
+    {
+     "name": "U3",
+     "apexes_m": [
+      1713.8440184357955
+     ],
+     "v_apex": [
+      37.015757799682525
+     ],
+     "start_m": 1610.853391890354,
+     "exit_m": 1863.8440184357955,
+     "v_qss_exit": 62.4606625671325
+    },
+    {
+     "name": "U4",
+     "apexes_m": [
+      2110.80788968376
+     ],
+     "v_apex": [
+      26.20975124654088
+     ],
+     "start_m": 2012.8168081162523,
+     "exit_m": 2260.8078896837596,
+     "v_qss_exit": 60.41256524226465
+    },
+    {
+     "name": "U5",
+     "apexes_m": [
+      2533.7693948169813
+     ],
+     "v_apex": [
+      33.29976132535959
+     ],
+     "start_m": 2445.777403205342,
+     "exit_m": 2683.7693948169813,
+     "v_qss_exit": 63.37116832184923
+    },
+    {
+     "name": "U6",
+     "apexes_m": [
+      2882.737634276779
+     ],
+     "v_apex": [
+      57.35272012759027
+     ],
+     "start_m": 2826.742730523917,
+     "exit_m": 3032.7376342767784,
+     "v_qss_exit": 70.87399834872467
+    },
+    {
+     "name": "U7",
+     "apexes_m": [
+      3470.684123681824,
+      3591.6731121478283,
+      3706.662646640312
+     ],
+     "v_apex": [
+      22.445340829425927,
+      47.49862379326704,
+      34.065511594621256
+     ],
+     "start_m": 3352.69486220258,
+     "exit_m": 3856.6626466403113,
+     "v_qss_exit": 58.28058071213359
+    },
+    {
+     "name": "U8",
+     "apexes_m": [
+      3977.6379844443377,
+      4103.626517888276,
+      4140.623150724988
+     ],
+     "v_apex": [
+      33.31687028644766,
+      21.190129685753437,
+      23.655427267343164
+     ],
+     "start_m": 3907.644354753261,
+     "exit_m": 4290.623150724988,
+     "v_qss_exit": 55.230255065694536
+    }
+   ]
+  },
+  "corner_bonus": {
+   "enabled": true,
+   "bonus": 3.0,
+   "floor_ratio": 0.75,
+   "prominence_mps": 5.0,
+   "merge_m": 150.0,
+   "exit_after_apex_m": 150.0,
+   "exit_before_brake_m": 30.0,
+   "grid_m": 1.0,
+   "mode": "entry_exit",
+   "bonus_in": 10.0,
+   "bonus_out": 10.0,
+   "sigma": 0.3
+  },
+  "focus": {
+   "enabled": false,
+   "fraction": 0.25,
+   "bin_m": 50.0,
+   "lead_m": [
+    50.0,
+    300.0
+   ],
+   "speed_fraction": [
+    0.5,
+    0.8
+   ],
+   "max_attempts": 5
+  },
+  "bonus_schedule": {
+   "hold_until": null,
+   "fade_until": 4000000,
+   "bonus_free_before_report": 4000000,
+   "trigger_lap2_s": 95.0,
+   "report_from": null
+  },
+  "focus_update": {
+   "update_every": 10000,
+   "half_life": 1000000,
+   "prior_passes": 200.0,
+   "seed_run": null,
+   "init_state": null,
+   "seed_min_step": 2000000,
+   "hot_min_crashes": 5,
+   "hot_floor_share": 0.2
+  },
+  "focus_seed": null,
+  "low_noise": {
+   "envs": [],
+   "std_scale": 0.3
+  },
+  "labelled_fraction_at_start": 1.0,
+  "focus_init_state": null
+ },
+ "r4": {
+  "speed_potential": {
+   "speed_k": 20.0,
+   "speed_sigma": 0.3
+  },
+  "entry_exit": {
+   "on": true,
+   "bonus_in": 10.0,
+   "bonus_out": 10.0,
+   "sigma": 0.3
+  },
+  "points": [
+   {
+    "name": "U1",
+    "entry_m": 736.9329297474803,
+    "v_qss_entry": 83.44245756884308,
+    "exit_m": 989.923556292922,
+    "v_qss_exit": 55.91569952742411
+   },
+   {
+    "name": "U2",
+    "entry_m": 1131.896983004271,
+    "v_qss_entry": 68.56127172433034,
+    "exit_m": 1316.8937978498095,
+    "v_qss_exit": 72.77454220743232
+   },
+   {
+    "name": "U3",
+    "entry_m": 1610.853391890354,
+    "v_qss_entry": 80.84913623673657,
+    "exit_m": 1863.8440184357955,
+    "v_qss_exit": 62.4606625671325
+   },
+   {
+    "name": "U4",
+    "entry_m": 2012.8168081162523,
+    "v_qss_entry": 73.24379557265092,
+    "exit_m": 2260.8078896837596,
+    "v_qss_exit": 60.41256524226465
+   },
+   {
+    "name": "U5",
+    "entry_m": 2445.777403205342,
+    "v_qss_entry": 74.07589464842798,
+    "exit_m": 2683.7693948169813,
+    "v_qss_exit": 63.37116832184923
+   },
+   {
+    "name": "U6",
+    "entry_m": 2826.742730523917,
+    "v_qss_entry": 73.37140706761217,
+    "exit_m": 3032.7376342767784,
+    "v_qss_exit": 70.87399834872467
+   },
+   {
+    "name": "U7",
+    "entry_m": 3352.69486220258,
+    "v_qss_entry": 80.72613395664126,
+    "exit_m": 3856.6626466403113,
+    "v_qss_exit": 58.28058071213359
+   },
+   {
+    "name": "U8",
+    "entry_m": 3907.644354753261,
+    "v_qss_entry": 64.03511488798654,
+    "exit_m": 4290.623150724988,
+    "v_qss_exit": 55.230255065694536
+   }
+  ],
+  "corner_table_key": "6313f2151e2420ad13a4827fb1100daabd0adec521a38f9bf066e0d4e4fa8395",
+  "relabel_fallback": false
+ }
+}

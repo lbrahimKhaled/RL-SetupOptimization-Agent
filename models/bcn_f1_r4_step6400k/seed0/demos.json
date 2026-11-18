@@ -1,0 +1,36 @@
+{
+ "path": "C:\\Users\\imk14\\Documents\\RL-SetupOptimization-Agent\\data\\demos\\demos_ecaabfd8d0c2.npz",
+ "sha256": "b8dc1fbfb065ba4a96513a3ee9525551e5eeff6f1ca8f3af07678554fe4e0c7f",
+ "key": "ecaabfd8d0c2d0f43f8307506adb715e4672377e4b49190310e72a86f75c16d0",
+ "noise_std": [
+  0.025,
+  0.1,
+  0.1
+ ],
+ "summary": {
+  "episodes": 146,
+  "transitions": 200514,
+  "causes": {
+   "off_track": 21,
+   "time_limit": 125
+  },
+  "failures": 21,
+  "clean_fraction": 0.8561643835616438,
+  "mean_reward_per_decision": 1.3069211111780248,
+  "mean_speed_fraction": 0.6306277613051238,
+  "mean_episode_decisions": 1373.3835616438357
+ },
+ "fallback_from": {
+  "episodes": 197,
+  "transitions": 200458,
+  "causes": {
+   "off_track": 97,
+   "time_limit": 100
+  },
+  "failures": 97,
+  "clean_fraction": 0.5076142131979695,
+  "mean_reward_per_decision": 1.2206462017506867,
+  "mean_speed_fraction": 0.6102694130394003,
+  "mean_episode_decisions": 1017.5532994923858
+ }
+}

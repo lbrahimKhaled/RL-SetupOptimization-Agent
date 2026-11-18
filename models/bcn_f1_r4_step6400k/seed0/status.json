@@ -1,0 +1,260 @@
+{
+ "created_utc": "2026-11-17T16:47:13+00:00",
+ "events": [
+  {
+   "kind": "unfreeze",
+   "utc": "2026-11-17T16:56:29+00:00",
+   "step": 20000,
+   "actor_sha256": "5f5a6095f10a1ace8cf2240767d58248fe56a9d4cd335ad140838e5bbd00a701",
+   "log_ent_coef_sha256": "56114faa768482804e03b684c4d464b45bb01dbb7ab65b5626b0daeccd69c177"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-11-17T18:22:57+00:00",
+   "step": 750000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-11-17T18:59:12+00:00",
+   "step": 1050000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-11-17T20:02:55+00:00",
+   "step": 1600000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-11-17T20:21:11+00:00",
+   "step": 1750000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-11-17T20:32:37+00:00",
+   "step": 1850000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-11-17T21:01:55+00:00",
+   "step": 2100000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-11-17T21:14:06+00:00",
+   "step": 2200000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-11-17T22:07:16+00:00",
+   "step": 2650000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-11-17T22:24:58+00:00",
+   "step": 2800000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-11-17T22:42:21+00:00",
+   "step": 2950000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-11-17T22:59:24+00:00",
+   "step": 3100000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-11-17T23:17:35+00:00",
+   "step": 3250000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-11-17T23:58:29+00:00",
+   "step": 3600000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-11-18T00:16:31+00:00",
+   "step": 3750000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-11-18T00:52:09+00:00",
+   "step": 4050000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-11-18T01:04:06+00:00",
+   "step": 4150000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-11-18T01:46:36+00:00",
+   "step": 4500000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-11-18T01:58:42+00:00",
+   "step": 4600000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-11-18T02:10:51+00:00",
+   "step": 4700000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-11-18T03:16:01+00:00",
+   "step": 5250000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "resume",
+   "utc": "2026-11-18T11:43:52+00:00",
+   "step": 5800000,
+   "overrides": [],
+   "argv": [
+    "C:\\Users\\imk14\\Documents\\RL-SetupOptimization-Agent\\rlsetup\\driving\\train.py",
+    "--set",
+    "runs_root=C:\\Users\\imk14\\Documents\\RL-SetupOptimization-Agent\\runs\\windows\\D2",
+    "--resume",
+    "--preset",
+    "bcn_f1_r4",
+    "--seed",
+    "0",
+    "--run-name",
+    "bcn_f1_r4",
+    "--allow-code-change",
+    "--allow-dirty"
+   ],
+   "replay_buffer": true,
+   "replay_buffer_step": 5800000,
+   "replay_buffer_size": 62500,
+   "replay_buffer_cut_row": 60823,
+   "replay_buffer_lag": false,
+   "min_train_transitions": 0,
+   "code": {
+    "rlsetup": {
+     "path": "C:\\Users\\imk14\\Documents\\RL-SetupOptimization-Agent",
+     "commit": "9505071b02c4b30638c75e5f22e5720962fbad9d",
+     "dirty": false,
+     "untracked": false,
+     "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "ocd_lap_code_version": "80ca85c03631"
+   },
+   "code_mismatches": [
+    "rlsetup commit: run d54bb027d53a581dbce947eadeba0cfa30e55084 != now 9505071b02c4b30638c75e5f22e5720962fbad9d"
+   ],
+   "allow_code_change": true,
+   "allow_dirty": true
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-11-18T12:00:11+00:00",
+   "step": 5900000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-11-18T12:13:12+00:00",
+   "step": 6000000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-11-18T12:25:29+00:00",
+   "step": 6100000,
+   "termination": "off_track"
+  },
+  {
+   "kind": "det_regression",
+   "utc": "2026-11-18T12:43:39+00:00",
+   "step": 6250000,
+   "termination": "off_track"
+  }
+ ],
+ "phase": "rl",
+ "state": "running",
+ "run_name": "bcn_f1_r4",
+ "seed": 0,
+ "preset": "bcn_f1_r4",
+ "rollbacks": 0,
+ "stop_reason": "BC deterministic lap: off_track",
+ "updated_utc": "2026-11-18T14:58:49+00:00",
+ "phases": {
+  "demos": {
+   "wall_s": 21.072694301605225,
+   "env_steps": 0,
+   "cached": true,
+   "dataset_transitions": 200514
+  },
+  "bc": {
+   "wall_s": 73.50650334358215,
+   "env_steps": 5847
+  },
+  "offline_warmup": {
+   "wall_s": 240.5054304599762,
+   "env_steps": 0,
+   "grad_steps": 20000,
+   "prefill": {
+    "rows": 10825,
+    "transitions": 173200,
+    "dropped": 27314,
+    "flagged_tails": 16,
+    "columns": 16
+   }
+  },
+  "online_warmup": {
+   "wall_s": 174.41627097129822,
+   "env_steps": 20000
+  }
+ },
+ "bc_baseline_m": 818.8316174554693,
+ "bc_probe": [
+  953.1526271287989,
+  203.0861505032217,
+  870.9096389198498,
+  727.6188597824512,
+  1188.5273817012212,
+  779.4655930683334,
+  468.7846389473507,
+  1359.108049592528
+ ],
+ "bc_lap2_s": null,
+ "replay_buffer_step": null,
+ "report_from": null,
+ "labelled_fraction_at_start": 1.0,
+ "unfrozen_at": 20000,
+ "warnings": [
+  {
+   "utc": "2026-11-18T11:43:52+00:00",
+   "step": 5800000,
+   "message": "resumed with different code (--allow-code-change): rlsetup commit: run d54bb027d53a581dbce947eadeba0cfa30e55084 != now 9505071b02c4b30638c75e5f22e5720962fbad9d"
+  }
+ ],
+ "packaged_from": {
+  "run_dir": "runs/windows/D2/bcn_f1_r4/seed0",
+  "step": 6400000
+ }
+}

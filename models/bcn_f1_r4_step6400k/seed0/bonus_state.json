@@ -1,0 +1,11 @@
+{
+ "step": 7350000,
+ "trigger_step": null,
+ "report_from": null,
+ "bonus_w": 1.0,
+ "schedule": {
+  "hold_until": null,
+  "fade_until": 4000000,
+  "bonus_free_before_report": 4000000
+ }
+}

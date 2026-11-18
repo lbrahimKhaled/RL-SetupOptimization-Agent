@@ -4,6 +4,7 @@ __pycache__/
 .DS_Store
 runs/
 *.zip
+!models/**/*.zip
 *.pt
 .pytest_cache/
 data/demos/

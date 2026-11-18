@@ -226,6 +226,10 @@ nohup cloudflared tunnel --no-autoupdate --url http://127.0.0.1:6006 > runs/mac/
 ```
 Best models: `models/`. Line result: RL 103.06 → 102.57 s. Judge this setup at about 5M steps.
 
+## 18 Nov 2026 17:10 — Barcelona model for the Mac: `models/bcn_f1_r4_step6400k/`
+- Best of both Barcelona runs by a 30-lap re-test: `bcn_f1_r4` at 6.4M (det lap 2 85.33 s, 29/30 stochastic laps clean). Resumable seed folder without the replay buffer; Mac resume and AC-use notes in its README (the policy observes the IQP w3.0 line).
+- Both runs keep training on Windows (High priority; `bcn_f1_r4` resumed from 5.8M at 13:43); a newer model may be pushed later.
+
 ## 18 Nov 2026 — Barcelona run `bcn_f1_r4_w4` RUNNING on Windows (DECISIONS #29)
 - What: `bcn_f1_r4` (below) on xi_ref IQP w4.0 with the line penalty's free band 0.2 m (k 0.0699, cap 0.5/m), from scratch, with `--set guard.threshold=0.4` (the first launch collapsed at 40k under the 0.5 bar, DECISIONS #29; its folder is `runs\windows\D2\bcn_f1_r4_w4_collapsed40k`). Why: notes §5 of `docs/results/bcn_line_setup/NOTES.md`. No stop rule.
 - Keeper / stop / resume / TensorBoard: as for `bcn_f1_r4` below with the name `bcn_f1_r4_w4` (keeper log `runs\windows\keeper_bcn_f1_r4_w4.log`; TensorBoard logdir `runs\windows\D2`, both runs side by side).
