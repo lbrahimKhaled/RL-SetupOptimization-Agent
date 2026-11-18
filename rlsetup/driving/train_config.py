@@ -223,6 +223,34 @@ class FocusUpdateConfig:
     hot_floor_share: float = .2
 
 
+@dataclass(frozen=True)
+class LrDecayConfig:
+    """Linear learning-rate decay (Ibrahim, 18 Nov 2026; DECISIONS #30). From start_step to end_step the
+    actor's and the critics' Adam lrs fall linearly from their base values (actor: warm.actor_lr once it
+    applies, else agent.learning_rate; critics: agent.learning_rate) to `floor` x base, then stay there.
+    The entropy coefficient's lr is never scaled. Off by default (omitted from config.json); it can be
+    switched on when resuming (train.RESUME_OVERRIDABLE), which is how a run is branched into an A/B."""
+    enabled: bool = False
+    start_step: int = 0
+    end_step: int = 0
+    floor: float = .1
+
+    def check(self):
+        """Raise on an invalid schedule while on. Not in __post_init__: --set overrides arrive one field at a
+        time, so 'enabled=True' comes before its steps. Checked at run start (LrDecayCallback) and by scale()."""
+        if self.enabled and not (0 <= self.start_step < self.end_step and 0. < self.floor <= 1.):
+            raise ValueError(f'lr_decay needs 0 <= start_step < end_step and 0 < floor <= 1 '
+                             f'(start {self.start_step}, end {self.end_step}, floor {self.floor})')
+        return self
+
+    def scale(self, step):
+        """lr multiplier at env step `step` (None while off)."""
+        if not self.check().enabled:
+            return None
+        f = min(1., max(0., (step - self.start_step) / (self.end_step - self.start_step)))
+        return 1. - (1. - self.floor) * f
+
+
 R2_TRAIN_KEYS = ('bonus_schedule', 'focus_update')      # TrainConfig blocks of the R2 training aids
 R2_AGENT_KEYS = ('low_noise_envs', 'low_noise_std_scale')
 R3_WARM_KEYS = ('pre_exit_horizon', 'pre_exit_warn_q', 'pre_exit_warn_blocks')   # omitted like the R2 blocks
@@ -245,7 +273,8 @@ class TrainConfig:
     stop: StopConfig = field(default_factory=StopConfig)
     bonus_schedule: BonusScheduleConfig = field(default_factory=BonusScheduleConfig)   # R2 (corner_bonus)
     focus_update: FocusUpdateConfig = field(default_factory=FocusUpdateConfig)         # R2 (focus)
-    init_from: str | None = None         # model .zip for init_mode 'warm' (absolute; CLI --init-from);
+    lr_decay: LrDecayConfig = field(default_factory=LrDecayConfig)     # omitted from config.json while off
+    init_from: str | None = None        # model .zip for init_mode 'warm' (absolute; CLI --init-from);
                                          # its run folder (zip's parents[1]) must hold config.json
     strict_provenance: bool = True       # refuse a run / resume with uncommitted tracked rlsetup changes
                                          # (unless --allow-dirty); False for the smoke presets
@@ -300,6 +329,8 @@ class TrainConfig:
             for k in R3_WARM_KEYS:
                 if getattr(self.warm, k) == getattr(WarmStartConfig(), k):
                     del d['warm'][k]
+        if self.lr_decay == LrDecayConfig():
+            del d['lr_decay']
         return d
 
     @property

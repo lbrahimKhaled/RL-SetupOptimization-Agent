@@ -10,6 +10,8 @@ StagedSAC relies on SB3 2.9.0 `SAC.train()` internals (pinned in pyproject; test
     fixed-ent_coef branch with `ent_coef_tensor = exp(log_ent_coef)`; it is restored afterwards,
     so `save()` (outside train()) still stores log_ent_coef and its optimizer.
   - `actor_lr` overrides the actor's lr after SB3 resets every lr at the start of train().
+  - `lr_scale` (None = off; set by callbacks.LrDecayCallback from TrainConfig.lr_decay) then multiplies the
+    actor's lr (actor_lr or the base lr) and the critics' lr; the entropy coefficient's lr is not scaled.
   - `min_train_transitions` > 0: train() does nothing (no gradient step, _n_updates unchanged)
     while the replay buffer holds fewer transitions (rows x n_envs). Set by a resume with an
     empty buffer (TrainConfig.resume_empty_buffer_min_batches); 0 = always train.
@@ -67,6 +69,7 @@ class StagedSAC(SAC):
         self.freeze_actor = False
         self.freeze_ent_coef = False
         self.actor_lr = None
+        self.lr_scale = None              # LrDecayConfig multiplier (callbacks.LrDecayCallback); None = off
         self.min_train_transitions = 0
         self.low_noise_envs = ()
         self.low_noise_std_scale = .3
@@ -89,6 +92,15 @@ class StagedSAC(SAC):
         if self.actor_lr is not None:
             update_learning_rate(self.actor.optimizer, self.actor_lr)
             self.logger.record('train/actor_lr', self.actor_lr)
+        scale = getattr(self, 'lr_scale', None)            # models pickled before lr_scale existed: off
+        if scale is not None:                              # LrDecayConfig: actor + critics, never alpha
+            base = self.lr_schedule(self._current_progress_remaining)
+            actor = (self.actor_lr if self.actor_lr is not None else base) * scale
+            update_learning_rate(self.actor.optimizer, actor)
+            update_learning_rate(self.critic.optimizer, base * scale)
+            self.logger.record('train/actor_lr', actor)
+            self.logger.record('train/critic_lr', base * scale)
+            self.logger.record('train/lr_scale', scale)
 
     def _sample_action(self, learning_starts, action_noise=None, n_envs=1):
         action, buffer_action = super()._sample_action(learning_starts, action_noise, n_envs)

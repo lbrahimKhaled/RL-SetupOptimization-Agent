@@ -96,7 +96,8 @@ import numpy as np
 
 EXIT_OK, EXIT_GATE, EXIT_COLLAPSED, EXIT_DIRTY, EXIT_CODE_CHANGED, EXIT_INIT_MISMATCH = 0, 2, 3, 4, 5, 6
 RESUME_OVERRIDABLE = {'total_timesteps', 'max_wall_h', 'save_replay_buffer', 'checkpoint_interval',
-                      'replay_buffer_save_every'}
+                      'replay_buffer_save_every', 'lr_decay.enabled', 'lr_decay.start_step', 'lr_decay.end_step',
+                      'lr_decay.floor'}
 
 
 class _Tee:
@@ -291,6 +292,10 @@ def _callbacks(run, model, envs, starts, baseline, *, unfreeze_at, guard_start=N
         extras.append(lambda m, n: {'train_groups': stats.eval_groups()})
     if cfg.env.r4:
         extras.append(lambda m, n: {'train_r4': stats.eval_r4()})
+    from .callbacks import LrDecayCallback
+    lrd = LrDecayCallback(cfg.lr_decay)        # always: also clears a stale scale when off
+    if cfg.lr_decay.enabled:
+        extras.append(lambda m, n: {'lr_scale': m.lr_scale})
     guard = CollapseGuard(lambda m: probe(m, envs['probe'], starts).mean_progress_m, baseline, cfg.guard,
                           start_step=guard_start, rollbacks=rollbacks, on_event=run.event,
                           log_path=d / 'probes.jsonl', last_path=d / 'checkpoints' / 'last.zip')
@@ -305,7 +310,7 @@ def _callbacks(run, model, envs, starts, baseline, *, unfreeze_at, guard_start=N
     ckpt = CheckpointCallback(cfg.checkpoint_interval, d / 'checkpoints', buffer_every=cfg.buffer_save_interval,
                               buffer_saver=saver)
     phase = PhaseCallback(unfreeze_at, on_event=run.event, actor_lr=cfg.warm.actor_lr if cfg.agent.init_mode == 'bc' else None)
-    cbs = ([schedule] if schedule else []) + list(pre) + [phase, guard, stats] \
+    cbs = ([schedule] if schedule else []) + list(pre) + [lrd, phase, guard, stats] \
         + ([focus] if focus else []) + [evalcb, plateau, ckpt, wall]
     return cbs, guard, wall, plateau
 

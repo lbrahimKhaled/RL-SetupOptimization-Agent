@@ -83,6 +83,26 @@ def load_replay_buffer_for_resume(model, path):
     return cut_nstep_chains(model.replay_buffer)
 
 
+class LrDecayCallback(BaseCallback):
+    """TrainConfig.lr_decay: model.lr_scale = cfg.scale(num_timesteps) before every rollout step, so the
+    next train() call (StagedSAC._update_learning_rate) uses it. Disabled: model.lr_scale = None (clears
+    a scale pickled with a checkpoint of a decaying run)."""
+
+    def __init__(self, cfg):
+        super().__init__()
+        self.cfg = cfg.check()
+
+    def _set(self):
+        self.model.lr_scale = self.cfg.scale(self.model.num_timesteps)
+
+    def _on_training_start(self):
+        self._set()
+
+    def _on_step(self):
+        self._set()
+        return True
+
+
 class PhaseCallback(BaseCallback):
     """Step 5: at num_timesteps >= unfreeze_at, unfreeze actor and alpha (actor Adam is fresh:
     it never stepped while frozen; alpha continues from its initial value). The 'unfreeze' event
