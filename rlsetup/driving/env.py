@@ -214,6 +214,7 @@ class DrivingEnv(OCDRacingEnv):
         self._retry_on = False         # RetryConfig: set_retry(True) at learn() start
         self._last_fail_s = None       # Track.path s of the last terminal failure (training only)
         self._warmup_s = 0.            # this episode's no-learning run-up [s since hand-over]
+        self._warmup_m = None          # ... or [m driven since hand-over] (RetryConfig.learn_before_m)
         self.focus_weights = None
         self.n_focus_bins = int(math.ceil(float(self.track.length) / cfg.focus.bin_m))
 
@@ -347,6 +348,12 @@ class DrivingEnv(OCDRacingEnv):
         if not behind:
             return float((target - self.cfg.retry.fallback_lead_m) % L)
         return min(behind, key=lambda x: (target - x) % L)
+
+    def retry_brake_point(self, target):
+        """Braking point of a retry target: the window start of the corner unit containing it (the QSS
+        braking point), else the target itself."""
+        k = self.corners.unit_at(target) if self.corners is not None else None
+        return float(self.corners.units[k]['start_m']) if k is not None else float(target)
 
     def retry_start(self, target):
         """Retry start for target (R2-7.1 focused-start rule with the hand-over at retry_handover):
@@ -489,6 +496,11 @@ class DrivingEnv(OCDRacingEnv):
         # hand-over (R2.1): episode counters start here; settle steps are not counted
         self._episode += 1
         self._warmup_s = self.cfg.retry.warmup_s if retry is not None else 0.
+        self._warmup_m = None                     # RetryConfig.learn_before_m: run-up length [m driven]
+        if retry is not None and self.cfg.retry.learn_before_m is not None:
+            self._warmup_s = 0.
+            gap = (self.retry_brake_point(retry) - self.s) % float(self.track.length)
+            self._warmup_m = 0. if gap > self.track.length / 2 else max(0., gap - self.cfg.retry.learn_before_m)
         self._err_key = None
         self.steps, self.done, self.physics_steps = 0, False, 0
         self._stall_s = 0.
@@ -596,7 +608,8 @@ class DrivingEnv(OCDRacingEnv):
         self._trunc_cause = None
         decision_dt = 0.
         tracker, crossings = self._tracker, []
-        warmup = self.time_s < self._warmup_s     # RetryConfig run-up: decided before its time is up
+        wm = getattr(self, '_warmup_m', None)     # RetryConfig run-up: decided before its time / distance is up
+        warmup = self._dist < wm if wm is not None else self.time_s < self._warmup_s
         self._in_step = True
         try:
             for _ in range(cfg.action_repeat):

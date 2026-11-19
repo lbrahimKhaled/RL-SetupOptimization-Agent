@@ -217,11 +217,14 @@ class RetryConfig:
     speed_fraction: tuple = (.5, .8)
     fallback_lead_m: float = 400.
     start_step: int = 0          # retries only from this env step on (RetryCallback); before: uniform starts
+    learn_before_m: float | None = None   # set: the run-up ends by distance instead of warmup_s, this far before
+                                          # the retried corner's braking point (its window start; a crash outside
+                                          # a corner window: the crash point); 0 m of run-up if already closer
 
     def __post_init__(self):
         lo, hi = self.speed_fraction
         if not (0. <= self.prob <= 1. and self.warmup_s >= 0. and 0. < lo <= hi <= 1. and self.fallback_lead_m > 0.
-                and self.start_step >= 0):
+                and self.start_step >= 0 and (self.learn_before_m is None or self.learn_before_m >= 0.)):
             raise ValueError(f'invalid retry config {self}')
 
 

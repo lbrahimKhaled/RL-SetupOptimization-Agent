@@ -25,7 +25,7 @@ def test_config_validation_omission_and_round_trip():
     c = PRESETS['bcn_f1_r4_retry']()
     j = json.loads(config_json(c))
     assert j['env']['retry'] == {'enabled': True, 'prob': .75, 'warmup_s': 3., 'speed_fraction': [.5, .8],
-                                 'fallback_lead_m': 400., 'start_step': 500_000}
+                                 'fallback_lead_m': 400., 'start_step': 500_000, 'learn_before_m': 150.}
     assert train_config_from_dict(j) == c
     for name, make in PRESETS.items():
         if name != 'bcn_f1_r4_retry':
@@ -34,7 +34,7 @@ def test_config_validation_omission_and_round_trip():
 
 def test_preset_is_bcn_f1_r4_plus_retries_from_500k_and_the_3m_to_6p2m_decay():
     a, c = PRESETS['bcn_f1_r4'](), PRESETS['bcn_f1_r4_retry']()
-    assert c.env.retry == RetryConfig(enabled=True, prob=.75, warmup_s=3., start_step=500_000)
+    assert c.env.retry == RetryConfig(enabled=True, prob=.75, warmup_s=3., start_step=500_000, learn_before_m=150.)
     assert c.lr_decay == LrDecayConfig(enabled=True, start_step=3_000_000, end_step=6_200_000, floor=.01)
     assert dataclasses.replace(c, preset=a.preset, env=dataclasses.replace(c.env, retry=RetryConfig()),
                                lr_decay=LrDecayConfig()) == a
@@ -181,3 +181,46 @@ def test_callback_waits_for_start_step():
     cb.on_step()
     cb.on_step()
     assert calls == [('set_retry', True)] and cb.on            # once, at the first step >= start_step
+
+
+@pytest.fixture
+def dist_env(make_env, track, qss):
+    table = ST.table_for(track, qss)
+    cfg = EnvConfig(max_episode_s=20., retry=RetryConfig(enabled=True, prob=1., learn_before_m=150.),
+                    reward=RewardConfig(mode='time_pbrs'))
+    return make_env(cfg, corners=table), table
+
+
+def _drive(env, table, n=1500):
+    flags, dists = [], []
+    for _ in range(n):
+        a = env.settle_driver.act(env.state, env.s_drive, float(table.speed(env.s + 15.)))
+        d0 = env._dist
+        *_, te, tr, i = env.step(np.asarray(a, np.float32))
+        flags.append(i['warmup'])
+        dists.append(d0)
+        if te or tr:
+            break
+    return np.array(flags), np.array(dists)
+
+
+def test_learning_switches_on_learn_before_m_before_the_braking_point(dist_env):
+    env, table = dist_env
+    env.set_retry(True)
+    assert env.retry_brake_point(1100.) == 1000. and env.retry_brake_point(1250.) == 1250.
+    env._last_fail_s = 1100.                         # in U4 [1000, 1200]: brake 1000, hand-over at 760
+    env.reset(seed=3)
+    want = ((1000. - env.s) % table.length) - 150.  # ~90 m of run-up
+    assert 60. < want < 120. and env._warmup_m == pytest.approx(want)
+    flags, dists = _drive(env, table)
+    assert flags.any() and not flags.all() and np.array_equal(flags, dists < want)
+    env._last_fail_s = 1250.                         # straight after U4: brake = target, hand-over 1200 (< 150 m)
+    env.reset(seed=4)
+    assert env._warmup_m == 0.
+    flags, _ = _drive(env, table, 20)
+    assert not flags.any()
+
+
+def test_learn_before_m_may_be_set_on_resume():
+    from rlsetup.driving.train import RESUME_OVERRIDABLE
+    assert 'env.retry.learn_before_m' in RESUME_OVERRIDABLE

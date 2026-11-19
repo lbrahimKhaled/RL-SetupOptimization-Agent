@@ -97,7 +97,7 @@ import numpy as np
 EXIT_OK, EXIT_GATE, EXIT_COLLAPSED, EXIT_DIRTY, EXIT_CODE_CHANGED, EXIT_INIT_MISMATCH = 0, 2, 3, 4, 5, 6
 RESUME_OVERRIDABLE = {'total_timesteps', 'max_wall_h', 'save_replay_buffer', 'checkpoint_interval',
                       'replay_buffer_save_every', 'lr_decay.enabled', 'lr_decay.start_step', 'lr_decay.end_step',
-                      'lr_decay.floor'}
+                      'lr_decay.floor', 'env.retry.learn_before_m'}
 
 
 class _Tee:
