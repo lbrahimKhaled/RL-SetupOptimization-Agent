@@ -229,10 +229,13 @@ def test_critic_init_copies_source_critics_and_alpha_only_from_actor_checkpoint(
     checkpoint2, named2, _ = _checkpoint_bundle(bundle, other, actor_changed=True)
     with pytest.raises(ValueError, match='actor differs'):
         build_learner(named2, LearnerConfig(batch_size=4, buffer_size=32, critic_init=str(checkpoint2)))
-    # Resume keeps the trained critics; the saved config carries the critic_init path.
+    # Resume keeps the trained critics; the saved config carries the critic_init path. After actor
+    # updates the saved actor no longer equals the source checkpoint's, and resume must still work.
     learner = ACLearner(named, LearnerConfig(batch_size=4, buffer_size=32, critic_init=str(checkpoint)))
     learner.import_chunk(chunk(tmp_path / 'c.npz', named))
-    learner.train(1, 0)
+    learner.train(1, 2)
+    assert any(not torch.equal(learner.model.policy.state_dict()[k], v) for k, v in state.items()
+               if k.startswith('actor.'))
     learner.save(tmp_path / 'saved')
     resumed = ACLearner.resume(tmp_path / 'saved', tmp_path / 'saved' / 'actor',
                                LearnerConfig(batch_size=4, buffer_size=32, critic_init=str(checkpoint)))

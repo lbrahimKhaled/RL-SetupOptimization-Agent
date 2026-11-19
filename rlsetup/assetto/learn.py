@@ -7,7 +7,7 @@ files are trusted local outputs of this program, not arbitrary SB3 checkpoints.
 from __future__ import annotations
 
 import argparse
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 import json
 from pathlib import Path
 import random
@@ -339,7 +339,10 @@ class ACLearner:
                 or len(set(manifest['imported'])) != len(manifest['imported'])
                 or not isinstance(manifest.get('provenance'), dict)):
             raise ValueError('invalid learner replay provenance')
-        obj = cls(bundle, config)
+        # critic_init seeds a NEW learner only: the saved model below carries the trained critics, and
+        # after actor updates the bundle no longer equals the source checkpoint's actor.
+        obj = cls(bundle, replace(config, critic_init=None))
+        obj.config = config
         obj.model = StagedSAC.load(saved / 'model.zip', device=config.device)
         obj.model.load_replay_buffer(saved / 'replay.pkl', truncate_last_traj=False)
         obj.model.set_logger(configure(folder=None, format_strings=[]))
