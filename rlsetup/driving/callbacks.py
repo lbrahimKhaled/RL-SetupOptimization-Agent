@@ -84,26 +84,34 @@ def load_replay_buffer_for_resume(model, path):
 
 
 class RetryCallback(BaseCallback):
-    """EnvConfig.retry: switches crash retries on in every training env at the start of learn() (so demo
-    collection and BC never retry) and counts, between evaluations, the episodes that started as a retry
+    """EnvConfig.retry: switches crash retries on in every training env once learn() reaches
+    retry.start_step (demo collection and BC never retry) and counts, between evaluations, the episodes that started as a retry
     (first decision flagged warm-up) and the share of warm-up transitions (`eval_extra`). Refuses a replay
     buffer without the warm-up mask, which would silently train on the run-up."""
 
-    def __init__(self):
+    def __init__(self, start_step=0):
         super().__init__()
+        self.start_step = int(start_step)
+        self.on = False
         self.reset_counts()
 
     def reset_counts(self):
         self.episodes = self.retries = self.transitions = self.warmup = 0
         self._new = None
 
+    def _switch(self):
+        if not self.on and self.model.num_timesteps >= self.start_step:
+            self.training_env.env_method('set_retry', True)
+            self.on = True
+
     def _on_training_start(self):
         if not hasattr(self.model.replay_buffer, '_drop_warmup'):
             raise TypeError('retry needs a replay buffer with the warm-up mask (BonusNStepReplayBuffer)')
-        self.training_env.env_method('set_retry', True)
         self._new = np.zeros(self.training_env.num_envs, dtype=bool)
+        self._switch()
 
     def _on_step(self):
+        self._switch()
         infos, dones = self.locals['infos'], np.asarray(self.locals['dones'], dtype=bool)
         if self._new is None:
             self._new = np.zeros(len(infos), dtype=bool)

@@ -578,10 +578,12 @@ def _bcn_f1_r4_w4():
 def _bcn_f1_r4_retry():
     """bcn_f1_r4 from scratch with crash retries and lr decay (Ibrahim, 19 Nov 2026; DECISIONS #31): after a
     crash, 75 % of the next training resets retry it (hand-over at the previous corner exit, settle at 0.5-0.8,
-    the first 3 s of the policy's run-up never trained on); linear lr decay of actor + critics from 3M to
-    6.2M down to 1/100, then held. Run name: bcn_f1_r4_retry."""
+    the first 3 s of the policy's run-up never trained on), from 500k steps on (from step 0 the smoke run
+    collapsed by 50k); linear lr decay of actor + critics from 3M to 6.2M down to 1/100, then held.
+    Run name: bcn_f1_r4_retry."""
     c = _bcn_f1_r4()
-    return replace(c, preset='bcn_f1_r4_retry', env=replace(c.env, retry=RetryConfig(enabled=True, prob=.75, warmup_s=3.)),
+    return replace(c, preset='bcn_f1_r4_retry',
+                   env=replace(c.env, retry=RetryConfig(enabled=True, prob=.75, warmup_s=3., start_step=500_000)),
                    lr_decay=LrDecayConfig(enabled=True, start_step=3_000_000, end_step=6_200_000, floor=.01))
 
 

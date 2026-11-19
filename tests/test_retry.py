@@ -17,23 +17,24 @@ ON = RetryConfig(enabled=True, prob=1., warmup_s=3.)
 
 
 def test_config_validation_omission_and_round_trip():
-    for bad in (dict(prob=1.5), dict(warmup_s=-1.), dict(speed_fraction=(.8, .5)), dict(fallback_lead_m=0.)):
+    for bad in (dict(prob=1.5), dict(warmup_s=-1.), dict(speed_fraction=(.8, .5)), dict(fallback_lead_m=0.),
+                dict(start_step=-1)):
         with pytest.raises(ValueError):
             RetryConfig(enabled=True, **bad)
     assert 'retry' not in EnvConfig().to_dict()
     c = PRESETS['bcn_f1_r4_retry']()
     j = json.loads(config_json(c))
     assert j['env']['retry'] == {'enabled': True, 'prob': .75, 'warmup_s': 3., 'speed_fraction': [.5, .8],
-                                 'fallback_lead_m': 400.}
+                                 'fallback_lead_m': 400., 'start_step': 500_000}
     assert train_config_from_dict(j) == c
     for name, make in PRESETS.items():
         if name != 'bcn_f1_r4_retry':
             assert '"retry"' not in config_json(make()), name
 
 
-def test_preset_is_bcn_f1_r4_plus_retries_and_the_3m_to_6p2m_decay():
+def test_preset_is_bcn_f1_r4_plus_retries_from_500k_and_the_3m_to_6p2m_decay():
     a, c = PRESETS['bcn_f1_r4'](), PRESETS['bcn_f1_r4_retry']()
-    assert c.env.retry == RetryConfig(enabled=True, prob=.75, warmup_s=3.)
+    assert c.env.retry == RetryConfig(enabled=True, prob=.75, warmup_s=3., start_step=500_000)
     assert c.lr_decay == LrDecayConfig(enabled=True, start_step=3_000_000, end_step=6_200_000, floor=.01)
     assert dataclasses.replace(c, preset=a.preset, env=dataclasses.replace(c.env, retry=RetryConfig()),
                                lr_decay=LrDecayConfig()) == a
@@ -161,3 +162,22 @@ def test_callback_switches_retries_on_and_counts():
     cb2.init_callback(bad)
     with pytest.raises(TypeError):
         cb2.on_training_start({}, {})
+
+
+def test_callback_waits_for_start_step():
+    calls = []
+    venv = SimpleNamespace(num_envs=2, env_method=lambda *a: calls.append(a))
+    model = SimpleNamespace(replay_buffer=_buffer(), get_env=lambda: venv, logger=None, num_timesteps=0)
+    cb = RetryCallback(start_step=100)
+    cb.init_callback(model)
+    cb.on_training_start({}, {})
+    assert calls == [] and not cb.on
+    infos = {'infos': [{'warmup': False}] * 2, 'dones': np.zeros(2, bool)}
+    model.num_timesteps = 99
+    cb.update_locals(infos)
+    cb.on_step()
+    assert calls == []
+    model.num_timesteps = 100
+    cb.on_step()
+    cb.on_step()
+    assert calls == [('set_retry', True)] and cb.on            # once, at the first step >= start_step

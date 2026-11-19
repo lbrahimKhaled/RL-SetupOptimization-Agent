@@ -226,6 +226,10 @@ nohup cloudflared tunnel --no-autoupdate --url http://127.0.0.1:6006 > runs/mac/
 ```
 Best models: `models/`. Line result: RL 103.06 → 102.57 s. Judge this setup at about 5M steps.
 
+## 19 Nov 2026 - Barcelona run `bcn_f1_r4_retry` (DECISIONS #30, #31)
+- From scratch: crash retries (75 %, hand-over at the previous corner exit, first 3 s of the run-up not trained on) + lr decay 3M -> 6.2M to 1/100, then held; runs until Ibrahim stops it. Keeper: `keeper.ps1 bcn_f1_r4_retry 5 High`.
+- Stopped (resumable): `bcn_f1_r4` 7.8M, `bcn_f1_r4_w4` 5.15M, `bcn_f1_r4_lrd` ~11.05M (lr decay branch of bcn_f1_r4), `bcn_f1_r4_ctl` ~7.9M (its constant-lr control).
+
 ## 18 Nov 2026 17:10 — Barcelona model for the Mac: `models/bcn_f1_r4_step6400k/`
 - Best of both Barcelona runs by a 30-lap re-test: `bcn_f1_r4` at 6.4M (det lap 2 85.33 s, 29/30 stochastic laps clean). Resumable seed folder without the replay buffer; Mac resume and AC-use notes in its README (the policy observes the IQP w3.0 line).
 - Both runs keep training on Windows (High priority; `bcn_f1_r4` resumed from 5.8M at 13:43); a newer model may be pushed later.

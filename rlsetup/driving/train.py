@@ -297,7 +297,7 @@ def _callbacks(run, model, envs, starts, baseline, *, unfreeze_at, guard_start=N
     lrd = LrDecayCallback(cfg.lr_decay)        # always: also clears a stale scale when off
     if cfg.lr_decay.enabled:
         extras.append(lambda m, n: {'lr_scale': m.lr_scale})
-    retry = RetryCallback() if cfg.env.retry.enabled else None
+    retry = RetryCallback(cfg.env.retry.start_step) if cfg.env.retry.enabled else None
     if retry:
         extras.append(retry.eval_extra)
     guard = CollapseGuard(lambda m: probe(m, envs['probe'], starts).mean_progress_m, baseline, cfg.guard,

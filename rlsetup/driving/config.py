@@ -208,17 +208,20 @@ class RetryConfig:
     the env has no corner table), settled as a focused start at f ~ U(speed_fraction). The first `warmup_s`
     seconds after that hand-over are the policy's own run-up: their transitions carry info['warmup'] and
     are never sampled for training (buffers.BonusNStepReplayBuffer), as an R2D2 burn-in. Only active after
-    DrivingEnv.set_retry(True) (RetryCallback at the start of learn(), so demos / BC never see it), never in
+    DrivingEnv.set_retry(True) (RetryCallback, once learn() has reached `start_step`: retries from the start
+    collapsed early learning in the smoke run, 19 Nov; demos / BC never see them), never in
     evaluation or with explicit start options. Off by default and then omitted from config.json."""
     enabled: bool = False
     prob: float = .75
     warmup_s: float = 3.
     speed_fraction: tuple = (.5, .8)
     fallback_lead_m: float = 400.
+    start_step: int = 0          # retries only from this env step on (RetryCallback); before: uniform starts
 
     def __post_init__(self):
         lo, hi = self.speed_fraction
-        if not (0. <= self.prob <= 1. and self.warmup_s >= 0. and 0. < lo <= hi <= 1. and self.fallback_lead_m > 0.):
+        if not (0. <= self.prob <= 1. and self.warmup_s >= 0. and 0. < lo <= hi <= 1. and self.fallback_lead_m > 0.
+                and self.start_step >= 0):
             raise ValueError(f'invalid retry config {self}')
 
 
