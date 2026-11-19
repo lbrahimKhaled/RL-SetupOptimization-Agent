@@ -32,6 +32,12 @@ def scalars_of(e):
         'lap/deterministic_clean': float(bool(e.get('det_clean'))),
         'lap/stochastic_mean_lap_s': e.get('sto_lap_mean_s'),
         'lap/stochastic_clean_rate': e.get('sto_clean_rate'),
+        # how far the deterministic run got before it ended (it ends at the first failure or after lap 2):
+        # readable before any lap is clean, unlike deterministic_lap2_s
+        'lap/deterministic_decisions': e.get('det_decisions'),
+        'lap/deterministic_lap1_s': e.get('lap1_s'),
+        'train/actor_lr': e.get('actor_lr'),
+        'train/lr_scale': e.get('lr_scale'),
         'train/alpha': e.get('alpha'),
         'train/policy_entropy': e.get('policy_entropy'),
         'speed/env_steps_per_s': e.get('env_steps_per_s'),
@@ -99,9 +105,18 @@ def scalars_of(e):
                 scalars[f'corner/{k}_{unit}'] = c[k]
     tr = e.get('train_r4') or {}
     for k in ('ep_shaping_v_mean', 'ep_corner_terms_mean', 'ep_taken_back_mean', 'takebacks', 'episodes_with_takeback',
-              'ep_line_penalty_mean'):
+              'ep_line_penalty_mean', 'ep_exit_speed_reward_mean'):
         if k in tr:
             scalars[f'train_r4/{k}'] = tr[k]
+    # --- crash retries (DECISIONS #31) and R5 crash emphasis (#32); absent keys -> nothing written ---
+    rt = e.get('retry') or {}
+    for k in ('retry_share', 'warmup_share', 'episodes', 'retry_episodes'):
+        if k in rt:
+            scalars[f'retry/{k}'] = rt[k]
+    ce = e.get('crash_emphasis') or {}
+    for k in ('factor', 'marked_share'):
+        if k in ce:
+            scalars[f'crash_emphasis/{k}'] = ce[k]
     return scalars
 
 
