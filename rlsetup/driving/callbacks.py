@@ -83,6 +83,50 @@ def load_replay_buffer_for_resume(model, path):
     return cut_nstep_chains(model.replay_buffer)
 
 
+class RetryCallback(BaseCallback):
+    """EnvConfig.retry: switches crash retries on in every training env at the start of learn() (so demo
+    collection and BC never retry) and counts, between evaluations, the episodes that started as a retry
+    (first decision flagged warm-up) and the share of warm-up transitions (`eval_extra`). Refuses a replay
+    buffer without the warm-up mask, which would silently train on the run-up."""
+
+    def __init__(self):
+        super().__init__()
+        self.reset_counts()
+
+    def reset_counts(self):
+        self.episodes = self.retries = self.transitions = self.warmup = 0
+        self._new = None
+
+    def _on_training_start(self):
+        if not hasattr(self.model.replay_buffer, '_drop_warmup'):
+            raise TypeError('retry needs a replay buffer with the warm-up mask (BonusNStepReplayBuffer)')
+        self.training_env.env_method('set_retry', True)
+        self._new = np.zeros(self.training_env.num_envs, dtype=bool)
+
+    def _on_step(self):
+        infos, dones = self.locals['infos'], np.asarray(self.locals['dones'], dtype=bool)
+        if self._new is None:
+            self._new = np.zeros(len(infos), dtype=bool)
+        for i, info in enumerate(infos):
+            w = bool(info.get('warmup', False))
+            self.transitions += 1
+            self.warmup += w
+            if self._new[i]:
+                self.episodes += 1
+                self.retries += w
+        self._new = dones.copy()
+        return True
+
+    def eval_extra(self, model, n):
+        out = {'retry': {'episodes': self.episodes, 'retry_episodes': self.retries,
+                         'retry_share': self.retries / self.episodes if self.episodes else None,
+                         'warmup_share': self.warmup / self.transitions if self.transitions else None}}
+        new = self._new
+        self.reset_counts()
+        self._new = new
+        return out
+
+
 class LrDecayCallback(BaseCallback):
     """TrainConfig.lr_decay: model.lr_scale = cfg.scale(num_timesteps) before every rollout step, so the
     next train() call (StagedSAC._update_learning_rate) uses it. Disabled: model.lr_scale = None (clears

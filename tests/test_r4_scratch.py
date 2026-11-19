@@ -372,7 +372,7 @@ def test_offline_warmup_mc_uses_the_terms(tmp_path, monkeypatch):
 
 # --- actor lr from the unfreeze (docs/specs/R4_scratch_review.md B1) ------------------------------------------
 BC_PRESETS = sorted(name for name, make in PRESETS.items() if make().agent.init_mode == 'bc')
-LR_PRESETS = {'f1_r4_scratch', 'bcn_f1_r4', 'bcn_f1_r4_w4'}   # bcn_f1_r4(_w4) = f1_r4_scratch on Barcelona (inherits warm.actor_lr)
+LR_PRESETS = {'f1_r4_scratch', 'bcn_f1_r4', 'bcn_f1_r4_w4', 'bcn_f1_r4_retry'}   # bcn_f1_r4(_w4) = f1_r4_scratch on Barcelona (inherits warm.actor_lr)
 
 
 def staged(name, tmp_path):

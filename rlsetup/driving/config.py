@@ -200,6 +200,28 @@ class FocusConfig:
     max_attempts: int = 5                # focused settle attempts before a uniform start
 
 
+@dataclass(frozen=True)
+class RetryConfig:
+    """Crash retries (Ibrahim, 19 Nov 2026; DECISIONS #31). After a terminal failure in training, the
+    next reset retries the crash point with probability `prob` (else the usual uniform start): hand-over at
+    the exit of the corner unit before the crash point (CornerTable exits; `fallback_lead_m` before it when
+    the env has no corner table), settled as a focused start at f ~ U(speed_fraction). The first `warmup_s`
+    seconds after that hand-over are the policy's own run-up: their transitions carry info['warmup'] and
+    are never sampled for training (buffers.BonusNStepReplayBuffer), as an R2D2 burn-in. Only active after
+    DrivingEnv.set_retry(True) (RetryCallback at the start of learn(), so demos / BC never see it), never in
+    evaluation or with explicit start options. Off by default and then omitted from config.json."""
+    enabled: bool = False
+    prob: float = .75
+    warmup_s: float = 3.
+    speed_fraction: tuple = (.5, .8)
+    fallback_lead_m: float = 400.
+
+    def __post_init__(self):
+        lo, hi = self.speed_fraction
+        if not (0. <= self.prob <= 1. and self.warmup_s >= 0. and 0. < lo <= hi <= 1. and self.fallback_lead_m > 0.):
+            raise ValueError(f'invalid retry config {self}')
+
+
 TRAINING_AID_KEYS = ('corner_bonus', 'focus')   # EnvConfig blocks that are not part of the driver definition
 
 
@@ -240,6 +262,7 @@ class EnvConfig:
     demo: DemoConfig = field(default_factory=DemoConfig)
     corner_bonus: CornerBonusConfig = field(default_factory=CornerBonusConfig)   # R2 training aid
     focus: FocusConfig = field(default_factory=FocusConfig)                      # R2 training aid
+    retry: RetryConfig = field(default_factory=RetryConfig)    # crash retries; omitted from to_dict while off
 
     @property
     def speed_on(self):
@@ -281,4 +304,6 @@ class EnvConfig:
                                        for k in R4_CORNER_KEYS):
             for k in R4_CORNER_KEYS:
                 del d['corner_bonus'][k]
+        if self.retry == RetryConfig():
+            del d['retry']
         return d

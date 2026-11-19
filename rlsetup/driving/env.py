@@ -198,7 +198,7 @@ class DrivingEnv(OCDRacingEnv):
         self.evaluation = cfg.evaluation
         # R2 training aids and R4 terms (None / unused when disabled)
         self.corners = None
-        if cfg.corner_bonus.enabled or cfg.focus.enabled or cfg.speed_on or cfg.line_on:
+        if cfg.corner_bonus.enabled or cfg.focus.enabled or cfg.speed_on or cfg.line_on or cfg.retry.enabled:
             from . import corners as corners_mod
             self.corners = corners if corners is not None else corners_mod.for_env(self.track, cfg, self.qss, self.ref)
         cb = cfg.corner_bonus
@@ -211,6 +211,9 @@ class DrivingEnv(OCDRacingEnv):
         self._speed_on = cfg.speed_on
         self._line_on = cfg.line_on
         self._episode_line = 0.
+        self._retry_on = False         # RetryConfig: set_retry(True) at learn() start
+        self._last_fail_s = None       # Track.path s of the last terminal failure (training only)
+        self._warmup_s = 0.            # this episode's no-learning run-up [s since hand-over]
         self.focus_weights = None
         self.n_focus_bins = int(math.ceil(float(self.track.length) / cfg.focus.bin_m))
 
@@ -330,6 +333,40 @@ class DrivingEnv(OCDRacingEnv):
             raise ValueError(f'focus weights must be {self.n_focus_bins} nonnegative numbers summing to 1')
         self.focus_weights = p / p.sum()
 
+    def set_retry(self, on):
+        """Turn crash retries (RetryConfig) on / off; a no-op unless cfg.retry.enabled."""
+        self._retry_on = bool(on) and self.cfg.retry.enabled
+
+    def retry_handover(self, target):
+        """Hand-over s for a retry of `target`: the exit of the corner unit before it (the nearest exit
+        behind target, at least 1 m behind), else target - fallback_lead_m."""
+        L = float(self.track.length)
+        units = self.corners.units if self.corners is not None else []
+        exits = [float(u['exit_m']) % L for u in units]
+        behind = [x for x in exits if (target - x) % L >= 1.]
+        if not behind:
+            return float((target - self.cfg.retry.fallback_lead_m) % L)
+        return min(behind, key=lambda x: (target - x) % L)
+
+    def retry_start(self, target):
+        """Retry start for target (R2-7.1 focused-start rule with the hand-over at retry_handover):
+        {'f', 's_handover', 's0', 'v0'}; draws f from np_random."""
+        cfg, L = self.cfg, float(self.track.length)
+        s_h = self.retry_handover(target)
+        f = float(self.np_random.uniform(*cfg.retry.speed_fraction))
+        s0 = float((s_h - f * float(self.qss.speed(s_h)) * cfg.settle_s) % L)
+        window = f * float(self.qss.speed(s0)) * cfg.settle_s + cfg.settle_window_margin_m
+        return {'f': f, 's_handover': s_h, 's0': s0, 'v0': f * self.qss.min_speed(s0, window)}
+
+    def _retry_plan(self, options):
+        """Target s of a crash retry or None. Consumes the last failure; draws from np_random only when
+        retries are on and there is a failure to retry (otherwise the start stream is unchanged)."""
+        target, self._last_fail_s = self._last_fail_s, None
+        if (target is None or not self._retry_on or self.evaluation
+                or any(k in options for k in ('start_pose', 'start_s', 'start_speed'))):
+            return None
+        return target if self.np_random.uniform() < self.cfg.retry.prob else None
+
     def focus_target(self, b):
         """Target x [m] of focus bin b: window start of the unit containing the bin centre, else the bin start."""
         L, w = float(self.track.length), self.cfg.focus.bin_m
@@ -428,12 +465,20 @@ class DrivingEnv(OCDRacingEnv):
         setup = options.get('setup')
         setup = self.setup if setup is None else setup   # N1: None must never reach backend.reset
         self.evaluation = bool(options.get('evaluation', self.cfg.evaluation))
-        focus = self._focus_plan(options)
+        retry = self._retry_plan(options)
+        focus = self._focus_plan(options) if retry is None else None
         fallback = False
+        retry_h = None
         for attempt in range(1, self.cfg.max_start_attempts + 1):
             if focus and attempt > self.cfg.focus.max_attempts:     # R2-7.1: then a uniform start
                 focus, fallback = None, True
-            s0, f, v0, pose = self._sample_start(options, focus)
+            if retry is not None and attempt > self.cfg.focus.max_attempts:   # same budget, then uniform
+                retry, fallback = None, True
+            if retry is not None:
+                st = self.retry_start(retry)
+                s0, f, v0, pose, retry_h = st['s0'], st['f'], st['v0'], None, st['s_handover']
+            else:
+                s0, f, v0, pose = self._sample_start(options, focus)
             trace = [] if options.get('settle_trace') else None
             if self._start_and_settle(setup, s0, v0, pose, trace):
                 break
@@ -443,6 +488,7 @@ class DrivingEnv(OCDRacingEnv):
             raise RuntimeError(f'no start settled on track in {self.cfg.max_start_attempts} attempts')
         # hand-over (R2.1): episode counters start here; settle steps are not counted
         self._episode += 1
+        self._warmup_s = self.cfg.retry.warmup_s if retry is not None else 0.
         self._err_key = None
         self.steps, self.done, self.physics_steps = 0, False, 0
         self._stall_s = 0.
@@ -483,6 +529,9 @@ class DrivingEnv(OCDRacingEnv):
             info['settle_sum_fz_N'] = trace
         if self._speed_on:
             info.update(phi_v=self._phi_v, g_v=self._g_v)
+        if self.cfg.retry.enabled and not self.evaluation:
+            info['start'].update(retry=retry is not None, retry_target=retry, retry_handover_s=retry_h,
+                                 retry_fallback=fallback and retry is None and retry_h is not None)
         if self.cfg.focus.enabled and not self.evaluation:
             x = focus.get('target') if focus else None
             info['start'].update(focused=bool(focus), focus_bin=focus.get('bin') if focus else None,
@@ -547,6 +596,7 @@ class DrivingEnv(OCDRacingEnv):
         self._trunc_cause = None
         decision_dt = 0.
         tracker, crossings = self._tracker, []
+        warmup = self.time_s < self._warmup_s     # RetryConfig run-up: decided before its time is up
         self._in_step = True
         try:
             for _ in range(cfg.action_repeat):
@@ -656,6 +706,10 @@ class DrivingEnv(OCDRacingEnv):
             info.update(line_crossings_s=list(self._crossings), laps=[dict(l) for l in self._laps])
         if self._line_on:
             info.update(line_penalty=line_pen, episode_line_penalty=self._episode_line)
+        if cfg.retry.enabled:
+            info['warmup'] = bool(warmup)
+            if terminated and cause in TERMINAL_FAILURES and not self.evaluation:
+                self._last_fail_s = float(self.s)
         if self._speed_on:
             info.update(shaping_v=shaping_v, phi_v=self._phi_v, g_v=self._g_v,
                         episode_shaping_v=self._episode_shaping_v)

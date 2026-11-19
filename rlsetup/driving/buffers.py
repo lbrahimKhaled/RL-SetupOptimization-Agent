@@ -14,6 +14,9 @@ in place (no copy of the observation arrays): bonuses 0, labelled False, bonus_w
 class lives in an importable module, so pickling (save / load / resume) keeps bonuses and labelled.
 `relabel_bonuses(rb, (B_s, f_s), (B, f))` (R3_review req 5) rewrites the stored bonuses of a
 buffer written with bonus B_s / floor f_s to bonus B / floor f, in place (exact up to rounding).
+Crash retries (config.RetryConfig): `warmup` (bool [buffer_size, n_envs]) marks the transitions of a
+retry's no-learning run-up (info['warmup']); `_get_samples` never returns them (`_drop_warmup`; with no
+flagged cell the sampling is bit-identical).
 R4: the stored bonus may be negative (an entry term taken back after a crash; speed_profile.py);
 the sampling rule r + w b is unchanged (w = 1 for a never-fade schedule).
 """
@@ -122,6 +125,7 @@ class BonusNStepReplayBuffer(NStepReplayBuffer):
         super().__init__(*args, **kwargs)
         self.bonuses = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
         self.labelled = np.zeros((self.buffer_size, self.n_envs), dtype=bool)
+        self.warmup = np.zeros((self.buffer_size, self.n_envs), dtype=bool)
         self.bonus_weight = 0.
 
     @classmethod
@@ -133,6 +137,7 @@ class BonusNStepReplayBuffer(NStepReplayBuffer):
             rb.__class__ = cls
             rb.bonuses = np.zeros((rb.buffer_size, rb.n_envs), dtype=np.float32)
             rb.labelled = np.zeros((rb.buffer_size, rb.n_envs), dtype=bool)
+            rb.warmup = np.zeros((rb.buffer_size, rb.n_envs), dtype=bool)
             rb.bonus_weight = 0.
         return rb
 
@@ -144,11 +149,36 @@ class BonusNStepReplayBuffer(NStepReplayBuffer):
     def add(self, obs, next_obs, action, reward, done, infos):
         self.bonuses[self.pos] = np.array([float(info.get('corner_bonus', 0.)) for info in infos], dtype=np.float32)
         self.labelled[self.pos] = True
+        if getattr(self, 'warmup', None) is None:        # a buffer pickled before the warm-up mask
+            self.warmup = np.zeros((self.buffer_size, self.n_envs), dtype=bool)
+        self.warmup[self.pos] = [bool(info.get('warmup', False)) for info in infos]
         super().add(obs, next_obs, action, reward, done, infos)
 
+    def _drop_warmup(self, batch_inds, env_indices):
+        """RetryConfig burn-in: redraw (row, env) cells flagged warm-up, uniformly over the stored cells, until
+        none is left (rejection sampling = uniform over the non-warm-up cells). No flagged cell: the inputs
+        unchanged and no RNG draw, so sampling is bit-identical to the unmasked buffer."""
+        w = getattr(self, 'warmup', None)
+        if w is None:
+            return batch_inds, env_indices
+        bad = w[batch_inds, env_indices]
+        if not bad.any():
+            return batch_inds, env_indices
+        upper = self.buffer_size if self.full else self.pos
+        if w[:upper].all():
+            raise RuntimeError('every stored transition is a retry warm-up; nothing to sample')
+        batch_inds, env_indices = batch_inds.copy(), env_indices.copy()
+        while bad.any():
+            n = int(bad.sum())
+            batch_inds[bad] = np.random.randint(0, upper, size=n)
+            env_indices[bad] = np.random.randint(0, self.n_envs, size=n)
+            bad = w[batch_inds, env_indices]
+        return batch_inds, env_indices
+
     def _get_samples(self, batch_inds, env=None):
-        # --- copy of SB3 2.9.0 NStepReplayBuffer._get_samples; only the bonus line is new ---
+        # --- copy of SB3 2.9.0 NStepReplayBuffer._get_samples; the bonus and warm-up lines are new ---
         env_indices = np.random.randint(0, self.n_envs, size=batch_inds.shape)
+        batch_inds, env_indices = self._drop_warmup(batch_inds, env_indices)
         last_valid_index = self.pos - 1
         original_timeout_values = self.timeouts[last_valid_index].copy()
         self.timeouts[last_valid_index] = np.logical_or(original_timeout_values, np.logical_not(self.dones[last_valid_index]))

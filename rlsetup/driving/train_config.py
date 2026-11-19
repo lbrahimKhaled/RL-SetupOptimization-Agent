@@ -20,7 +20,7 @@ import ast
 import json
 import sys
 import typing
-from .config import EnvConfig
+from .config import EnvConfig, RetryConfig
 
 # forkserver does not exist on Windows; spawn is the only start method there.
 DEFAULT_START_METHOD = 'spawn' if sys.platform == 'win32' else 'forkserver'
@@ -575,6 +575,16 @@ def _bcn_f1_r4_w4():
                                reward=replace(c.env.reward, line_k=BCN_W4_LINE_K, line_free_m=.2, line_cap=.5)))
 
 
+def _bcn_f1_r4_retry():
+    """bcn_f1_r4 from scratch with crash retries and lr decay (Ibrahim, 19 Nov 2026; DECISIONS #31): after a
+    crash, 75 % of the next training resets retry it (hand-over at the previous corner exit, settle at 0.5-0.8,
+    the first 3 s of the policy's run-up never trained on); linear lr decay of actor + critics from 3M to
+    6.2M down to 1/100, then held. Run name: bcn_f1_r4_retry."""
+    c = _bcn_f1_r4()
+    return replace(c, preset='bcn_f1_r4_retry', env=replace(c.env, retry=RetryConfig(enabled=True, prob=.75, warmup_s=3.)),
+                   lr_decay=LrDecayConfig(enabled=True, start_step=3_000_000, end_step=6_200_000, floor=.01))
+
+
 def _f1_r2_smoke():
     """f1_r2 compressed to 150k env steps (R2-9.2): w = 1 until 60k, fade to 0 at 120k,
     reportable from 150k (gap 30k); eval every 25k with 3 stochastic laps, probe every 5k,
@@ -591,7 +601,7 @@ def _f1_r2_smoke():
 
 PRESETS = {'full': lambda: TrainConfig(preset='full'), 'smoke': _smoke, 'r1_warm': _r1_warm,
            'r1_warm_smoke': _r1_warm_smoke, 'p1_TUM': _p1_tum,
-           'p0_TUMref': _p0_tumref, 'bcn': _bcn, 'bcn_f1_r4': _bcn_f1_r4, 'bcn_f1_r4_w4': _bcn_f1_r4_w4, 'f1_sha': _f1_sha, 'f1_sha_w35': _f1_sha_w35,
+           'p0_TUMref': _p0_tumref, 'bcn': _bcn, 'bcn_f1_r4': _bcn_f1_r4, 'bcn_f1_r4_w4': _bcn_f1_r4_w4, 'bcn_f1_r4_retry': _bcn_f1_r4_retry, 'f1_sha': _f1_sha, 'f1_sha_w35': _f1_sha_w35,
            'f1_best_w35': _f1_best_w35, 'f1_r2': _f1_r2, 'f1_r2_smoke': _f1_r2_smoke, 'f1_r3': _f1_r3,
            'f1_r4': _f1_r4, 'f1_r4_scratch': _f1_r4_scratch}
 

@@ -256,7 +256,7 @@ def test_config_dicts_without_aids_are_unchanged():
             assert not {'bonus_schedule', 'focus_update'} & set(j) and not set(TRAINING_AID_KEYS) & set(j['env'])
             assert not {'low_noise_envs', 'low_noise_std_scale'} & set(j['agent'])
         else:
-            aids = {'corner_bonus'} if name in ('f1_r4_scratch', 'bcn_f1_r4', 'bcn_f1_r4_w4') else set(TRAINING_AID_KEYS)  # focus off there
+            aids = {'corner_bonus'} if name in ('f1_r4_scratch', 'bcn_f1_r4', 'bcn_f1_r4_w4', 'bcn_f1_r4_retry') else set(TRAINING_AID_KEYS)  # focus off there
             assert {'bonus_schedule', 'focus_update'} <= set(j) and aids <= set(j['env'])
     old = json.loads(config_json(PRESETS['f1_best_w35']()))
     assert train_config_from_dict(old).env.corner_bonus == CornerBonusConfig()          # missing -> default
