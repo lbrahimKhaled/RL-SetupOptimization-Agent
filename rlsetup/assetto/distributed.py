@@ -303,6 +303,8 @@ class LearnerServer:
                         mode=meta.get('rollout_mode', 'deterministic'),
                         stop_reason=meta.get('stop_reason'), episode_return=float(rewards.sum()),
                         progress_m=meta.get('progress_m'),
+                        start_mode=(meta.get('start') or {}).get('mode'),
+                        start_kind=(meta.get('start') or {}).get('kind'),
                         complete=max_cycles is not None and cycle >= max_cycles)
         actor = pack_actor(self.root/state['actor'])
         (directory/'actor.zip').write_bytes(actor)
@@ -777,12 +779,19 @@ def _worker_cycle(args, token, root, path, identity, state, parked):
                            management_port=args.management_port,setup_id=args.setup_id,
                            steering_saturation='clip',max_wall_s=args.max_wall_s,final_brake=True,
                            exploration_std_scale=scale,exploration_seed=next_cycle)
+    teleport_dir = getattr(args,'teleport_dir',None)
+    teleport = None if teleport_dir is None else dict(dir=teleport_dir,heights=root/'heights.npz',
+                                                      previous=state.get('last_drive'))
     result = collect(config,root/state['actor'],args.calibration,reference=args.reference,
                      output=root/f'chunk-{next_cycle:08d}.npz',execute=True,
-                     reference_file=getattr(args,'reference_file',None))
+                     reference_file=getattr(args,'reference_file',None),teleport=teleport)
     print(json.dumps(result),flush=True)
     if result['stop_reason'] == 'interrupted':
         raise KeyboardInterrupt
+    # Where the next exploration drive starts depends on how this one ended (select_start).
+    state['last_drive'] = dict(cycle=next_cycle,stop_reason=result['stop_reason'],
+                               end_station_m=result.get('end_station_m'))
+    atomic_json(path,state)
     return state
 
 
@@ -860,6 +869,9 @@ def main(argv=None):
                            help='training rollouts sample with this fraction of the policy std (0 = deterministic)')
             p.add_argument('--eval-every',type=int,default=0,
                            help='every Nth cycle is a deterministic evaluation rollout (0 = never)')
+            p.add_argument('--teleport-dir',type=Path,
+                           help='folder of the CSP rl_teleport app: exploration drives start moving before '
+                                'the corner the last drive crashed in (or at random), not from a standstill')
             p.add_argument('--execute',action='store_true')
     args = parser.parse_args(argv)
     if (not 1 <= args.port <= 65535 or not 1 <= args.network_timeout <= 3600
@@ -876,6 +888,9 @@ def main(argv=None):
         parser.error('invalid preparation/reconnect budget')
     if args.role == 'worker' and (args.reference == 'ocd_path') != (args.reference_file is not None):
         parser.error('--reference-file is required with, and only with, --reference ocd_path')
+    if args.role == 'worker' and args.teleport_dir is not None and (
+            args.reference != 'ocd_path' or not (args.teleport_dir/'rl_teleport.lua').is_file()):
+        parser.error('--teleport-dir needs --reference ocd_path and the folder holding rl_teleport.lua')
     token = args.token_file.read_text().strip()
     if len(token) < 32:
         parser.error('shared token must contain at least 32 characters')

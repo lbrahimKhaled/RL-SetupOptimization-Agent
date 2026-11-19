@@ -157,6 +157,112 @@ class Profile:
         i = int(np.searchsorted(self.geometry.stations, station, side='right')-1)
         return bool(self.corner_rows[min(i, len(self.corner_rows)-1)])
 
+    def corner_windows(self):
+        """(entry, exit) AC stations of each run of corner rows, in lap order (exit may wrap past 0)."""
+        flags = np.asarray(self.corner_rows, dtype=bool)
+        if flags.all() or not flags.any():
+            return []
+        step = np.diff(np.r_[flags[-1], flags].astype(int))
+        entries, exits = np.flatnonzero(step == 1), np.flatnonzero(step == -1)
+        if exits[0] < entries[0]:
+            exits = np.r_[exits[1:], exits[0]]
+        st = self.geometry.stations
+        return [(float(st[a]), float(st[b])) for a, b in zip(entries, exits)]
+
+
+def select_start(windows, length, previous, known, rng, retry_share=.75):
+    """Start plan for an exploration drive (None = standing start).
+
+    After a crash at station s: with probability retry_share restart at the exit of the corner window
+    before the one the crash belongs to (the last window entered at or before s), so the failed corner is
+    driven again; walks further back while the road height there is still unknown. Otherwise (or when
+    the last drive did not crash): a random station with a known road height, as OCD's random starts.
+    After a failed teleport start: standing start, so a broken teleport cannot stall training."""
+    reason = (previous or {}).get('stop_reason') or ''
+    if reason.startswith(('teleport', 'warmup')):
+        return None
+    crash = (previous or {}).get('end_station_m')
+    if reason.startswith(('wheel_off_track', 'wrong_way')) and crash is not None and windows \
+            and rng.random() < retry_share:
+        crash = float(crash) % length
+        entries = [w[0] for w in windows]
+        before = [i for i, a in enumerate(entries) if a <= crash]
+        k = before[-1] if before else len(windows)-1
+        for back in range(1, len(windows)+1):
+            station = windows[(k-back) % len(windows)][1] % length
+            if known(station):
+                return dict(kind='retry', station_m=station, crash_station_m=crash,
+                            failed_corner_entry_m=entries[k])
+    stations = [s for s in np.arange(0., length, 5.) if known(s)]
+    if not stations:
+        return None
+    return dict(kind='random', station_m=float(rng.choice(stations)))
+
+
+class HeightMap:
+    """Road height (AC world Y = telemetry world_position_z, car origin) per reference row, learnt
+    from driving: the teleport needs a height and track info is 2-D. Bound to the reference geometry."""
+    def __init__(self, path, geometry, digest):
+        self.path, self.geometry, self.digest = Path(path), geometry, digest
+        self.z = np.full(len(geometry.ref), np.nan)
+        if self.path.exists():
+            with np.load(self.path, allow_pickle=False) as saved:
+                if str(saved['digest']) == digest and saved['z'].shape == self.z.shape:
+                    self.z = saved['z'].astype(float)
+
+    def _row(self, station):
+        i = int(np.searchsorted(self.geometry.stations, float(station) % self.geometry.length, side='right')-1)
+        return min(i, len(self.z)-1)
+
+    def observe(self, station, e, packet):
+        z = packet.get('world_position_z')
+        if (not isinstance(z, (int, float)) or isinstance(z, bool) or not math.isfinite(z) or abs(e) > 2.
+                or packet.get('numberOfTyresOut', 1) != 0):
+            return
+        i = self._row(station)
+        self.z[i] = z if np.isnan(self.z[i]) else .9*self.z[i]+.1*z
+
+    def at(self, station):
+        z = self.z[self._row(station)]
+        return None if np.isnan(z) else float(z)
+
+    def known(self, station):
+        return self.at(station) is not None
+
+    def save(self):
+        temporary = self.path.with_name(self.path.name+'.tmp.npz')
+        np.savez(temporary, z=self.z, digest=np.array(self.digest))
+        os.replace(temporary, self.path)
+
+
+class Teleporter:
+    """File channel to the CSP Lua app platforms/windows/ac/csp/rl_teleport: request.txt holds
+    '<id> <X> <Y> <Z> <dX> <dY> <dZ> <speed>' in AC world axes (Y up); the app answers in ack.txt with
+    '<id> ok ...' or '<id> error ...'. AC world (X, Y, Z) = telemetry (world_position_y, _z, _x)."""
+    def __init__(self, directory):
+        self.dir = Path(directory)
+        if not (self.dir/'rl_teleport.lua').exists():
+            raise FileNotFoundError(f'CSP teleport app not found in {self.dir}')
+
+    def request(self, request_id, xy, height, tangent, speed):
+        line = (f'{request_id} {xy[1]:.4f} {height:.4f} {xy[0]:.4f} '
+                f'{tangent[1]:.6f} 0 {tangent[0]:.6f} {speed:.3f}')
+        temporary = self.dir/'request.txt.tmp'
+        temporary.write_text(line)
+        os.replace(temporary, self.dir/'request.txt')
+        return line
+
+    def ack(self, request_id):
+        """None until the app answered this id; then (ok, text)."""
+        try:
+            text = (self.dir/'ack.txt').read_text().strip()
+        except OSError:
+            return None
+        head, _, rest = text.partition(' ')
+        if head != request_id or not rest.startswith(('ok', 'error', 'bad')):
+            return None
+        return rest.startswith('ok'), rest
+
 
 class Geometry:
     """Closed corresponding borders and midpoint, AC AI fast-lane or OCD training-line reference.
@@ -295,6 +401,11 @@ class Observation:
         self.history = deque(maxlen=2)
         self.previous = None
         self.previous_kin = None
+
+    def reset(self):
+        """Forget all history (after a teleport the previous samples are not this car state)."""
+        self.history.clear()
+        self.previous = self.previous_kin = None
 
     def build(self, packet, last_action):
         o = SOURCE_OBS
@@ -644,8 +755,85 @@ def _settle(session, observation, profile, geometry, state, current, config, dea
             return None, current, start
 
 
-def collect(config, actor_bundle, calibration, *, reference, output, execute=False, reference_file=None):
-    """One explicit handover/chunk; dry run validates local inputs without connecting."""
+TELEPORT_TIMEOUT_S = 3.    # request -> car observed at the target, moving
+WARMUP_GEAR_STABLE_S = .3  # automatic gearbox: hand over once the gear stopped changing ...
+WARMUP_MAX_S = 2.          # ... or after this long anyway
+
+
+def _teleport_start(session, observation, profile, geometry, state, current, config, deadline, plan,
+                    teleporter, heights):
+    """Moving start at plan['station_m'] (choice of Ibrahim, 2026-11-19: drop the car in moving and hand
+    over directly). Speed v0 is OCD's start speed (fraction x min start-QSS over the settle window, the
+    fraction drawn as in _settle). The car is placed on the reference line facing its tangent, released
+    at v0; the settle driver then holds v0 only until the observation history is real (4 decisions,
+    0.16 s) and the automatic gearbox has stopped shifting up from 1st (at most WARMUP_MAX_S). Nothing
+    before the hand-over is stored. Returns (first policy observation or None, latest packet, start)."""
+    c = profile.settle
+    fraction = float(np.random.default_rng(config.exploration_seed).uniform(*c['start_speed_fraction']))
+    station = float(plan['station_m'])
+    window = fraction*profile.v_start(station)*c['settle_s']+c['settle_window_margin_m']
+    target = fraction*profile.v_start_min(station, window)
+    ref, _, _ = geometry.at(np.array([station-1., station, station+1.]))
+    xy, tangent = ref[1], (ref[2]-ref[0])/np.linalg.norm(ref[2]-ref[0])
+    request_id = f'{config.exploration_seed}-{time.time_ns()}'
+    start = dict(plan, mode='teleport', fraction=fraction, target_mps=target, request_id=request_id,
+                 outcome=None)
+    start['request'] = teleporter.request(request_id, xy, heights.at(station), tangent, target)
+    elapsed, answer = 0., None
+    while True:
+        session.send(RELEASE_ACTION)
+        following = session.receive(deadline)
+        elapsed += following['timestamp_ac']-current['timestamp_ac']
+        current = following
+        answer = answer or teleporter.ack(request_id)
+        if answer is not None and not answer[0]:
+            start.update(outcome='teleport_error', ack=answer[1])
+            return None, current, start
+        pos = np.array([number(current, 'world_position_x'), number(current, 'world_position_y')])
+        speed = math.hypot(number(current, 'velocity_z'), number(current, 'velocity_x'))
+        if answer is not None and np.linalg.norm(pos-xy) <= 5.+.5*target and speed >= .5*target:
+            break
+        if elapsed >= TELEPORT_TIMEOUT_S:
+            start.update(outcome='teleport_timeout', ack=answer and answer[1],
+                         distance_m=float(np.linalg.norm(pos-xy)), speed_mps=speed)
+            return None, current, start
+    _, yaw, (now, _, heading) = state(current)
+    if number(current, 'numberOfTyresOut') >= 1 or abs(wrap(yaw-heading)) > .5:
+        start.update(outcome='teleport_misplaced', heading_error_rad=float(wrap(yaw-heading)))
+        return None, current, start
+    driver, action, obs = SettleDriver(c, geometry), RELEASE_ACTION, None
+    observation.reset()
+    observation.build(current, action)
+    warm, gear, stable = 0., number(current, 'actualGear'), 0.
+    while True:
+        action = driver.act(current, now, target, .04)
+        session.send(action)
+        following = session.receive(deadline)
+        dt = following['timestamp_ac']-current['timestamp_ac']
+        warm += dt
+        obs = observation.build(following, action)
+        stable = stable+dt if number(following, 'actualGear') == gear else 0.
+        gear = number(following, 'actualGear')
+        _, yaw, (now, _, heading) = state(following)
+        current = following
+        speed = math.hypot(number(current, 'velocity_z'), number(current, 'velocity_x'))
+        start.update(warmup_s=warm, speed_mps=speed, gear=gear, handover_station_m=now)
+        if number(following, 'numberOfTyresOut') >= 1 or abs(wrap(yaw-heading)) > c['wrong_way_rad']:
+            start['outcome'] = 'warmup_off_track'
+            return None, current, start
+        if obs is not None and (stable >= WARMUP_GEAR_STABLE_S or warm >= WARMUP_MAX_S):
+            start['outcome'] = 'handover'
+            return obs, current, start
+
+
+def collect(config, actor_bundle, calibration, *, reference, output, execute=False, reference_file=None,
+            teleport=None):
+    """One explicit handover/chunk; dry run validates local inputs without connecting.
+
+    teleport: None, or dict(dir=<CSP rl_teleport app folder>, heights=<height map file>,
+    previous=<last drive: stop_reason, end_station_m>). Exploration drives with a v2 reference then
+    start where select_start says (retry the failed corner / random); evaluation drives and drives
+    without a plan keep the standing OCD settle start."""
     steering = SteeringMap(json.loads(Path(calibration).read_text()))
     actor = ActorRuntime(actor_bundle)
     if Path(output).exists():
@@ -684,6 +872,17 @@ def collect(config, actor_bundle, calibration, *, reference, output, execute=Fal
     rows, reason = [], 'max_steps'
     deadline = time.monotonic()+config.max_wall_s
     progress_total = 0.
+    geometry_sha256 = hashlib.sha256(np.ascontiguousarray(
+        np.stack([geometry.ref, geometry.left, geometry.right])).tobytes()).hexdigest()
+    heights = teleporter = plan = None
+    if teleport is not None and profile is not None:
+        heights = HeightMap(teleport['heights'], geometry, geometry_sha256)
+        if config.exploration_std_scale > 0:
+            teleporter = Teleporter(teleport['dir'])
+            plan = select_start(profile.corner_windows(), geometry.length, teleport.get('previous'),
+                                heights.known, np.random.default_rng([config.exploration_seed, 1]))
+    recording = [True]  # road heights are learnt from settled driving, never right after a teleport
+    end_station = None
     metadata = dict(schema_version=1, actor_manifest_sha256=hashlib.sha256((Path(actor_bundle)/'manifest.json').read_bytes()).hexdigest(),
                     source_config_sha256=hashlib.sha256((Path(actor_bundle)/'config.json').read_bytes()).hexdigest(),
                     target={'car_name': static['CarName'], 'track_name': static['TrackName'], 'track_configuration': static['TrackConfiguration'], 'setup_id': config.setup_id},
@@ -696,8 +895,7 @@ def collect(config, actor_bundle, calibration, *, reference, output, execute=Fal
                     # v2 profile arrays are identified by reference_file_sha256, not hashed here.
                     track_geometry_sha256=hashlib.sha256(json.dumps(
                         {k: v for k, v in track.items() if k != 'ocd_profile'}, sort_keys=True).encode()).hexdigest(),
-                    reference_geometry_sha256=hashlib.sha256(np.ascontiguousarray(
-                        np.stack([geometry.ref, geometry.left, geometry.right])).tobytes()).hexdigest(),
+                    reference_geometry_sha256=geometry_sha256,
                     reference_length_m=geometry.length, reference_file_sha256=reference_file_sha256,
                     terminal_evidence=None,
                     rollout_mode='explore' if config.exploration_std_scale > 0 else 'deterministic',
@@ -717,7 +915,10 @@ def collect(config, actor_bundle, calibration, *, reference, output, execute=Fal
             def state(packet):
                 pos = np.array([number(packet, 'world_position_x'), number(packet, 'world_position_y')])
                 yaw = number(packet, 'yaw')
-                return pos, yaw, geometry.project(pos)
+                projection = geometry.project(pos)
+                if heights is not None and recording[0]:
+                    heights.observe(projection[0], projection[1], packet)
+                return pos, yaw, projection
             obs = None
             while obs is None:
                 current = session.receive(deadline)
@@ -729,10 +930,19 @@ def collect(config, actor_bundle, calibration, *, reference, output, execute=Fal
                         raise ValueError('handover requires released throttle/brake')
                 session.send(RELEASE_ACTION)
                 obs = observation.build(current, RELEASE_ACTION)
-            if profile is not None:
+            if plan is not None:
+                # The start distribution changes, not the MDP: source_terms (replay identity) stay as is.
+                recording[0] = False
+                obs, current, start = _teleport_start(session, observation, profile, geometry, state, current,
+                                                      config, deadline, plan, teleporter, heights)
+                metadata['start'] = start
+            elif profile is not None:
                 obs, current, start = _settle(session, observation, profile, geometry, state, current, config, deadline)
+                start['kind'] = 'standing'
                 metadata['start'] = start
             old_pos, old_yaw, (old_s, old_e, _) = state(current)
+            recording[0] = True
+            end_station = old_s
             if obs is not None and number(current, 'numberOfTyresOut') >= 1:  # obs None: failed run-up
                 raise ValueError('handover wheels outside track')
             stall_s = 0.
@@ -780,6 +990,7 @@ def collect(config, actor_bundle, calibration, *, reference, output, execute=Fal
                                  command=[command['steer'], command['acc'], command['brake']],
                                  desired_road_angle=desired, executed_road_angle=effective))
                 current, obs, old_s, old_e = following, next_obs, station, e
+                end_station = station
                 if failure or lap or stalled:
                     if failure:
                         reason = ('wheel_off_track_and_wrong_way' if wheel_off_track and wrong_way
@@ -800,9 +1011,18 @@ def collect(config, actor_bundle, calibration, *, reference, output, execute=Fal
             rows[-1]['truncated'] = True
         metadata['stop_reason'] = reason
         metadata['progress_m'] = float(progress_total)
+        metadata['end_station_m'] = None if end_station is None else float(end_station)
         write_chunk(output, rows, metadata)
+        if heights is not None:
+            try:
+                heights.save()
+            except OSError as exc:
+                print(json.dumps(dict(warning=f'height map not saved: {exc}')), flush=True)
+    start = metadata['start'] or {}
     return dict(transitions=len(rows), stop_reason=reason, progress_m=float(progress_total),
-                mode=metadata['rollout_mode'], output=str(output))
+                mode=metadata['rollout_mode'], output=str(output), end_station_m=metadata['end_station_m'],
+                start=dict(kind=start.get('kind'), station_m=start.get('station_m'),
+                           outcome=start.get('outcome')))
 
 
 def main(argv=None):

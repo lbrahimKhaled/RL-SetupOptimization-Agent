@@ -32,13 +32,13 @@ def track_info():
                 right_lane=np.c_[110*np.cos(a), 110*np.sin(a)].tolist())
 
 
-def write_reference(path, *, v_qss=20., corner_from=N//2, config_sha=CONFIG_SHA):
+def write_reference(path, *, v_qss=20., corner_from=N//2, config_sha=CONFIG_SHA, corner=None):
     info = track_info()
     a = np.arange(N)*2*np.pi/N
     rows = np.c_[RADIUS*np.cos(a), RADIUS*np.sin(a)]
     step = 2*np.pi*RADIUS/N  # chord ~ arc; a synthetic OCD path 3 % longer than the AC line
     s_path = 1.03*step*np.arange(N)+5.
-    corner = (np.arange(N) >= corner_from).astype(float)
+    corner = (np.arange(N) >= corner_from).astype(float) if corner is None else np.asarray(corner, float)
     path.write_text(json.dumps(dict(
         schema='rlsetup.ac.ocd-reference.v2', reference='ocd_path',
         ac_borders_sha256=ac_borders_sha256(info['left_lane'], info['right_lane']), rows=rows.tolist(),
@@ -75,6 +75,7 @@ class Car:
         p = dict(steps=self.i, timestamp_ac=self.i*.04, world_position_x=self.x, world_position_y=self.y,
                  velocity_z=self.v*math.cos(self.yaw), velocity_x=self.v*math.sin(self.yaw), yaw=self.yaw,
                  tyre_slip_ratio_rl=.01, tyre_slip_ratio_rr=.01, actualGear=2, accStatus=0., brakeStatus=0.,
+                 world_position_z=1.5,
                  numberOfTyresOut=int(self.tyres_out_after is not None and self.i > self.tyres_out_after))
         for name in ('FL', 'FR', 'RL', 'RR'):
             angle = self.yaw+(self.steer if name in ('FL', 'FR') else 0)
@@ -84,7 +85,7 @@ class Car:
 
 
 def harness(monkeypatch, tmp_path, *, actions, reward_config=F1_REWARD, car=None, reference_kwargs=None,
-            config_sha=CONFIG_SHA):
+            config_sha=CONFIG_SHA, on_receive=None):
     bundle = tmp_path/'actor'
     bundle.mkdir(exist_ok=True)
     (bundle/'manifest.json').write_text('{}')
@@ -127,6 +128,8 @@ def harness(monkeypatch, tmp_path, *, actions, reward_config=F1_REWARD, car=None
         def __exit__(self, *_args):
             pass
         def receive(self, _deadline):
+            if on_receive is not None:
+                on_receive(fake)
             self.last = fake.step()
             return self.last
         def send(self, action):
@@ -138,9 +141,10 @@ def harness(monkeypatch, tmp_path, *, actions, reward_config=F1_REWARD, car=None
     return bundle, calibration, reference, info, fake, Actor
 
 
-def run(bundle, calibration, reference, output, max_steps=400, **config):
+def run(bundle, calibration, reference, output, max_steps=400, teleport=None, **config):
     return d.collect(CollectConfig('localhost', max_steps, **config), bundle, calibration,
-                     reference='ocd_path', output=output, execute=True, reference_file=reference)
+                     reference='ocd_path', output=output, execute=True, reference_file=reference,
+                     teleport=teleport)
 
 
 def test_controls_use_the_source_lock():
@@ -262,3 +266,160 @@ def test_v2_profile_validation(tmp_path):
         bad.write_text(json.dumps(saved))
         with pytest.raises(ValueError, match='v2 reference'):
             load_reference(info, 'ocd_path', bad)
+
+
+# --- Teleport start: retry the failed corner from the previous corner's exit -------------------------
+
+WINDOWS = [(100., 200.), (300., 400.), (500., 50.)]  # last window wraps past station 0
+LENGTH = 600.
+
+
+class Draw:
+    """rng stand-in: random() returns the given value, choice() the first candidate."""
+    def __init__(self, value):
+        self.value = value
+    def random(self):
+        return self.value
+    def choice(self, values):
+        return values[0]
+
+
+@pytest.mark.parametrize('crash,start', [(150., 50.),   # inside corner 2 -> exit of corner 1 (wrapping one)
+                                         (250., 50.),   # straight after corner 2 -> still corner 2's retry
+                                         (350., 200.),  # inside corner 3 -> exit of corner 2
+                                         (520., 400.),  # inside the wrapping corner -> exit of corner 3
+                                         (20., 400.),   # its part past 0 -> same corner
+                                         (80., 400.)])  # straight before corner 2 -> belongs to the last one
+def test_retry_starts_at_the_previous_corners_exit(crash, start):
+    previous = dict(stop_reason='wheel_off_track', end_station_m=crash)
+    plan = d.select_start(WINDOWS, LENGTH, previous, lambda s: True, Draw(.1))
+    assert plan['kind'] == 'retry' and plan['station_m'] == start and plan['crash_station_m'] == crash
+
+
+def test_start_mix_and_fallbacks():
+    crash = dict(stop_reason='wrong_way', end_station_m=350.)
+    assert d.select_start(WINDOWS, LENGTH, crash, lambda s: True, Draw(.74))['kind'] == 'retry'
+    assert d.select_start(WINDOWS, LENGTH, crash, lambda s: True, Draw(.76))['kind'] == 'random'  # 1 in 4
+    # exit of corner 2 has no road height yet: walk back to corner 1's exit
+    assert d.select_start(WINDOWS, LENGTH, crash, lambda s: s != 200., Draw(.1))['station_m'] == 50.
+    for stop in ('max_steps', 'stall', 'lap_complete', 'TimeoutError: wall limit'):
+        plan = d.select_start(WINDOWS, LENGTH, dict(stop_reason=stop, end_station_m=350.), lambda s: True, Draw(.1))
+        assert plan['kind'] == 'random'
+    assert d.select_start(WINDOWS, LENGTH, None, lambda s: s >= 590., Draw(.1)) == dict(kind='random', station_m=590.)
+    assert d.select_start(WINDOWS, LENGTH, crash, lambda s: False, Draw(.1)) is None   # nothing known: standing
+    for stop in ('teleport_timeout', 'teleport_error', 'warmup_off_track'):  # broken teleport: standing
+        assert d.select_start(WINDOWS, LENGTH, dict(stop_reason=stop), lambda s: True, Draw(.1)) is None
+    share = np.mean([d.select_start(WINDOWS, LENGTH, crash, lambda s: True, np.random.default_rng(i))['kind'] == 'retry'
+                     for i in range(2000)])
+    assert share == pytest.approx(.75, abs=.03)
+
+
+def test_corner_windows_wrap(tmp_path):
+    corner = np.zeros(N)
+    corner[100:200] = 1
+    corner[650:] = corner[:20] = 1
+    info = write_reference(tmp_path/'r.json', corner=corner)
+    track, _ = load_reference(info, 'ocd_path', tmp_path/'r.json')
+    g = Geometry(track, reference='ocd_path')
+    windows = Profile(track['ocd_profile'], g).corner_windows()
+    assert windows == [(pytest.approx(g.stations[100]), pytest.approx(g.stations[200])),
+                       (pytest.approx(g.stations[650]), pytest.approx(g.stations[20]))]
+
+
+def test_height_map_learns_saves_and_is_bound_to_the_reference(tmp_path):
+    info = write_reference(tmp_path/'r.json')
+    track, _ = load_reference(info, 'ocd_path', tmp_path/'r.json')
+    g = Geometry(track, reference='ocd_path')
+    h = d.HeightMap(tmp_path/'h.npz', g, 'a'*64)
+    good = dict(world_position_z=2., numberOfTyresOut=0)
+    h.observe(10., .5, good)
+    h.observe(10., .5, dict(good, world_position_z=3.))
+    h.observe(100., 2.5, good)                                   # 2.5 m off the line: not learnt
+    h.observe(200., 0., dict(good, numberOfTyresOut=1))          # off track: not learnt
+    h.observe(300., 0., dict(numberOfTyresOut=0))                # no height in the packet
+    assert h.at(10.) == pytest.approx(2.1) and not h.known(100.) and not h.known(200.) and not h.known(300.)
+    h.save()
+    assert d.HeightMap(tmp_path/'h.npz', g, 'a'*64).at(10.) == pytest.approx(2.1)
+    assert not d.HeightMap(tmp_path/'h.npz', g, 'b'*64).known(10.)  # another reference: start empty
+
+
+def fake_app(directory, answer=True):
+    """The CSP app on a fake car: reads request.txt, places the car (AC X = telemetry y, AC Z = x),
+    releases it along the direction at the requested speed and writes ack.txt."""
+    directory.mkdir(exist_ok=True)
+    (directory/'rl_teleport.lua').write_text('-- fake')
+    seen = []
+
+    def on_receive(car):
+        request = directory/'request.txt'
+        if not answer or not request.exists() or request.read_text() in seen:
+            return
+        text = request.read_text()
+        seen.append(text)
+        rid, X, Y, Z, dX, dY, dZ, speed = text.split()
+        car.x, car.y, car.v = float(Z), float(X), float(speed)
+        car.yaw = math.atan2(float(dX), float(dZ))
+        (directory/'ack.txt').write_text(f'{rid} ok teleported')
+    return on_receive, seen
+
+
+def test_crash_retry_teleports_moving_and_hands_over(monkeypatch, tmp_path):
+    corner = np.zeros(N)
+    corner[100:200] = corner[400:550] = 1
+    app = tmp_path/'app'
+    on_receive, seen = fake_app(app)
+    bundle, calibration, reference, info, car, Actor = harness(
+        monkeypatch, tmp_path, actions=[[0., -.4, -.8]], reference_kwargs=dict(corner=corner),
+        on_receive=on_receive)
+    track, _ = load_reference(info, 'ocd_path', reference)
+    g = Geometry(track, reference='ocd_path')
+    teleport = dict(dir=app, heights=tmp_path/'heights.npz', previous=None)
+    # Drive 1: no road heights known yet -> standing OCD settle start; heights are learnt on the way.
+    first = run(bundle, calibration, reference, tmp_path/'c1.npz', max_steps=40, exploration_std_scale=.3,
+                exploration_seed=1, teleport=teleport)
+    assert first['start']['kind'] == 'standing' and first['transitions'] == 40 and not seen
+    with np.load(tmp_path/'heights.npz') as saved:
+        z, digest = saved['z'].copy(), str(saved['digest'])
+    assert np.nanmax(z) == 1.5 and np.isnan(z).any()
+    np.savez(tmp_path/'heights.npz', z=np.full_like(z, 1.5), digest=np.array(digest))  # as after many drives
+    # Drive 2: the last drive crashed inside the second corner -> drop in at the first corner's exit.
+    seed = next(i for i in range(100) if np.random.default_rng([i, 1]).random() < .75)
+    crash = float(g.stations[450])
+    teleport['previous'] = dict(stop_reason='wheel_off_track', end_station_m=crash)
+    result = run(bundle, calibration, reference, tmp_path/'c2.npz', max_steps=30, exploration_std_scale=.3,
+                 exploration_seed=seed, teleport=teleport)
+    with np.load(tmp_path/'c2.npz', allow_pickle=False) as chunk:
+        meta = json.loads(chunk['metadata_json'].item())
+        obs = chunk['obs']
+    start = meta['start']
+    assert (start['mode'], start['kind'], start['outcome']) == ('teleport', 'retry', 'handover')
+    assert start['station_m'] == pytest.approx(g.stations[200]) and start['crash_station_m'] == crash
+    assert len(seen) == 1 and seen[0].split()[2] == '1.5000'          # height from the learnt map
+    fraction = float(np.random.default_rng(seed).uniform(.3, .7))
+    assert start['target_mps'] == pytest.approx(20*fraction)
+    # direct hand-over: 4 decisions of history + the gear-stable wait, nothing longer
+    assert .16 <= start['warmup_s'] <= d.WARMUP_GEAR_STABLE_S+.2
+    assert abs(g.progress(start['station_m'], start['handover_station_m'])) < 20*fraction*.6+1
+    assert obs[0, 0]*80 == pytest.approx(start['target_mps'], abs=1.)  # first stored state already moving
+    assert result['transitions'] == 30 and result['start']['kind'] == 'retry'
+    assert meta['source_terms']['start'] == 'ocd_settle'               # replay identity unchanged
+    assert meta['end_station_m'] == pytest.approx(result['end_station_m'])
+
+
+def test_unanswered_teleport_stores_nothing_and_next_start_is_standing(monkeypatch, tmp_path):
+    app = tmp_path/'app'
+    on_receive, seen = fake_app(app, answer=False)
+    bundle, calibration, reference, info, car, Actor = harness(
+        monkeypatch, tmp_path, actions=[[0., -.4, -.8]], on_receive=on_receive)
+    track, _ = load_reference(info, 'ocd_path', reference)
+    g = Geometry(track, reference='ocd_path')
+    digest = hashlib.sha256(np.ascontiguousarray(np.stack([g.ref, g.left, g.right])).tobytes()).hexdigest()
+    np.savez(tmp_path/'heights.npz', z=np.full(len(g.ref), 1.5), digest=np.array(digest))
+    result = run(bundle, calibration, reference, tmp_path/'c.npz', exploration_std_scale=.3, exploration_seed=3,
+                 teleport=dict(dir=app, heights=tmp_path/'heights.npz', previous=None))
+    assert (result['stop_reason'], result['transitions']) == ('teleport_timeout', 0)
+    assert d.select_start([(1., 2.)], g.length, dict(stop_reason=result['stop_reason']), lambda s: True, Draw(0.)) is None
+    # evaluation drives never teleport
+    evaluation = run(bundle, calibration, reference, tmp_path/'e.npz', max_steps=5,
+                     teleport=dict(dir=app, heights=tmp_path/'heights.npz', previous=None))
+    assert evaluation['start']['kind'] == 'standing'

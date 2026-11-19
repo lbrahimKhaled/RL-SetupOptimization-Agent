@@ -16,7 +16,8 @@ if not exist steering-f1r4.json (
   goto failed
 )
 if "%AC_LEARNER_HOST%"=="" set "AC_LEARNER_HOST=192.168.1.249"
-.venv\Scripts\python.exe -m rlsetup.assetto.distributed worker --server "%AC_LEARNER_HOST%" --port 2350 --token-file tcp-session.key --calibration steering-f1r4.json --setup-id bcn_f1_best --work-dir tcp-worker-f1r4-001 --ac-host 127.0.0.1 --reference ocd_path --reference-file ocd_line_reference_bcn_f1_r4.json --max-steps 3750 --max-wall-s 180 --explore-std-scale 0.3 --eval-every 10 --reconnect-attempts 20 --max-consecutive-failures 5 --execute
+if "%AC_TELEPORT_DIR%"=="" set "AC_TELEPORT_DIR=D:\SteamLibrary\steamapps\common\assettocorsa\apps\lua\rl_teleport"
+.venv\Scripts\python.exe -m rlsetup.assetto.distributed worker --server "%AC_LEARNER_HOST%" --port 2350 --token-file tcp-session.key --calibration steering-f1r4.json --setup-id bcn_f1_best --work-dir tcp-worker-f1r4-001 --ac-host 127.0.0.1 --reference ocd_path --reference-file ocd_line_reference_bcn_f1_r4.json --max-steps 3750 --max-wall-s 180 --explore-std-scale 0.3 --eval-every 10 --reconnect-attempts 20 --max-consecutive-failures 5 --teleport-dir "%AC_TELEPORT_DIR%" --execute
 if errorlevel 1 goto failed
 pause
 exit /b 0

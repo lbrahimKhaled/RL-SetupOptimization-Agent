@@ -59,12 +59,18 @@ def scalars_of(row: dict, seconds: float | None, total: int, laps: int) -> dict:
         'train/transitions_total': total,
         'failure/off_track': float(str(row.get('stop_reason', '')).startswith(('wheel_off', 'wrong_way'))),
         'failure/telemetry_or_timeout': float(str(row.get('stop_reason', '')).startswith(('TimeoutError', 'ValueError'))),
+        'start/teleport': float(row.get('start_mode') == 'teleport'),
+        'start/retry_failed_corner': float(row.get('start_kind') == 'retry'),
+        'failure/teleport_start': float(str(row.get('stop_reason', '')).startswith(('teleport', 'warmup'))),
     }
     if seconds:
         out['all/drive_time_s'] = seconds
         if row.get('progress_m') is not None and seconds > 0:
             out['all/avg_speed_kmh'] = 3.6*row['progress_m']/seconds
-        if lap:
+        if lap and row.get('start_mode') == 'teleport':
+            # A full reference length from a moving drop-in somewhere on the lap: not a lap time.
+            out['lap/teleport_full_length_s'] = seconds
+        elif lap:
             out['lap/lap_time_s'] = seconds
             out[f'lap/{mode}_lap_time_s'] = seconds
             out['compare/deterministic_lap_time_s' if mode == 'eval' else 'compare/noisy_lap_time_s'] = seconds
@@ -122,7 +128,7 @@ def mirror(work_dir: Path, state: dict, writers: dict) -> int:
         if cycle <= state['last']:
             continue
         state['total'] += int(row.get('transitions') or 0)
-        state['laps'] += row.get('stop_reason') == 'lap_complete'
+        state['laps'] += row.get('stop_reason') == 'lap_complete' and row.get('start_mode') != 'teleport'
         if not writers:
             writers['tb'] = SummaryWriter(str(work_dir / 'tb'))
             writers['tb_lineage'] = SummaryWriter(str(work_dir / 'tb_lineage'))

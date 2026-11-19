@@ -8,6 +8,7 @@ local saved = nil            -- {pos = vec3, dir = vec3}
 local status = 'ready: drive somewhere, press "Save spot"'
 local lastRequest = nil
 local pollAccum = 0
+local handled = 0
 local dir = __dirname or '.'
 local requestFile = dir .. '/request.txt'
 local ackFile = dir .. '/ack.txt'
@@ -49,6 +50,7 @@ local function pollRequest()
     local good, msg = teleport(vec3(nums[1], nums[2], nums[3]), vec3(nums[4], nums[5], nums[6]), nums[7])
     result = (good and 'ok ' or 'error ') .. msg
   end
+  handled = handled + 1
   status = 'request ' .. id .. ': ' .. result
   local okSave, errSave = pcall(io.save, ackFile, id .. ' ' .. result)
   if not okSave then status = status .. ' | io.save FAILED: ' .. tostring(errSave) end
@@ -86,9 +88,14 @@ function windowMain(dt)
   ui.text('Status:')
   for i = 1, #status, 50 do ui.text(status:sub(i, i + 49)) end
   ui.text('Request file: request.txt in this app folder')
+  ui.text(string.format('Requests handled: %d', handled))
+end
 
+-- Called every frame by CSP whether or not the window is open: the training worker's requests are
+-- answered within ~20 ms. The window only shows status.
+function script.update(dt)
   local now = os.clock()
-  if now - pollAccum >= .25 then
+  if now - pollAccum >= .02 then
     pollAccum = now
     pollRequest()
   end
