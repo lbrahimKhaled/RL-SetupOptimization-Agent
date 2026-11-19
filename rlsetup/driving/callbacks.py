@@ -83,6 +83,111 @@ def load_replay_buffer_for_resume(model, path):
     return cut_nstep_chains(model.replay_buffer)
 
 
+class RetryCallback(BaseCallback):
+    """EnvConfig.retry: switches crash retries on in every training env once learn() reaches
+    retry.start_step (demo collection and BC never retry) and counts, between evaluations, the episodes that started as a retry
+    (first decision flagged warm-up) and the share of warm-up transitions (`eval_extra`). Refuses a replay
+    buffer without the warm-up mask, which would silently train on the run-up."""
+
+    def __init__(self, start_step=0):
+        super().__init__()
+        self.start_step = int(start_step)
+        self.on = False
+        self.reset_counts()
+
+    def reset_counts(self):
+        self.episodes = self.retries = self.transitions = self.warmup = 0
+        self._new = None
+
+    def _switch(self):
+        if not self.on and self.model.num_timesteps >= self.start_step:
+            self.training_env.env_method('set_retry', True)
+            self.on = True
+
+    def _on_training_start(self):
+        if not hasattr(self.model.replay_buffer, '_drop_warmup'):
+            raise TypeError('retry needs a replay buffer with the warm-up mask (BonusNStepReplayBuffer)')
+        self._new = np.zeros(self.training_env.num_envs, dtype=bool)
+        self._switch()
+
+    def _on_step(self):
+        self._switch()
+        infos, dones = self.locals['infos'], np.asarray(self.locals['dones'], dtype=bool)
+        if self._new is None:
+            self._new = np.zeros(len(infos), dtype=bool)
+        for i, info in enumerate(infos):
+            w = bool(info.get('warmup', False))
+            self.transitions += 1
+            self.warmup += w
+            if self._new[i]:
+                self.episodes += 1
+                self.retries += w
+        self._new = dones.copy()
+        return True
+
+    def eval_extra(self, model, n):
+        out = {'retry': {'episodes': self.episodes, 'retry_episodes': self.retries,
+                         'retry_share': self.retries / self.episodes if self.episodes else None,
+                         'warmup_share': self.warmup / self.transitions if self.transitions else None}}
+        new = self._new
+        self.reset_counts()
+        self._new = new
+        return out
+
+
+class CrashEmphasisCallback(BaseCallback):
+    """TrainConfig.crash_emphasis: sets the replay buffer's crash_horizon (decisions in horizon_s) at the
+    start, so crashes are marked from step 0, and crash_factor = factor once num_timesteps >= start_step
+    (1 before). `eval_extra` reports the marked share of the stored transitions."""
+
+    def __init__(self, cfg):
+        super().__init__()
+        self.cfg = cfg
+
+    def _set(self):
+        rb = self.model.replay_buffer
+        rb.crash_factor = float(self.cfg.factor) if self.model.num_timesteps >= self.cfg.start_step else 1.
+
+    def _on_training_start(self):
+        rb = self.model.replay_buffer
+        if not hasattr(rb, '_emphasize_crashes'):
+            raise TypeError('crash_emphasis needs buffers.BonusNStepReplayBuffer')
+        dt = float(self.training_env.get_attr('decision_dt')[0])
+        rb.crash_horizon = max(1, int(round(self.cfg.horizon_s / dt)))
+        self._set()
+
+    def _on_step(self):
+        self._set()
+        return True
+
+    def eval_extra(self, model, n):
+        rb = model.replay_buffer
+        upper = rb.buffer_size if rb.full else rb.pos
+        marks = getattr(rb, 'crash_near', None)
+        share = float(marks[:upper].mean()) if marks is not None and upper else 0.
+        return {'crash_emphasis': {'factor': float(getattr(rb, 'crash_factor', 1.)), 'marked_share': share}}
+
+
+class LrDecayCallback(BaseCallback):
+    """TrainConfig.lr_decay: model.lr_scale = cfg.scale(num_timesteps) before every rollout step, so the
+    next train() call (StagedSAC._update_learning_rate) uses it. Disabled: model.lr_scale = None (clears
+    a scale pickled with a checkpoint of a decaying run)."""
+
+    def __init__(self, cfg):
+        super().__init__()
+        self.cfg = cfg.check()
+
+    def _set(self):
+        self.model.lr_scale = self.cfg.scale(self.model.num_timesteps)
+
+    def _on_training_start(self):
+        self._set()
+
+    def _on_step(self):
+        self._set()
+        return True
+
+
 class PhaseCallback(BaseCallback):
     """Step 5: at num_timesteps >= unfreeze_at, unfreeze actor and alpha (actor Adam is fresh:
     it never stepped while frozen; alpha continues from its initial value). The 'unfreeze' event
@@ -259,7 +364,7 @@ class TrainStatsCallback(BaseCallback):
 
     @staticmethod
     def _empty_r4():
-        return {'shaping_v': [], 'terms': [], 'taken_back': [], 'takebacks': 0, 'with_takeback': 0, 'line': []}
+        return {'shaping_v': [], 'terms': [], 'taken_back': [], 'takebacks': 0, 'with_takeback': 0, 'line': [], 'exit': []}
 
     @staticmethod
     def _add_r4(acc, info):
@@ -267,6 +372,8 @@ class TrainStatsCallback(BaseCallback):
             acc['shaping_v'].append(float(info['episode_shaping_v']))
         if 'episode_line_penalty' in info:   # corner line penalty
             acc['line'].append(float(info['episode_line_penalty']))
+        if 'episode_exit_speed_reward' in info:   # R5 exit-speed term
+            acc.setdefault('exit', []).append(float(info['episode_exit_speed_reward']))
         if 'episode_corner_taken_back' in info:
             acc['terms'].append(float(info.get('episode_corner_bonus', 0.)))
             acc['taken_back'].append(float(info['episode_corner_taken_back']))
@@ -279,6 +386,8 @@ class TrainStatsCallback(BaseCallback):
             return None
         mean = lambda x: float(np.mean(x)) if x else None
         out = {} if not acc['line'] else {'ep_line_penalty_mean': mean(acc['line'])}
+        if acc.get('exit'):
+            out['ep_exit_speed_reward_mean'] = mean(acc['exit'])
         return {**out, 'episodes': max(len(acc['shaping_v']), len(acc['terms']), len(acc['line'])),
                 'ep_shaping_v_mean': mean(acc['shaping_v']),
                 'ep_corner_terms_mean': mean(acc['terms']), 'ep_taken_back_mean': mean(acc['taken_back']),

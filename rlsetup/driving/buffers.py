@@ -14,6 +14,17 @@ in place (no copy of the observation arrays): bonuses 0, labelled False, bonus_w
 class lives in an importable module, so pickling (save / load / resume) keeps bonuses and labelled.
 `relabel_bonuses(rb, (B_s, f_s), (B, f))` (R3_review req 5) rewrites the stored bonuses of a
 buffer written with bonus B_s / floor f_s to bonus B / floor f, in place (exact up to rounding).
+Crash retries (config.RetryConfig): `warmup` (bool [buffer_size, n_envs]) marks the transitions of a
+retry's no-learning run-up (info['warmup']); `_get_samples` never returns them (`_drop_warmup`; with no
+flagged cell the sampling is bit-identical).
+Crash emphasis (TrainConfig.crash_emphasis, docs/specs/R5_apex_split.md §3): `crash_near` (bool [buffer_size,
+n_envs]) marks, when a terminal failure (done and not TimeLimit.truncated) is added, that row and up to
+`crash_horizon` - 1 earlier rows of its env column (stopping at an earlier episode end); `_get_samples` then
+replaces each drawn cell (after the warm-up redraw) with probability q = (m - 1) f / ((m - 1) f + 1) by a uniform
+draw from the marked cells that are not run-up (f = their share of the non-run-up cells, m = `crash_factor`),
+i.e. m x the weight per marked cell. Demo rows are never marked: the demo prefill runs before learn(), while
+crash_horizon is still 0 (CrashEmphasisCallback sets it at the training start). m <= 1 or no marked cell:
+no RNG draw, sampling bit-identical.
 R4: the stored bonus may be negative (an entry term taken back after a crash; speed_profile.py);
 the sampling rule r + w b is unchanged (w = 1 for a never-fade schedule).
 """
@@ -122,7 +133,12 @@ class BonusNStepReplayBuffer(NStepReplayBuffer):
         super().__init__(*args, **kwargs)
         self.bonuses = np.zeros((self.buffer_size, self.n_envs), dtype=np.float32)
         self.labelled = np.zeros((self.buffer_size, self.n_envs), dtype=bool)
+        self.warmup = np.zeros((self.buffer_size, self.n_envs), dtype=bool)
         self.bonus_weight = 0.
+        self.crash_near = np.zeros((self.buffer_size, self.n_envs), dtype=bool)
+        self.crash_horizon = 0         # decisions marked before a terminal failure (0 = no marking)
+        self.crash_factor = 1.         # sampling weight of a marked cell (1 = uniform)
+        self.stores_bonus = True       # False: corner bonus off (buffer used for retries / crash emphasis only)
 
     @classmethod
     def adopt(cls, rb):
@@ -133,7 +149,10 @@ class BonusNStepReplayBuffer(NStepReplayBuffer):
             rb.__class__ = cls
             rb.bonuses = np.zeros((rb.buffer_size, rb.n_envs), dtype=np.float32)
             rb.labelled = np.zeros((rb.buffer_size, rb.n_envs), dtype=bool)
+            rb.warmup = np.zeros((rb.buffer_size, rb.n_envs), dtype=bool)
             rb.bonus_weight = 0.
+            rb.crash_near = np.zeros((rb.buffer_size, rb.n_envs), dtype=bool)
+            rb.crash_horizon, rb.crash_factor = 0, 1.
         return rb
 
     def labelled_fraction(self):
@@ -144,11 +163,83 @@ class BonusNStepReplayBuffer(NStepReplayBuffer):
     def add(self, obs, next_obs, action, reward, done, infos):
         self.bonuses[self.pos] = np.array([float(info.get('corner_bonus', 0.)) for info in infos], dtype=np.float32)
         self.labelled[self.pos] = True
+        if getattr(self, 'warmup', None) is None:        # a buffer pickled before the warm-up mask
+            self.warmup = np.zeros((self.buffer_size, self.n_envs), dtype=bool)
+        self.warmup[self.pos] = [bool(info.get('warmup', False)) for info in infos]
+        self._mark_crashes(done, infos)
         super().add(obs, next_obs, action, reward, done, infos)
 
+    def _mark_crashes(self, done, infos):
+        """Crash emphasis: clear the row about to be (over)written, then mark it and up to crash_horizon - 1
+        earlier rows of each column whose transition is a terminal failure (not a time-limit truncation)."""
+        if getattr(self, 'crash_near', None) is None:      # a buffer pickled before crash emphasis
+            self.crash_near = np.zeros((self.buffer_size, self.n_envs), dtype=bool)
+        self.crash_near[self.pos] = False
+        h = int(getattr(self, 'crash_horizon', 0))
+        if h <= 0:
+            return
+        earlier = self.buffer_size - 1 if self.full else self.pos     # stored rows before this one
+        for c, (d, info) in enumerate(zip(np.asarray(done).reshape(-1), infos)):
+            if not d or info.get('TimeLimit.truncated', False):
+                continue
+            self.crash_near[self.pos, c] = True
+            for j in range(1, min(h, earlier + 1)):
+                row = (self.pos - j) % self.buffer_size
+                if self.dones[row, c]:                       # the previous episode ended here
+                    break
+                self.crash_near[row, c] = True
+
+    def _emphasize_crashes(self, batch_inds, env_indices):
+        """Mixture draw giving each crash_near cell crash_factor x the weight of any other cell. Applied after
+        _drop_warmup and over cells that are not retry run-up: marked = crash_near and not warmup, f = marked /
+        (stored cells that are not run-up), so the batch stays free of run-up rows and the ratio is exact."""
+        m = float(getattr(self, 'crash_factor', 1.))
+        marks = getattr(self, 'crash_near', None)
+        if marks is None or m <= 1.:
+            return batch_inds, env_indices
+        upper = self.buffer_size if self.full else self.pos
+        warm = getattr(self, 'warmup', None)
+        usable = marks[:upper] if warm is None else marks[:upper] & ~warm[:upper]
+        cells = np.flatnonzero(usable)
+        if cells.size == 0:
+            return batch_inds, env_indices
+        eligible = upper * self.n_envs - (0 if warm is None else int(warm[:upper].sum()))
+        f = cells.size / eligible
+        q = (m - 1.) * f / ((m - 1.) * f + 1.)
+        pick = np.random.random_sample(batch_inds.shape) < q
+        n = int(pick.sum())
+        if n:
+            chosen = cells[np.random.randint(0, cells.size, size=n)]
+            batch_inds, env_indices = batch_inds.copy(), env_indices.copy()
+            batch_inds[pick], env_indices[pick] = chosen // self.n_envs, chosen % self.n_envs
+        return batch_inds, env_indices
+
+    def _drop_warmup(self, batch_inds, env_indices):
+        """RetryConfig burn-in: redraw (row, env) cells flagged warm-up, uniformly over the stored cells, until
+        none is left (rejection sampling = uniform over the non-warm-up cells). No flagged cell: the inputs
+        unchanged and no RNG draw, so sampling is bit-identical to the unmasked buffer."""
+        w = getattr(self, 'warmup', None)
+        if w is None:
+            return batch_inds, env_indices
+        bad = w[batch_inds, env_indices]
+        if not bad.any():
+            return batch_inds, env_indices
+        upper = self.buffer_size if self.full else self.pos
+        if w[:upper].all():
+            raise RuntimeError('every stored transition is a retry warm-up; nothing to sample')
+        batch_inds, env_indices = batch_inds.copy(), env_indices.copy()
+        while bad.any():
+            n = int(bad.sum())
+            batch_inds[bad] = np.random.randint(0, upper, size=n)
+            env_indices[bad] = np.random.randint(0, self.n_envs, size=n)
+            bad = w[batch_inds, env_indices]
+        return batch_inds, env_indices
+
     def _get_samples(self, batch_inds, env=None):
-        # --- copy of SB3 2.9.0 NStepReplayBuffer._get_samples; only the bonus line is new ---
+        # --- copy of SB3 2.9.0 NStepReplayBuffer._get_samples; the bonus and warm-up lines are new ---
         env_indices = np.random.randint(0, self.n_envs, size=batch_inds.shape)
+        batch_inds, env_indices = self._drop_warmup(batch_inds, env_indices)
+        batch_inds, env_indices = self._emphasize_crashes(batch_inds, env_indices)
         last_valid_index = self.pos - 1
         original_timeout_values = self.timeouts[last_valid_index].copy()
         self.timeouts[last_valid_index] = np.logical_or(original_timeout_values, np.logical_not(self.dones[last_valid_index]))

@@ -7,12 +7,13 @@
 #   that ends the run leaves no checkpoints\last.zip, so the keeper exits on that instead.
 # Never stops a run by itself: stop it with stop_run.ps1 (flag + wait for a fresh checkpoint save + kill).
 #
-#   platforms\windows\start_detached.ps1 -Log runs\windows\keeper_NAME.log platforms\windows\keeper.ps1 NAME [MAX_RESUMES] [PRIORITY]
+#   platforms\windows\start_detached.ps1 -Log runs\windows\keeper_NAME.log platforms\windows\keeper.ps1 NAME [MAX_RESUMES] [PRIORITY] [PRESET]
 #
 # PRIORITY (e.g. BelowNormal, so a real-time job such as Assetto Corsa keeps the CPU): every 30 s the keeper sets
 # this priority class on the training process and all its descendants (env workers start at different times).
 #
-# Run name = preset name (the resume passes --preset NAME). RUNS_ROOT as train.ps1 (default runs\windows\D2).
+# PRESET (default = RUN): the --preset the resume passes; a run branched from another run's folder (e.g. the
+# lr-decay A/B) keeps its source's preset. RUNS_ROOT as train.ps1 (default runs\windows\D2).
 $ErrorActionPreference = 'Continue'
 . (Join-Path $PSScriptRoot 'env.ps1')
 Set-Location $Repo
@@ -20,6 +21,7 @@ if ($args.Count -lt 1) { Write-Error 'usage: keeper.ps1 RUN_NAME [MAX_RESUMES]';
 $Run = $args[0]
 $MaxResumes = if ($args.Count -ge 2) { [int]$args[1] } else { 5 }
 $Priority = if ($args.Count -ge 3) { [string]$args[2] } else { '' }
+$Preset = if ($args.Count -ge 4) { [string]$args[3] } else { $Run }   # a branched run keeps its source's preset
 $Root = if ($env:RUNS_ROOT) { $env:RUNS_ROOT } else { Join-Path $Repo 'runs\windows\D2' }
 $Seed = Join-Path $Root "$Run\seed0"
 $Flag = Join-Path $Seed 'STOP_KEEPER'
@@ -70,7 +72,7 @@ while ($true) {
         $resumes++
         Log "training not running (state $($st.state)): resume $resumes of $MaxResumes"
         & (Join-Path $PSScriptRoot 'start_detached.ps1') -Log "runs\windows\$($Run)_stdout_resume$resumes.log" `
-            (Join-Path $PSScriptRoot 'train.ps1') --resume --preset $Run --seed 0 --run-name $Run --allow-code-change --allow-dirty
+            (Join-Path $PSScriptRoot 'train.ps1') --resume --preset $Preset --seed 0 --run-name $Run --allow-code-change --allow-dirty
         for ($i = 0; $i -lt 4; $i++) { Start-Sleep -Seconds 30; Set-RunPriority }
         continue
     }

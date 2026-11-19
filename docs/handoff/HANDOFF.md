@@ -226,6 +226,13 @@ nohup cloudflared tunnel --no-autoupdate --url http://127.0.0.1:6006 > runs/mac/
 ```
 Best models: `models/`. Line result: RL 103.06 → 102.57 s. Judge this setup at about 5M steps.
 
+## 19 Nov 2026 - Barcelona run `bcn_f1_r4_retry` STOPPED for a sign-out at 3.75M (19 Nov 13:00, resumable; DECISIONS #30, #31)
+- State: retries since 500k; from 3.0M learning switches on 150 m before the retried corner's braking point (`env.retry.learn_before_m=150`, set by resume override, now in its config.json) and the lr decay 3M -> 6.2M to 1/100 is running. At 3M: 13/60 clean det laps, best lap 2 85.99 s (bcn_f1_r4 at 3M: 16/60, 85.98 s).
+- Resume on this PC (after the sign-out): `Remove-Item runs\windows\D2\bcn_f1_r4_retry\seed0\STOP_KEEPER`, then `platforms\windows\start_detached.ps1 -Log runs\windows\bcn_f1_r4_retry_stdout_resume.log platforms\windows\train.ps1 --resume --preset bcn_f1_r4_retry --seed 0 --run-name bcn_f1_r4_retry --allow-code-change --allow-dirty`, then the keeper: `platforms\windows\start_detached.ps1 -Log runs\windows\keeper_bcn_f1_r4_retry.log platforms\windows\keeper.ps1 bcn_f1_r4_retry 5 High`.
+- TensorBoard / cloudflared die with the sign-out: restart both (the quick-tunnel URL changes).
+- From scratch: crash retries (75 %, hand-over at the previous corner exit, first 3 s of the run-up not trained on until 3M, then by distance as above) + lr decay 3M -> 6.2M to 1/100, then held; runs until Ibrahim stops it. Keeper: `keeper.ps1 bcn_f1_r4_retry 5 High`.
+- Stopped (resumable): `bcn_f1_r4` 7.8M, `bcn_f1_r4_w4` 5.15M, `bcn_f1_r4_lrd` ~11.05M (lr decay branch of bcn_f1_r4), `bcn_f1_r4_ctl` ~7.9M (its constant-lr control).
+
 ## 18 Nov 2026 17:10 — Barcelona model for the Mac: `models/bcn_f1_r4_step6400k/`
 - Best of both Barcelona runs by a 30-lap re-test: `bcn_f1_r4` at 6.4M (det lap 2 85.33 s, 29/30 stochastic laps clean). Resumable seed folder without the replay buffer; Mac resume and AC-use notes in its README (the policy observes the IQP w3.0 line).
 - Both runs keep training on Windows (High priority; `bcn_f1_r4` resumed from 5.8M at 13:43); a newer model may be pushed later.
@@ -271,3 +278,17 @@ Best models: `models/`. Line result: RL 103.06 → 102.57 s. Judge this setup at
 - Resume: `PYTHONPATH=/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap-f1 caffeinate -dimsu nohup platforms/mac/train.sh --resume --preset f1_r2 --seed 0 --run-name f1_r2 --allow-code-change >> runs/mac/f1_r2_stdout.log 2>&1 &`
 - TensorBoard: `.venv/bin/tensorboard --logdir_spec "f1_r2:runs/mac/D2/f1_r2/seed0/tb_evals_lifetime,f1_best_w35:runs/mac/D2/f1_best_w35/seed0/tb_evals" --port 6006 --host 127.0.0.1 --reload_interval 30`
 - Step-0 eval: det off_track (last.zip's known 838 m crash), sto clean 0.4; offline critic mean Q 232.4 (stable).
+
+## 19 Nov 2026 - R5 run `bcn_f1_r5` RUNNING on the Mac (DECISIONS #32, #33)
+- Launched from scratch on the Mac (T2 split at 930 m, guard 0.4):
+  `PYTHONPATH=/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap-f1 caffeinate -dimsu nohup platforms/mac/train.sh --preset bcn_f1_r5 --seed 0 --run-name bcn_f1_r5 > runs/mac/bcn_f1_r5_stdout.log 2>&1 &`
+  - Keeper (never stops, resumes crashes): `nohup runs/mac/keeper_f1_nostop.sh bcn_f1_r5 > runs/mac/keeper_bcn_f1_r5.log 2>&1 &`
+  - TensorBoard: port 6009 (`r5`, `r5_evals`).
+- Stop: `pkill -f "keeper_f1_nostop.sh bcn_f1_r5( |$)"; pkill -INT -f "$(.venv/bin/python scripts/keeper_check.py pattern bcn_f1_r5)"`.
+- Smoke `runs/mac/D2/bcn_f1_r5_smoke` (60k) passed. The first launch collapsed at 40k under guard 0.5 (`runs/mac/D2/bcn_f1_r5_collapsed40k`).
+- Watch:
+  - `ep_exit_speed_reward_mean` and `ep_line_penalty_mean`;
+  - the crash-emphasis marked share in the evaluations;
+  - where the deterministic laps end (T2 near 850-930 m);
+  - U7/U8 sector times;
+  - apex and entry speed vs QSS, against `bcn_f1_r4_retry`.
