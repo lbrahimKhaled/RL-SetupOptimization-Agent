@@ -34,7 +34,7 @@ def test_to_dict_omits_the_keys_while_off_and_round_trips():
     for name, make in PRESETS.items():
         cfg = make()
         assert train_config_from_dict(json.loads(config_json(cfg))) == cfg, name
-        if not name.startswith('bcn_f1_r4'):
+        if not name.startswith(('bcn_f1_r4', 'bcn_f1_r5')):
             assert '"line_k"' not in config_json(cfg), name
 
 

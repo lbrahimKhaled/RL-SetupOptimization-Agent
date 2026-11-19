@@ -161,7 +161,9 @@ def build_model(cfg, vec_env):
                          n_critics=a.n_critics, share_features_extractor=False)
     policy = LNSACPolicy if a.critic_layernorm else 'MlpPolicy'
     rb = {}
-    if cfg.env.corner_bonus.enabled:   # R2-4.3: SB3 adds n_steps / gamma only for its own buffer class
+    # R2-4.3: SB3 adds n_steps / gamma only for its own buffer class. Retries (warm-up mask) and crash emphasis
+    # need this buffer too; with no corner bonus its bonus weight stays 0 (rewards unchanged).
+    if cfg.env.corner_bonus.enabled or cfg.env.retry.enabled or cfg.crash_emphasis.enabled:
         from .buffers import BonusNStepReplayBuffer
         rb = dict(replay_buffer_class=BonusNStepReplayBuffer,
                   replay_buffer_kwargs={'n_steps': a.n_steps, 'gamma': cfg.env.reward.gamma})
@@ -175,6 +177,8 @@ def build_model(cfg, vec_env):
                       seed=cfg.seed, device=cfg.device, verbose=0, **rb)
     model.low_noise_envs = tuple(int(i) for i in a.low_noise_envs)
     model.low_noise_std_scale = float(a.low_noise_std_scale)
+    if rb:   # demos.load_into_buffer requires the corner-term array only where it is used
+        model.replay_buffer.stores_bonus = bool(cfg.env.corner_bonus.enabled)
     return model
 
 

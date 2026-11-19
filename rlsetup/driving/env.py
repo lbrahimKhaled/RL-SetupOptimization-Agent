@@ -137,6 +137,17 @@ def _zero_costs():
     return dict.fromkeys(COST_KEYS, 0.)
 
 
+def post_apex_weight(table, s, k, blend_m):
+    """R5 apex split (docs/specs/R5_apex_split.md §2): weight of the 'after the apex' terms at s in window k
+    of CornerTable `table`, d = ((s - b_k) mod L) - ((A_k - b_k) mod L), w = clip((d + blend_m / 2) / blend_m,
+    0, 1), b_k = window start, A_k = the unit's last apex. Offsets are taken from the window start, so windows
+    wrapping through s = 0 work. Lives here, not in corners.py: corners.py's sha256 is part of the corner
+    table cache key."""
+    u, L = table.units[k], table.length
+    d = (float(s) - u['start_m']) % L - (u['apexes_m'][-1] - u['start_m']) % L
+    return min(1., max(0., (d + blend_m / 2.) / blend_m))
+
+
 class DrivingEnv(OCDRacingEnv):
     def __init__(self, config=EnvConfig(), *, setup=None, track=None, reference=None, qss=None, corners=None):
         """`setup`: default car setup (None = the named setup `config.setup`, p0 = `Setup()` by
@@ -210,7 +221,8 @@ class DrivingEnv(OCDRacingEnv):
             self._tracker = CornerTracker(self.corners, cb.bonus, cb.floor_ratio)
         self._speed_on = cfg.speed_on
         self._line_on = cfg.line_on
-        self._episode_line = 0.
+        self._exit_on = cfg.reward.apex_split and cfg.reward.exit_k > 0
+        self._episode_line = self._episode_exit = 0.
         self._retry_on = False         # RetryConfig: set_retry(True) at learn() start
         self._last_fail_s = None       # Track.path s of the last terminal failure (training only)
         self._warmup_s = 0.            # this episode's no-learning run-up [s since hand-over]
@@ -509,7 +521,7 @@ class DrivingEnv(OCDRacingEnv):
         rw = self.cfg.reward       # Phi at hand-over (time_pbrs; 0 in ref_tracking)
         self._phi = -rw.shaping_k * abs(self._last_e) if rw.mode == 'time_pbrs' else 0.
         self._episode_shaping = 0.
-        self._episode_line = 0.
+        self._episode_line = self._episode_exit = 0.
         if self._speed_on:         # R4: Phi_v at hand-over
             self._phi_v, self._g_v = self._speed_potential()
             self._episode_shaping_v = 0.
@@ -567,10 +579,35 @@ class DrivingEnv(OCDRacingEnv):
     def _line_penalty(self, abs_e, ds):
         """Corner line penalty of one base tick: min(k max(0, |e| - free), cap) max(0, ds) if the
         tick ends (self.s) inside a corner window, else 0."""
-        if ds <= 0. or self.corners.unit_at(self.s) is None:
+        if ds <= 0.:
+            return 0.
+        k = self.corners.unit_at(self.s)
+        if k is None:
             return 0.
         rw = self.cfg.reward
-        return min(rw.line_k * max(0., abs_e - rw.line_free_m), rw.line_cap) * ds
+        post = min(rw.line_k * max(0., abs_e - rw.line_free_m), rw.line_cap)
+        if not rw.apex_split:
+            return post * ds
+        # R5: strict before the unit's last apex, the usual penalty after it (blended)
+        w = post_apex_weight(self.corners, self.s, k, rw.apex_blend_m)
+        pre = min(rw.line_k_pre * max(0., abs_e - rw.line_free_pre_m), rw.line_cap)
+        return ((1. - w) * pre + w * post) * ds
+
+    def _exit_term(self, ds):
+        """R5 exit-speed term of one base tick: exit_k w h(v / v_qss(s)) max(0, ds) in a corner
+        window after its last apex (w = post-apex blend weight), h one-sided (1 at or above v_qss)."""
+        if ds <= 0.:
+            return 0.
+        k = self.corners.unit_at(self.s)
+        if k is None:
+            return 0.
+        rw = self.cfg.reward
+        w = post_apex_weight(self.corners, self.s, k, rw.apex_blend_m)
+        if w <= 0.:
+            return 0.
+        rho = math.hypot(self.state['vx'], self.state['vy']) / float(self.corners.speed(self.s))
+        h = max(0., 1. - ((1. - min(rho, 1.)) / rw.exit_sigma) ** 2)
+        return rw.exit_k * w * h * ds
 
     def _add_costs(self, target, costs, weight=1.):
         for key in COST_KEYS:
@@ -602,7 +639,7 @@ class DrivingEnv(OCDRacingEnv):
         rw, cfg = self.cfg.reward, self.cfg
         pbrs = rw.mode == 'time_pbrs'
         total, step_cost = 0., _zero_costs()
-        line_pen = 0.
+        line_pen = exit_rw = 0.
         terminated = truncated = False
         cause = None
         self._trunc_cause = None
@@ -660,6 +697,10 @@ class DrivingEnv(OCDRacingEnv):
                         p = self._line_penalty(abs(self._last_e), self._dist - d0)
                         line_pen += p
                         r -= p
+                    if self._exit_on and not nonfinite:   # R5 exit-speed term, per metre driven
+                        x = self._exit_term(self._dist - d0)
+                        exit_rw += x
+                        r += x
                 elif cause in FAILURES:    # ref_tracking: base r, unchanged (bit-identical to full1)
                     costs['penalty'] = rw.failure_penalty(self._last_e, self.dt_tick)
                     r -= costs['penalty']
@@ -692,6 +733,7 @@ class DrivingEnv(OCDRacingEnv):
             self._phi_v, self._g_v = phi_v_next, g_next
             self._episode_shaping_v += shaping_v
         self._episode_line += line_pen
+        self._episode_exit += exit_rw
         if truncated and self._trunc_cause is None:
             self._trunc_cause = 'time_limit'
         self._add_costs(self._episode_cost, step_cost)
@@ -719,6 +761,8 @@ class DrivingEnv(OCDRacingEnv):
             info.update(line_crossings_s=list(self._crossings), laps=[dict(l) for l in self._laps])
         if self._line_on:
             info.update(line_penalty=line_pen, episode_line_penalty=self._episode_line)
+        if self._exit_on:
+            info.update(exit_speed_reward=exit_rw, episode_exit_speed_reward=self._episode_exit)
         if cfg.retry.enabled:
             info['warmup'] = bool(warmup)
             if terminated and cause in TERMINAL_FAILURES and not self.evaluation:

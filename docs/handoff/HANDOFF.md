@@ -278,3 +278,14 @@ Best models: `models/`. Line result: RL 103.06 → 102.57 s. Judge this setup at
 - Resume: `PYTHONPATH=/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap-f1 caffeinate -dimsu nohup platforms/mac/train.sh --resume --preset f1_r2 --seed 0 --run-name f1_r2 --allow-code-change >> runs/mac/f1_r2_stdout.log 2>&1 &`
 - TensorBoard: `.venv/bin/tensorboard --logdir_spec "f1_r2:runs/mac/D2/f1_r2/seed0/tb_evals_lifetime,f1_best_w35:runs/mac/D2/f1_best_w35/seed0/tb_evals" --port 6006 --host 127.0.0.1 --reload_interval 30`
 - Step-0 eval: det off_track (last.zip's known 838 m crash), sto clean 0.4; offline critic mean Q 232.4 (stable).
+
+## 19 Nov 2026 - R5 run `bcn_f1_r5` READY (DECISIONS #32), not launched
+- Code is on `sf70h-f1`. Smoke run first (spec §5), then launch on the Windows PC:
+  `platforms\windows\start_detached.ps1 -Log runs\windows\bcn_f1_r5_stdout.log platforms\windows\train.ps1 --preset bcn_f1_r5 --seed 0 --run-name bcn_f1_r5`,
+  then the keeper: `platforms\windows\start_detached.ps1 -Log runs\windows\keeper_bcn_f1_r5.log platforms\windows\keeper.ps1 bcn_f1_r5 5 High`.
+- Watch:
+  - train_r4 `ep_exit_speed_reward_mean` and `ep_line_penalty_mean`;
+  - `crash_emphasis.marked_share` in the evaluations;
+  - where the deterministic laps end (T2 near 850-900 m);
+  - sector times in U7/U8 (long strict stretches);
+  - apex and entry speed vs QSS against `bcn_f1_r4_retry`.

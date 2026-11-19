@@ -251,6 +251,22 @@ class LrDecayConfig:
         return 1. - (1. - self.floor) * f
 
 
+@dataclass(frozen=True)
+class CrashEmphasisConfig:
+    """Crash emphasis (docs/specs/R5_apex_split.md §3, DECISIONS #32): from start_step on, transitions in the
+    last horizon_s before a terminal failure are drawn `factor` x as often in training batches
+    (buffers.BonusNStepReplayBuffer crash_near / _emphasize_crashes; callbacks.CrashEmphasisCallback).
+    Off by default (omitted from config.json)."""
+    enabled: bool = False
+    factor: float = 3.
+    horizon_s: float = 2.
+    start_step: int = 0
+
+    def __post_init__(self):
+        if not (self.factor >= 1. and self.horizon_s > 0. and self.start_step >= 0):
+            raise ValueError(f'invalid crash_emphasis {self}')
+
+
 R2_TRAIN_KEYS = ('bonus_schedule', 'focus_update')      # TrainConfig blocks of the R2 training aids
 R2_AGENT_KEYS = ('low_noise_envs', 'low_noise_std_scale')
 R3_WARM_KEYS = ('pre_exit_horizon', 'pre_exit_warn_q', 'pre_exit_warn_blocks')   # omitted like the R2 blocks
@@ -274,6 +290,7 @@ class TrainConfig:
     bonus_schedule: BonusScheduleConfig = field(default_factory=BonusScheduleConfig)   # R2 (corner_bonus)
     focus_update: FocusUpdateConfig = field(default_factory=FocusUpdateConfig)         # R2 (focus)
     lr_decay: LrDecayConfig = field(default_factory=LrDecayConfig)     # omitted from config.json while off
+    crash_emphasis: CrashEmphasisConfig = field(default_factory=CrashEmphasisConfig)   # omitted while off
     init_from: str | None = None        # model .zip for init_mode 'warm' (absolute; CLI --init-from);
                                          # its run folder (zip's parents[1]) must hold config.json
     strict_provenance: bool = True       # refuse a run / resume with uncommitted tracked rlsetup changes
@@ -331,6 +348,8 @@ class TrainConfig:
                     del d['warm'][k]
         if self.lr_decay == LrDecayConfig():
             del d['lr_decay']
+        if self.crash_emphasis == CrashEmphasisConfig():
+            del d['crash_emphasis']
         return d
 
     @property
@@ -589,6 +608,29 @@ def _bcn_f1_r4_retry():
                    lr_decay=LrDecayConfig(enabled=True, start_step=3_000_000, end_step=6_200_000, floor=.01))
 
 
+# R5 (docs/specs/R5_apex_split.md, DECISIONS #32): exit-speed term 20 per corner at h = 1 over the 150 m from the
+# last apex to the exit (all 8 units of corner table 6313f2151e24) = 160 per lap at most, 3.5 % of 4602 m progress.
+BCN_R5_EXIT_K = 20. / 150.
+
+
+def _bcn_f1_r5():
+    """bcn_f1_r4_retry from scratch with the R5 reward (Ibrahim, 19 Nov 2026; DECISIONS #32): corner entry / exit
+    closeness terms set to 0 (the corner-bonus machinery stays on, so the never-fade schedule still files laps as
+    aided -> best_aided.zip, as for the control), replaced by the apex split: inside a corner window, before the unit's last apex a strict
+    line penalty (k 0.141 = 2 x BCN_LINE_K, free band 0.2 m, cap 0.5 per m), after it the usual one (k 0.0705,
+    band 0.5 m) plus a one-sided exit-speed term BCN_R5_EXIT_K w h(v / v_qss) per metre (sigma 0.3), blended over
+    20 m around the apex; and crash emphasis (the last 2 s before a terminal failure drawn 3 x as often) from
+    500k with the retries. Retries, lr decay, line, setup, demos + BC, speed potential: as bcn_f1_r4_retry.
+    Control: bcn_f1_r4_retry. Run name: bcn_f1_r5."""
+    c = _bcn_f1_r4_retry()
+    return replace(c, preset='bcn_f1_r5',
+                   env=replace(c.env, corner_bonus=replace(c.env.corner_bonus, bonus_in=0., bonus_out=0.),
+                               reward=replace(c.env.reward, apex_split=True, line_k_pre=2 * BCN_LINE_K,
+                                              line_free_pre_m=.2, exit_k=BCN_R5_EXIT_K, exit_sigma=.3,
+                                              apex_blend_m=20.)),
+                   crash_emphasis=CrashEmphasisConfig(enabled=True, factor=3., horizon_s=2., start_step=500_000))
+
+
 def _f1_r2_smoke():
     """f1_r2 compressed to 150k env steps (R2-9.2): w = 1 until 60k, fade to 0 at 120k,
     reportable from 150k (gap 30k); eval every 25k with 3 stochastic laps, probe every 5k,
@@ -605,7 +647,7 @@ def _f1_r2_smoke():
 
 PRESETS = {'full': lambda: TrainConfig(preset='full'), 'smoke': _smoke, 'r1_warm': _r1_warm,
            'r1_warm_smoke': _r1_warm_smoke, 'p1_TUM': _p1_tum,
-           'p0_TUMref': _p0_tumref, 'bcn': _bcn, 'bcn_f1_r4': _bcn_f1_r4, 'bcn_f1_r4_w4': _bcn_f1_r4_w4, 'bcn_f1_r4_retry': _bcn_f1_r4_retry, 'f1_sha': _f1_sha, 'f1_sha_w35': _f1_sha_w35,
+           'p0_TUMref': _p0_tumref, 'bcn': _bcn, 'bcn_f1_r4': _bcn_f1_r4, 'bcn_f1_r4_w4': _bcn_f1_r4_w4, 'bcn_f1_r4_retry': _bcn_f1_r4_retry, 'bcn_f1_r5': _bcn_f1_r5, 'f1_sha': _f1_sha, 'f1_sha_w35': _f1_sha_w35,
            'f1_best_w35': _f1_best_w35, 'f1_r2': _f1_r2, 'f1_r2_smoke': _f1_r2_smoke, 'f1_r3': _f1_r3,
            'f1_r4': _f1_r4, 'f1_r4_scratch': _f1_r4_scratch}
 

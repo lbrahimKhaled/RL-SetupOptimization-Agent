@@ -275,7 +275,7 @@ def prefill_replay_buffer(rb, demos):
     reach BonusNStepReplayBuffer.add; a bonus buffer refuses a dataset without it (ValueError, nothing
     written), since its rows would silently carry 0.
     Returns counts."""
-    if hasattr(rb, 'bonuses') and 'corner_bonus' not in demos:
+    if hasattr(rb, 'bonuses') and getattr(rb, 'stores_bonus', True) and 'corner_bonus' not in demos:
         raise ValueError('demo dataset has no corner_bonus array but the replay buffer stores corner terms')
     if 'obs_index' not in demos:
         demos = with_index(demos)

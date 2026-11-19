@@ -17,6 +17,8 @@ CORNER_BONUS_MODES = ('exit', 'entry_exit')
 R4_REWARD_KEYS = ('speed_k', 'speed_sigma')                       # omitted from to_dict while speed_k = 0
 R4_CORNER_KEYS = ('mode', 'bonus_in', 'bonus_out', 'sigma')        # omitted while mode = 'exit'
 LINE_REWARD_KEYS = ('line_k', 'line_free_m', 'line_cap')          # omitted from to_dict while line_k = 0
+APEX_REWARD_KEYS = ('apex_split', 'line_k_pre', 'line_free_pre_m', 'exit_k', 'exit_sigma',
+                    'apex_blend_m')                                # R5: omitted while off and at defaults
 
 
 @dataclass(frozen=True)
@@ -75,6 +77,17 @@ class RewardConfig:
                                          # the free band]; 0 = off
     line_free_m: float = .5              # free band around xi_ref [m] (Ibrahim)
     line_cap: float = .5                 # max penalty per m driven [reward units / m] (< a)
+    # R5 apex split (docs/specs/R5_apex_split.md, DECISIONS #32; off by default, then omitted from to_dict).
+    # On: in a corner window the line penalty uses line_k_pre / line_free_pre_m before the unit's last apex and
+    # line_k / line_free_m after it (blended over apex_blend_m centred on the apex, same cap), and after the
+    # apex the one-sided exit-speed term exit_k w h(v / v_qss) max(0, ds) is added per base tick,
+    # h(rho) = max(0, 1 - ((1 - min(rho, 1)) / exit_sigma)^2). Not potential-based (laps aided).
+    apex_split: bool = False
+    line_k_pre: float = .141             # before the apex [per m driven per m of |e| past the band]
+    line_free_pre_m: float = .2          # free band before the apex [m]
+    exit_k: float = 0.                   # exit-speed term [reward units per m driven at h = 1]; 0 = off
+    exit_sigma: float = .3               # sigma of h, relative to v_qss
+    apex_blend_m: float = 20.            # linear pre -> post blend centred on the last apex [m]
 
     def __post_init__(self):
         if self.mode not in REWARD_MODES:
@@ -93,6 +106,15 @@ class RewardConfig:
             raise ValueError("speed_k > 0 (R4 speed-profile potential) needs mode 'time_pbrs'")
         if not 0. < self.gamma <= 1.:
             raise ValueError(f'gamma must be in (0, 1], got {self.gamma}')
+        if not all(math.isfinite(x) and x >= 0 for x in (self.line_k_pre, self.line_free_pre_m, self.exit_k)):
+            raise ValueError('line_k_pre, line_free_pre_m and exit_k must be finite and nonnegative')
+        if not (math.isfinite(self.exit_sigma) and self.exit_sigma > 0
+                and math.isfinite(self.apex_blend_m) and self.apex_blend_m > 0):
+            raise ValueError('exit_sigma and apex_blend_m must be finite and positive')
+        if self.apex_split and self.line_k <= 0:
+            raise ValueError('apex_split needs the corner line penalty on (line_k > 0, time_pbrs)')
+        if self.exit_k > 0 and not self.apex_split:
+            raise ValueError('exit_k > 0 (exit-speed term) needs apex_split')
 
     def failure_penalty(self, e_exit_m, dt_tick_s):
         """P [reward units] for a failure with lateral offset e_exit_m [m] to the reference."""
@@ -305,6 +327,9 @@ class EnvConfig:
                 del d['reward'][k]
         if self.reward.line_k == 0 and all(getattr(self.reward, k) == getattr(rd, k) for k in LINE_REWARD_KEYS):
             for k in LINE_REWARD_KEYS:
+                del d['reward'][k]
+        if all(getattr(self.reward, k) == getattr(rd, k) for k in APEX_REWARD_KEYS):
+            for k in APEX_REWARD_KEYS:
                 del d['reward'][k]
         if 'corner_bonus' in d and all(getattr(self.corner_bonus, k) == getattr(CornerBonusConfig(), k)
                                        for k in R4_CORNER_KEYS):

@@ -135,6 +135,39 @@ class RetryCallback(BaseCallback):
         return out
 
 
+class CrashEmphasisCallback(BaseCallback):
+    """TrainConfig.crash_emphasis: sets the replay buffer's crash_horizon (decisions in horizon_s) at the
+    start, so crashes are marked from step 0, and crash_factor = factor once num_timesteps >= start_step
+    (1 before). `eval_extra` reports the marked share of the stored transitions."""
+
+    def __init__(self, cfg):
+        super().__init__()
+        self.cfg = cfg
+
+    def _set(self):
+        rb = self.model.replay_buffer
+        rb.crash_factor = float(self.cfg.factor) if self.model.num_timesteps >= self.cfg.start_step else 1.
+
+    def _on_training_start(self):
+        rb = self.model.replay_buffer
+        if not hasattr(rb, '_emphasize_crashes'):
+            raise TypeError('crash_emphasis needs buffers.BonusNStepReplayBuffer')
+        dt = float(self.training_env.get_attr('decision_dt')[0])
+        rb.crash_horizon = max(1, int(round(self.cfg.horizon_s / dt)))
+        self._set()
+
+    def _on_step(self):
+        self._set()
+        return True
+
+    def eval_extra(self, model, n):
+        rb = model.replay_buffer
+        upper = rb.buffer_size if rb.full else rb.pos
+        marks = getattr(rb, 'crash_near', None)
+        share = float(marks[:upper].mean()) if marks is not None and upper else 0.
+        return {'crash_emphasis': {'factor': float(getattr(rb, 'crash_factor', 1.)), 'marked_share': share}}
+
+
 class LrDecayCallback(BaseCallback):
     """TrainConfig.lr_decay: model.lr_scale = cfg.scale(num_timesteps) before every rollout step, so the
     next train() call (StagedSAC._update_learning_rate) uses it. Disabled: model.lr_scale = None (clears
@@ -331,7 +364,7 @@ class TrainStatsCallback(BaseCallback):
 
     @staticmethod
     def _empty_r4():
-        return {'shaping_v': [], 'terms': [], 'taken_back': [], 'takebacks': 0, 'with_takeback': 0, 'line': []}
+        return {'shaping_v': [], 'terms': [], 'taken_back': [], 'takebacks': 0, 'with_takeback': 0, 'line': [], 'exit': []}
 
     @staticmethod
     def _add_r4(acc, info):
@@ -339,6 +372,8 @@ class TrainStatsCallback(BaseCallback):
             acc['shaping_v'].append(float(info['episode_shaping_v']))
         if 'episode_line_penalty' in info:   # corner line penalty
             acc['line'].append(float(info['episode_line_penalty']))
+        if 'episode_exit_speed_reward' in info:   # R5 exit-speed term
+            acc.setdefault('exit', []).append(float(info['episode_exit_speed_reward']))
         if 'episode_corner_taken_back' in info:
             acc['terms'].append(float(info.get('episode_corner_bonus', 0.)))
             acc['taken_back'].append(float(info['episode_corner_taken_back']))
@@ -351,6 +386,8 @@ class TrainStatsCallback(BaseCallback):
             return None
         mean = lambda x: float(np.mean(x)) if x else None
         out = {} if not acc['line'] else {'ep_line_penalty_mean': mean(acc['line'])}
+        if acc.get('exit'):
+            out['ep_exit_speed_reward_mean'] = mean(acc['exit'])
         return {**out, 'episodes': max(len(acc['shaping_v']), len(acc['terms']), len(acc['line'])),
                 'ep_shaping_v_mean': mean(acc['shaping_v']),
                 'ep_corner_terms_mean': mean(acc['terms']), 'ep_taken_back_mean': mean(acc['taken_back']),
