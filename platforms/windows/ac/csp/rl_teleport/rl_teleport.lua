@@ -16,7 +16,9 @@ local savedFile = dir .. '/saved.txt'
 local function fmt(v) return string.format('%.2f %.2f %.2f', v.x, v.y, v.z) end
 
 local function teleport(pos, look, speed)
-  local ok, err = pcall(physics.setCarPosition, 0, pos, look)
+  -- setCarPosition faces the car opposite to `dir` (tested in game: passing car.look turned it
+  -- around), so it gets -look; the velocity below stays along +look.
+  local ok, err = pcall(physics.setCarPosition, 0, pos, vec3(-look.x, -look.y, -look.z))
   if not ok then return false, 'setCarPosition FAILED: ' .. tostring(err) end
   if speed and speed > 0 then
     local n = math.sqrt(look.x * look.x + look.y * look.y + look.z * look.z)
