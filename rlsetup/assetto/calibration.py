@@ -119,13 +119,15 @@ class Guard:
         position = tuple(number(packet, f'world_position_{axis}') for axis in ('x', 'y', 'z'))
         angle, rear = heading(packet)
         if speed < 0 or speed >= self.config.speed_mps or gear != 1:
-            raise ValueError('car moved or left neutral (actualGear must be 1)')
+            raise ValueError(f'car moved or left neutral (actualGear must be 1, speed below '
+                             f'{self.config.speed_mps:g} m/s; got actualGear {gear:g}, speed {speed:.3f} m/s)')
         if not 0 <= gas <= .01 or not 0 <= brake <= 1.01:
             raise ValueError('unexpected gas or invalid pedal status')
         if self.origin is None:
             self.origin, self.rear = position, rear
         if math.dist(position, self.origin) > self.config.motion_m:
-            raise ValueError('world displacement exceeded stationary guard')
+            raise ValueError(f'world displacement exceeded stationary guard ('
+                             f'{math.dist(position, self.origin):.3f} m > {self.config.motion_m:g} m)')
         if abs(wrap(rear - self.rear)) > self.config.settling_rad:
             raise ValueError('rear heading changed during stationary probe')
         if self.previous is not None:
@@ -356,7 +358,15 @@ def main(argv=None):
     parser.add_argument('--at-controls', action='store_true', help='user ready to stop game: no server watchdog')
     parser.add_argument('--source-config', type=Path)
     parser.add_argument('--source-checkpoint', type=Path)
+    parser.add_argument('--speed-mps', type=float, default=CalibrationConfig.speed_mps,
+                        help='stationary speed limit (default 0.05 m/s); the 2 cm position guard is unchanged')
+    parser.add_argument('--motion-m', type=float, default=CalibrationConfig.motion_m,
+                        help='stationary displacement limit (default 0.02 m); the rear-heading guard is unchanged')
     args = parser.parse_args(argv)
+    if not _numeric(args.speed_mps) or not 0 < args.speed_mps <= .2:
+        parser.error('--speed-mps must be in (0, 0.2] m/s')
+    if not _numeric(args.motion_m) or not 0 < args.motion_m <= .2:
+        parser.error('--motion-m must be in (0, 0.2] m')
     if not args.execute:
         phases = (0., .1, .25, .5, 1., 0., -.1, -.25, -.5, -1., 0.) if args.full_range else (0., .1, 0., -.1, 0.)
         print(json.dumps({'offline_plan': True, 'phases': phases, 'phase_server_s': .8,
@@ -367,7 +377,8 @@ def main(argv=None):
     if not args.output or not args.trace or not args.neutral_confirmed or not args.at_controls:
         parser.error('execute requires --output, --trace, --neutral-confirmed and --at-controls')
     try:
-        config = CalibrationConfig(args.host or os.environ.get('AC_HOST'), args.full_range, args.setup_id)
+        config = CalibrationConfig(args.host or os.environ.get('AC_HOST'), args.full_range, args.setup_id,
+                                   speed_mps=args.speed_mps, motion_m=args.motion_m)
         sources = {k: v for k, v in (('config', args.source_config), ('checkpoint', args.source_checkpoint)) if v}
         result = execute(config, args.output, args.trace, neutral_confirmed=True, at_controls=True, source_files=sources)
     except (OSError, ValueError) as exc:

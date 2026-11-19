@@ -102,6 +102,31 @@ def test_guard_abort(key, value):
         guard.check(p)
 
 
+def test_guard_speed_limit_is_configurable():
+    # A full-lock-to-centre snap twitched a stationary car to 0.061 m/s with no displacement.
+    p = packet(2)
+    p['speed'] = .061
+    strict = c.Guard(c.CalibrationConfig('host'))
+    strict.check(packet())
+    with pytest.raises(ValueError, match=r'actualGear 1, speed 0\.061'):
+        strict.check(p)
+    loose = c.Guard(c.CalibrationConfig('host', speed_mps=.1))
+    loose.check(packet())
+    loose.check(p)
+    p = packet(3)
+    p['speed'], p['world_position_x'] = .061, 1.03  # real movement still caught by the 2 cm guard
+    with pytest.raises(ValueError, match=r'displacement.*0\.030 m > 0\.02 m'):
+        loose.check(p)
+    looser = c.Guard(c.CalibrationConfig('host', speed_mps=.2, motion_m=.1))
+    looser.check(packet())
+    looser.check(p)
+    with pytest.raises(ValueError, match='rear heading'):  # rotation guard unchanged
+        looser.check(packet(4, rear=3.))
+    for flag in ('--speed-mps', '--motion-m'):
+        with pytest.raises(SystemExit):
+            c.main(['--execute', flag, '0.5'])
+
+
 def test_guard_missing_heading_and_rotating_rear():
     guard = c.Guard(c.CalibrationConfig('host'))
     guard.check(packet())
