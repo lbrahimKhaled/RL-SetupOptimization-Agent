@@ -78,9 +78,15 @@ terms are computed as usual; nothing is taken back. The 100 crash penalty domina
 | T7, 2528 m | U5, 2533.8 m | 0.21 | 79 % strict; the blend is centred on the apex |
 | T2, 875 m | U1, 839.9 m | 1 | loose line plus exit-speed reward: NOT addressed |
 
-The corner table has no T2 apex: v_qss rises from 34.4 to 45.4 m/s between 840 and 880 m, and the dip near
-950 m is below the 5 m/s detection prominence. Open for Ibrahim (decision 1 is his): accept this, or give T2 its
-own split point.
+The corner table has no T2 apex: v_qss rises from 34.4 to 45.4 m/s between 840 and 880 m, and T2's dip
+(51.4 -> 48.5 m/s near 950 m) is below the 5 m/s detection prominence.
+
+**Resolved (Ibrahim, 19 Nov 2026; DECISIONS #33): U1 splits at T2's apex, 930 m.** From Track.curvature and the
+line's offset: T1's apex ~850 m (radius 27 m), direction change ~895 m, T2's tightest point and the line's
+closest approach to its inside (+1.4 m left) both at ~930 m (radius 51 m). `RewardConfig.split_units` /
+`split_at_m` give a unit a manual split point in place of its last apex (checked to lie in that window when the
+env builds; corners.py untouched). On Barcelona: w = 0 up to 920 m (875 m strict), 0.5 at 930 m, 1 from 940 m.
+U1's exit-speed stretch is then 930 -> 990 m, so it pays at most ~8 (not 20); lap maximum ~148.
 
 ## 4. Config and preset
 - `RewardConfig.apex_split` (bool, default False) plus `line_k_pre` / `line_free_pre_m`, `exit_k` /

@@ -71,3 +71,8 @@ Newest last. Each entry: date, decision, who decided, why. OPEN items stay in PR
     - Ibrahim agreed the points one by one, then delegated the rest ("go, you evaluate"). Lead's choices: no apex bonus, because #30's failure is cutting inside before the apex; crash emphasis yes, exit oversampling no, so only one emphasis mechanism changes; from scratch.
     - The OCD run comes first; the next AC run continues from it.
     - Known gap: T2 (875 m, #30) is after U1's only apex (840 m), so R5 does not make the line strict there.
+33. **R5: Barcelona T2 gets its own split point; guard 0.4** (Ibrahim, 19 Nov 2026).
+    - The corner table merges T1 and T2 into U1, with T1's apex (840 m) as its only apex. That made #30's T2 failure site (875 m) loose-line with the exit-speed reward.
+    - `RewardConfig.split_units` / `split_at_m` (a manual split point per unit). `bcn_f1_r5` splits U1 at **930 m**: T2's tightest point (radius 51 m), and where the line is closest to its inside.
+    - Guard threshold 0.4, as `bcn_f1_r4_w4`. The first Mac launch collapsed at 40k under 0.5 (probe 424 m vs bar 461 m); the smoke run had recovered to 966 m by 50k. Its folder is `runs/mac/D2/bcn_f1_r5_collapsed40k`.
+    - The run trains on the **Mac** (4 envs, UTD 0.5), not Windows. Keeper: `runs/mac/keeper_f1_nostop.sh`.

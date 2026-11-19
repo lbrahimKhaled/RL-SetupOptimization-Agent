@@ -137,14 +137,15 @@ def _zero_costs():
     return dict.fromkeys(COST_KEYS, 0.)
 
 
-def post_apex_weight(table, s, k, blend_m):
+def post_apex_weight(table, s, k, blend_m, split_m=None):
     """R5 apex split (docs/specs/R5_apex_split.md §2): weight of the 'after the apex' terms at s in window k
     of CornerTable `table`, d = ((s - b_k) mod L) - ((A_k - b_k) mod L), w = clip((d + blend_m / 2) / blend_m,
-    0, 1), b_k = window start, A_k = the unit's last apex. Offsets are taken from the window start, so windows
+    0, 1), b_k = window start, A_k = the unit's last apex, or `split_m` if given (a manual split point). Offsets are taken from the window start, so windows
     wrapping through s = 0 work. Lives here, not in corners.py: corners.py's sha256 is part of the corner
     table cache key."""
     u, L = table.units[k], table.length
-    d = (float(s) - u['start_m']) % L - (u['apexes_m'][-1] - u['start_m']) % L
+    a = u['apexes_m'][-1] if split_m is None else float(split_m)
+    d = (float(s) - u['start_m']) % L - (a - u['start_m']) % L
     return min(1., max(0., (d + blend_m / 2.) / blend_m))
 
 
@@ -222,6 +223,11 @@ class DrivingEnv(OCDRacingEnv):
         self._speed_on = cfg.speed_on
         self._line_on = cfg.line_on
         self._exit_on = cfg.reward.apex_split and cfg.reward.exit_k > 0
+        self._split_at = {}            # R5 manual split points: unit index -> station
+        for u, x in zip(cfg.reward.split_units, cfg.reward.split_at_m):
+            if self.corners is None or u > len(self.corners.units) or not self.corners.in_window(x, u - 1):
+                raise ValueError(f'split point U{u} at {x} m is not inside that corner window')
+            self._split_at[u - 1] = float(x)
         self._episode_line = self._episode_exit = 0.
         self._retry_on = False         # RetryConfig: set_retry(True) at learn() start
         self._last_fail_s = None       # Track.path s of the last terminal failure (training only)
@@ -589,7 +595,7 @@ class DrivingEnv(OCDRacingEnv):
         if not rw.apex_split:
             return post * ds
         # R5: strict before the unit's last apex, the usual penalty after it (blended)
-        w = post_apex_weight(self.corners, self.s, k, rw.apex_blend_m)
+        w = post_apex_weight(self.corners, self.s, k, rw.apex_blend_m, self._split_at.get(k))
         pre = min(rw.line_k_pre * max(0., abs_e - rw.line_free_pre_m), rw.line_cap)
         return ((1. - w) * pre + w * post) * ds
 
@@ -602,7 +608,7 @@ class DrivingEnv(OCDRacingEnv):
         if k is None:
             return 0.
         rw = self.cfg.reward
-        w = post_apex_weight(self.corners, self.s, k, rw.apex_blend_m)
+        w = post_apex_weight(self.corners, self.s, k, rw.apex_blend_m, self._split_at.get(k))
         if w <= 0.:
             return 0.
         rho = math.hypot(self.state['vx'], self.state['vy']) / float(self.corners.speed(self.s))

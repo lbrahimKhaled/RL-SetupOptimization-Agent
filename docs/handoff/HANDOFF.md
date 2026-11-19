@@ -279,13 +279,16 @@ Best models: `models/`. Line result: RL 103.06 → 102.57 s. Judge this setup at
 - TensorBoard: `.venv/bin/tensorboard --logdir_spec "f1_r2:runs/mac/D2/f1_r2/seed0/tb_evals_lifetime,f1_best_w35:runs/mac/D2/f1_best_w35/seed0/tb_evals" --port 6006 --host 127.0.0.1 --reload_interval 30`
 - Step-0 eval: det off_track (last.zip's known 838 m crash), sto clean 0.4; offline critic mean Q 232.4 (stable).
 
-## 19 Nov 2026 - R5 run `bcn_f1_r5` READY (DECISIONS #32), not launched
-- Code is on `sf70h-f1`. Smoke run first (spec §5), then launch on the Windows PC:
-  `platforms\windows\start_detached.ps1 -Log runs\windows\bcn_f1_r5_stdout.log platforms\windows\train.ps1 --preset bcn_f1_r5 --seed 0 --run-name bcn_f1_r5`,
-  then the keeper: `platforms\windows\start_detached.ps1 -Log runs\windows\keeper_bcn_f1_r5.log platforms\windows\keeper.ps1 bcn_f1_r5 5 High`.
+## 19 Nov 2026 - R5 run `bcn_f1_r5` RUNNING on the Mac (DECISIONS #32, #33)
+- Launched from scratch on the Mac (T2 split at 930 m, guard 0.4):
+  `PYTHONPATH=/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap-f1 caffeinate -dimsu nohup platforms/mac/train.sh --preset bcn_f1_r5 --seed 0 --run-name bcn_f1_r5 > runs/mac/bcn_f1_r5_stdout.log 2>&1 &`
+  - Keeper (never stops, resumes crashes): `nohup runs/mac/keeper_f1_nostop.sh bcn_f1_r5 > runs/mac/keeper_bcn_f1_r5.log 2>&1 &`
+  - TensorBoard: port 6009 (`r5`, `r5_evals`).
+- Stop: `pkill -f "keeper_f1_nostop.sh bcn_f1_r5( |$)"; pkill -INT -f "$(.venv/bin/python scripts/keeper_check.py pattern bcn_f1_r5)"`.
+- Smoke `runs/mac/D2/bcn_f1_r5_smoke` (60k) passed. The first launch collapsed at 40k under guard 0.5 (`runs/mac/D2/bcn_f1_r5_collapsed40k`).
 - Watch:
-  - train_r4 `ep_exit_speed_reward_mean` and `ep_line_penalty_mean`;
-  - `crash_emphasis.marked_share` in the evaluations;
-  - where the deterministic laps end (T2 near 850-900 m);
-  - sector times in U7/U8 (long strict stretches);
-  - apex and entry speed vs QSS against `bcn_f1_r4_retry`.
+  - `ep_exit_speed_reward_mean` and `ep_line_penalty_mean`;
+  - the crash-emphasis marked share in the evaluations;
+  - where the deterministic laps end (T2 near 850-930 m);
+  - U7/U8 sector times;
+  - apex and entry speed vs QSS, against `bcn_f1_r4_retry`.

@@ -27,8 +27,8 @@ def table(units, L=1000., v=50.):
                               for i, (a, p, b) in enumerate(units)], lap_time_s=20.)
 
 
-def fake(units, s, speed=50., **reward):
-    return SimpleNamespace(corners=table(units), s=s, state={'vx': speed, 'vy': 0.},
+def fake(units, s, speed=50., split=None, **reward):
+    return SimpleNamespace(corners=table(units), s=s, state={'vx': speed, 'vy': 0.}, _split_at=split or {},
                            cfg=SimpleNamespace(reward=RewardConfig(**{**SPLIT, **reward})))
 
 
@@ -200,11 +200,12 @@ def test_preset_is_bcn_f1_r4_retry_with_the_r5_reward_and_crash_emphasis():
     assert (rw.exit_k, rw.exit_sigma, rw.apex_blend_m) == (BCN_R5_EXIT_K, .3, 20.) and 150 * BCN_R5_EXIT_K == pytest.approx(20.)
     assert (c.env.corner_bonus.enabled, c.env.corner_bonus.bonus_in, c.env.corner_bonus.bonus_out) == (True, 0., 0.)
     assert c.crash_emphasis == CrashEmphasisConfig(True, 3., 2., 500_000)
-    back = dataclasses.replace(c, preset=src.preset, crash_emphasis=CrashEmphasisConfig(),
+    back = dataclasses.replace(c, preset=src.preset, crash_emphasis=CrashEmphasisConfig(), guard=src.guard,
                                env=dataclasses.replace(c.env, corner_bonus=src.env.corner_bonus,
                                                        reward=dataclasses.replace(
                                                            rw, apex_split=False, line_k_pre=.141, line_free_pre_m=.2,
-                                                           exit_k=0., exit_sigma=.3, apex_blend_m=20.)))
+                                                           exit_k=0., exit_sigma=.3, apex_blend_m=20.,
+                                                           split_units=(), split_at_m=())))
     assert back == src
     assert train_config_from_dict(json.loads(config_json(c))) == c
     assert 'crash_emphasis' not in json.loads(config_json(src))
@@ -239,3 +240,36 @@ def test_nothing_is_marked_while_the_horizon_is_zero():
     for k in range(20):
         _add(rb, k, done=(k % 5 == 4, k % 7 == 6))
     assert not rb.crash_near.any()
+
+
+# --- manual split points (DECISIONS #33) -----------------------------------------------------------
+
+def test_manual_split_point_replaces_the_last_apex():
+    t = table([(737., [840.], 990.)])
+    w = lambda s, x=None: post_apex_weight(t, s, 0, 20., x)
+    assert (w(830.), w(840.), w(875.)) == (0., .5, 1.)                     # T1 apex: 875 m is loose
+    assert (w(875., 930.), w(920., 930.), w(930., 930.), w(940., 930.), w(990., 930.)) == (0., 0., .5, 1., 1.)
+    u = [(737., [840.], 990.)]
+    pen, x = DrivingEnv._line_penalty, DrivingEnv._exit_term
+    assert pen(fake(u, 875., split={0: 930.}), 1.2, 2.) == pytest.approx(.14 * 1. * 2.)   # strict at 875 m
+    assert x(fake(u, 875., split={0: 930.}), 3.) == 0.                                    # no exit term yet
+    assert x(fake(u, 960., split={0: 930.}), 3.) == pytest.approx(.2 * 3.)
+
+
+def test_split_config_validation():
+    with pytest.raises(ValueError):
+        RewardConfig(**SPLIT, split_units=(1,), split_at_m=())
+    with pytest.raises(ValueError):
+        RewardConfig(**SPLIT, split_units=(0,), split_at_m=(930.,))
+    with pytest.raises(ValueError):
+        RewardConfig(**SPLIT, split_units=(1, 1), split_at_m=(900., 930.))
+    with pytest.raises(ValueError):
+        RewardConfig(split_units=(1,), split_at_m=(930.,))                 # needs apex_split
+    RewardConfig(**SPLIT, split_units=(1,), split_at_m=(930.,))
+
+
+def test_r5_preset_splits_u1_at_t2_and_lowers_the_guard():
+    from rlsetup.driving.train_config import BCN_T2_APEX_M, config_json, train_config_from_dict
+    c = PRESETS['bcn_f1_r5']()
+    assert (c.env.reward.split_units, c.env.reward.split_at_m, c.guard.threshold) == ((1,), (BCN_T2_APEX_M,), .4)
+    assert train_config_from_dict(json.loads(config_json(c))) == c

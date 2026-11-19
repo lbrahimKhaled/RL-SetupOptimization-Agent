@@ -18,7 +18,7 @@ R4_REWARD_KEYS = ('speed_k', 'speed_sigma')                       # omitted from
 R4_CORNER_KEYS = ('mode', 'bonus_in', 'bonus_out', 'sigma')        # omitted while mode = 'exit'
 LINE_REWARD_KEYS = ('line_k', 'line_free_m', 'line_cap')          # omitted from to_dict while line_k = 0
 APEX_REWARD_KEYS = ('apex_split', 'line_k_pre', 'line_free_pre_m', 'exit_k', 'exit_sigma',
-                    'apex_blend_m')                                # R5: omitted while off and at defaults
+                    'apex_blend_m', 'split_units', 'split_at_m')  # R5: omitted while off and at defaults
 
 
 @dataclass(frozen=True)
@@ -88,6 +88,11 @@ class RewardConfig:
     exit_k: float = 0.                   # exit-speed term [reward units per m driven at h = 1]; 0 = off
     exit_sigma: float = .3               # sigma of h, relative to v_qss
     apex_blend_m: float = 20.            # linear pre -> post blend centred on the last apex [m]
+    # Manual split points (DECISIONS #33): unit split_units[i] (1-based, as U1..Un) splits at Track.path station
+    # split_at_m[i] instead of its last apex. For a corner whose second apex is too fast to show in the speed
+    # profile (Barcelona T2 inside U1). Must lie in that unit's window (checked when the env builds).
+    split_units: tuple = ()
+    split_at_m: tuple = ()
 
     def __post_init__(self):
         if self.mode not in REWARD_MODES:
@@ -111,6 +116,14 @@ class RewardConfig:
         if not (math.isfinite(self.exit_sigma) and self.exit_sigma > 0
                 and math.isfinite(self.apex_blend_m) and self.apex_blend_m > 0):
             raise ValueError('exit_sigma and apex_blend_m must be finite and positive')
+        if len(self.split_units) != len(self.split_at_m) or len(set(self.split_units)) != len(self.split_units):
+            raise ValueError('split_units and split_at_m must have the same length, one entry per unit')
+        if not all(isinstance(u, int) and u >= 1 for u in self.split_units):
+            raise ValueError('split_units are 1-based unit numbers (U1 = 1)')
+        if not all(math.isfinite(x) for x in self.split_at_m):
+            raise ValueError('split_at_m must be finite')
+        if self.split_units and not self.apex_split:
+            raise ValueError('split_units needs apex_split')
         if self.apex_split and self.line_k <= 0:
             raise ValueError('apex_split needs the corner line penalty on (line_k > 0, time_pbrs)')
         if self.exit_k > 0 and not self.apex_split:

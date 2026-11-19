@@ -613,6 +613,12 @@ def _bcn_f1_r4_retry():
 BCN_R5_EXIT_K = 20. / 150.
 
 
+# Barcelona T2 apex on Track.path (DECISIONS #33): largest curvature of the left-hander (radius 51 m) and the line's
+# closest approach to its inside (+1.4 m) are both at ~930 m; T1's apex is ~850 m, the direction change ~895 m.
+# The QSS speed dip of T2 (51.4 -> 48.5 m/s) is below the corner detection threshold, so U1 has only T1's apex.
+BCN_T2_APEX_M = 930.
+
+
 def _bcn_f1_r5():
     """bcn_f1_r4_retry from scratch with the R5 reward (Ibrahim, 19 Nov 2026; DECISIONS #32): corner entry / exit
     closeness terms set to 0 (the corner-bonus machinery stays on, so the never-fade schedule still files laps as
@@ -621,13 +627,16 @@ def _bcn_f1_r5():
     band 0.5 m) plus a one-sided exit-speed term BCN_R5_EXIT_K w h(v / v_qss) per metre (sigma 0.3), blended over
     20 m around the apex; and crash emphasis (the last 2 s before a terminal failure drawn 3 x as often) from
     500k with the retries. Retries, lr decay, line, setup, demos + BC, speed potential: as bcn_f1_r4_retry.
+    U1 (T1 + T2) splits at T2's apex BCN_T2_APEX_M, not at T1's (DECISIONS #33). Guard threshold 0.4, as
+    bcn_f1_r4_w4 (the 0.2 m strict band dips at 30-40k; the first Mac launch collapsed at 40k under 0.5).
     Control: bcn_f1_r4_retry. Run name: bcn_f1_r5."""
     c = _bcn_f1_r4_retry()
     return replace(c, preset='bcn_f1_r5',
                    env=replace(c.env, corner_bonus=replace(c.env.corner_bonus, bonus_in=0., bonus_out=0.),
                                reward=replace(c.env.reward, apex_split=True, line_k_pre=2 * BCN_LINE_K,
                                               line_free_pre_m=.2, exit_k=BCN_R5_EXIT_K, exit_sigma=.3,
-                                              apex_blend_m=20.)),
+                                              apex_blend_m=20., split_units=(1,), split_at_m=(BCN_T2_APEX_M,))),
+                   guard=replace(c.guard, threshold=.4),
                    crash_emphasis=CrashEmphasisConfig(enabled=True, factor=3., horizon_s=2., start_step=500_000))
 
 
