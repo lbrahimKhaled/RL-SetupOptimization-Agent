@@ -226,8 +226,11 @@ nohup cloudflared tunnel --no-autoupdate --url http://127.0.0.1:6006 > runs/mac/
 ```
 Best models: `models/`. Line result: RL 103.06 → 102.57 s. Judge this setup at about 5M steps.
 
-## 19 Nov 2026 - Barcelona run `bcn_f1_r4_retry` (DECISIONS #30, #31)
-- From scratch: crash retries (75 %, hand-over at the previous corner exit, first 3 s of the run-up not trained on) + lr decay 3M -> 6.2M to 1/100, then held; runs until Ibrahim stops it. Keeper: `keeper.ps1 bcn_f1_r4_retry 5 High`.
+## 19 Nov 2026 - Barcelona run `bcn_f1_r4_retry` STOPPED for a sign-out at 3.75M (19 Nov 13:00, resumable; DECISIONS #30, #31)
+- State: retries since 500k; from 3.0M learning switches on 150 m before the retried corner's braking point (`env.retry.learn_before_m=150`, set by resume override, now in its config.json) and the lr decay 3M -> 6.2M to 1/100 is running. At 3M: 13/60 clean det laps, best lap 2 85.99 s (bcn_f1_r4 at 3M: 16/60, 85.98 s).
+- Resume on this PC (after the sign-out): `Remove-Item runs\windows\D2\bcn_f1_r4_retry\seed0\STOP_KEEPER`, then `platforms\windows\start_detached.ps1 -Log runs\windows\bcn_f1_r4_retry_stdout_resume.log platforms\windows\train.ps1 --resume --preset bcn_f1_r4_retry --seed 0 --run-name bcn_f1_r4_retry --allow-code-change --allow-dirty`, then the keeper: `platforms\windows\start_detached.ps1 -Log runs\windows\keeper_bcn_f1_r4_retry.log platforms\windows\keeper.ps1 bcn_f1_r4_retry 5 High`.
+- TensorBoard / cloudflared die with the sign-out: restart both (the quick-tunnel URL changes).
+- From scratch: crash retries (75 %, hand-over at the previous corner exit, first 3 s of the run-up not trained on until 3M, then by distance as above) + lr decay 3M -> 6.2M to 1/100, then held; runs until Ibrahim stops it. Keeper: `keeper.ps1 bcn_f1_r4_retry 5 High`.
 - Stopped (resumable): `bcn_f1_r4` 7.8M, `bcn_f1_r4_w4` 5.15M, `bcn_f1_r4_lrd` ~11.05M (lr decay branch of bcn_f1_r4), `bcn_f1_r4_ctl` ~7.9M (its constant-lr control).
 
 ## 18 Nov 2026 17:10 — Barcelona model for the Mac: `models/bcn_f1_r4_step6400k/`
