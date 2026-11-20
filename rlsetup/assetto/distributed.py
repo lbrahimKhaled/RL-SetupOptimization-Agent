@@ -191,11 +191,41 @@ class LearnerServer:
             atomic_json(config_path, settings)
         self._learner = None  # in-memory cache of the learner saved at state['learner']
         self.state = dict(cycle=0, actor='source', learner=None, pending=[], no_update=0, carry=0)
+        genesis = self.root/'genesis.json'
+        self.mixed_fork = genesis.exists()
+        if genesis.exists():
+            from .learn import ACLearner
+            fork = json.loads(genesis.read_text())
+            state = fork.get('state', {})
+            learner_path = self.root/'bootstrap'/'learner'
+            receipt_text = fork.get('parent_receipt_text', '')
+            if not isinstance(receipt_text, str) or sha(receipt_text.encode()) != fork.get('parent_receipt_sha256'):
+                raise ValueError('invalid parent receipt hash in fork genesis')
+            parent_receipt = json.loads(receipt_text)
+            expected_state = dict(parent_receipt['state'], learner='bootstrap/learner',
+                                  actor='bootstrap/learner/actor')
+            if (fork.get('schema') != 'rlsetup.ac.mixed-genesis.v1'
+                    or state.get('learner') != 'bootstrap/learner'
+                    or state.get('actor') != 'bootstrap/learner/actor'
+                    or type(state.get('cycle')) is not int or state['cycle'] < 1
+                    or state.get('pending') != []
+                    or parent_receipt.get('cycle') != state['cycle'] or state != expected_state
+                    or sha((learner_path/'manifest.json').read_bytes()) != fork.get('learner_manifest_sha256')):
+                raise ValueError('invalid mixed replay fork genesis')
+            learner = ACLearner.resume(learner_path, learner_path/'actor', self.config)
+            if (learner.mixed_replay is None or learner.provenance != state.get('replay_identity')
+                    or learner.mixed_replay.get('parent_cycle') != state['cycle']
+                    or learner.mixed_replay.get('parent_receipt_sha256') != fork['parent_receipt_sha256']):
+                raise ValueError('mixed replay fork identity mismatch')
+            self.state = state
+            self._learner = (state['learner'], learner)
         for receipt in sorted(self.root.glob('cycle-*/receipt.json')):
             saved = json.loads(receipt.read_text())
             if saved['cycle'] != self.state['cycle']+1:
                 raise ValueError('noncontiguous server receipts')
             self.state = saved['state']
+        if self._learner is not None and self._learner[0] != self.state['learner']:
+            self._learner = None
         if 'replay_identity' not in self.state:
             identity = None
             if self.state['learner']:
@@ -306,6 +336,13 @@ class LearnerServer:
                         start_mode=(meta.get('start') or {}).get('mode'),
                         start_kind=(meta.get('start') or {}).get('kind'),
                         complete=max_cycles is not None and cycle >= max_cycles)
+        if self.mixed_fork and self._learner is None:
+            loaded = self._load_learner(state['learner'], self.root/state['actor'])
+            self._learner = (state['learner'], loaded)
+        if self._learner is not None and self._learner[1].mixed_replay is not None:
+            labels = self._learner[1].model.replay_buffer.domain
+            response.update(replay_ocd=int(np.count_nonzero(labels == 1)),
+                            replay_ac=int(np.count_nonzero(labels == 2)))
         actor = pack_actor(self.root/state['actor'])
         (directory/'actor.zip').write_bytes(actor)
         atomic_json(receipt, dict(cycle=cycle, chunk_sha256=digest, response=response, state=state))

@@ -241,6 +241,7 @@ class ACLearner:
         self.model = build_learner(bundle, config)
         self.imported: list[str] = []
         self.provenance: dict | None = None
+        self.mixed_replay: dict | None = None
         self.critic_updates = self.updates = 0
 
     def import_chunk(self, path: str | Path) -> bool:
@@ -255,6 +256,8 @@ class ACLearner:
         self.provenance = identity
         for i in range(len(arrays['obs'])):
             terminated, truncated = bool(arrays['terminated'][i]), bool(arrays['truncated'][i])
+            if self.mixed_replay is not None:
+                self.model.replay_buffer.domain[self.model.replay_buffer.pos] = 2
             self.model.replay_buffer.add(arrays['obs'][i:i+1], arrays['next_obs'][i:i+1],
                                         arrays['actions'][i:i+1], arrays['rewards'][i:i+1],
                                         np.array([terminated or truncated]),
@@ -311,6 +314,8 @@ class ACLearner:
                     'files': {name: _sha((output / name).read_bytes()) for name in
                               ('model.zip', 'replay.pkl', 'rng.json', 'rng.pt')},
                     'exported_actor_manifest_sha256': _sha((output / 'actor' / MANIFEST_FILE).read_bytes())}
+        if self.mixed_replay is not None:
+            manifest['mixed_replay'] = mixed_replay_metadata(self.model.replay_buffer, self.mixed_replay)
         (output / MANIFEST_FILE).write_bytes(_encoded(manifest))
         return output
 
@@ -351,6 +356,13 @@ class ACLearner:
                 or obj.model.action_space != _SpacesOnly.action_space):
             raise ValueError('saved learner model contract mismatch')
         obj.imported, obj.provenance = manifest['imported'], manifest['provenance']
+        mixed = manifest.get('mixed_replay')
+        if mixed is None and hasattr(obj.model.replay_buffer, 'domain'):
+            raise ValueError('mixed replay domain labels lack provenance')
+        if mixed is not None:
+            if mixed_replay_metadata(obj.model.replay_buffer, mixed) != mixed:
+                raise ValueError('mixed replay domain metadata mismatch')
+            obj.mixed_replay = mixed
         obj.critic_updates, obj.updates = manifest['critic_updates'], manifest['updates']
         rng = _json((saved / 'rng.json').read_bytes())
         def tuples(value):
@@ -360,6 +372,22 @@ class ACLearner:
         np.random.set_state((state[0], np.asarray(state[1], dtype=np.uint32), *state[2:]))
         torch.set_rng_state(torch.load(saved / 'rng.pt', weights_only=True, map_location='cpu'))
         return obj
+
+
+def mixed_replay_metadata(replay, metadata: dict) -> dict:
+    """Validate persisted per-slot source labels and derive current counts and hash."""
+    domain = getattr(replay, 'domain', None)
+    if (not isinstance(domain, np.ndarray) or domain.dtype != np.uint8
+            or domain.shape != (replay.buffer_size,) or replay.n_envs != 1):
+        raise ValueError('invalid mixed replay domain labels')
+    active = replay.buffer_size if replay.full else replay.pos
+    if (not np.isin(domain[:active], [1, 2]).all()
+            or (not replay.full and np.any(domain[active:] != 0))):
+        raise ValueError('invalid active mixed replay domain labels')
+    out = {k: v for k, v in metadata.items() if k not in ('domain_sha256', 'ocd_count', 'ac_count')}
+    out.update(domain_sha256=_sha(domain.tobytes()), ocd_count=int(np.count_nonzero(domain == 1)),
+               ac_count=int(np.count_nonzero(domain == 2)))
+    return out
 
 
 def main(argv: list[str] | None = None):
