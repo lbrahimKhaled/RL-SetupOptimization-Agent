@@ -8,6 +8,8 @@
 #       This is the Lenovo setup; AC's framerate limit must then be 100 FPS.
 #   - system\x64\DLLs, system\x64\Lib    <- windows-libs (socket library for AC's Python 3.3)
 #   - Documents\Assetto Corsa\cfg\controllers\savedsetups\{Vjoy,WASD}.ini
+#   - apps\lua\rl_teleport\{manifest.ini,rl_teleport.lua} <- csp\rl_teleport (CSP Lua app; the worker's
+#       --teleport-dir for teleport starts, e.g. ac_worker_f1r5.ps1; needs Custom Shaders Patch)
 # Usage: powershell -ExecutionPolicy Bypass -File platforms\windows\ac\install_ac_plugin.ps1 [-WhatIf]
 [CmdletBinding(SupportsShouldProcess)]
 param()
@@ -43,6 +45,14 @@ foreach ($d in 'DLLs', 'Lib') {
     }
 }
 
+# CSP Lua app for teleport starts. Only the app files are copied: request.txt / ack.txt that the
+# worker and the app exchange in that folder at run time are left alone.
+$tp = Join-Path $AcInstall 'apps\lua\rl_teleport'
+if ($PSCmdlet.ShouldProcess($tp, 'copy CSP app rl_teleport')) {
+    New-Item -ItemType Directory -Force $tp | Out-Null
+    foreach ($f in 'manifest.ini', 'rl_teleport.lua') { Copy-Item -Force (Join-Path $PSScriptRoot "csp\rl_teleport\$f") $tp }
+}
+
 $saved = Join-Path $AcDocs 'cfg\controllers\savedsetups'
 if ($PSCmdlet.ShouldProcess($saved, 'copy Vjoy.ini, WASD.ini')) {
     New-Item -ItemType Directory -Force $saved | Out-Null
@@ -66,5 +76,5 @@ if ($PSCmdlet.ShouldProcess($csp, '[CONTROL] INACTIVE_ONLY_WHEN_COVERED=1')) {
     [IO.File]::WriteAllText($csp, $text)
 }
 
-Write-Host "Plugin installed (servers on 127.0.0.1:2345-2347, plugin drives vJoy at 100 Hz)."
+Write-Host "Plugin installed (servers on 127.0.0.1:2345-2347, plugin drives vJoy at 100 Hz); CSP app rl_teleport in $tp."
 Write-Host "Next: platforms\windows\ac\README.md, 'Walkthrough' (controls, 100 FPS cap, Hotlap session)."

@@ -96,6 +96,9 @@ def game_side():
                               for l in csp.read_text(errors='replace').splitlines())
     check('CSP keeps vJoy input when unfocused', bg, '' if bg else 'run install_ac_plugin.ps1, then restart AC',
           required=False)
+    tp = AC_INSTALL / 'apps' / 'lua' / 'rl_teleport' / 'rl_teleport.lua'
+    check('CSP app rl_teleport (teleport starts, F1R5 worker)', tp.exists(),
+          '' if tp.exists() else 'run install_ac_plugin.ps1', required=False)
     check(f'car {CAR}', (AC_INSTALL / 'content' / 'cars' / CAR).is_dir())
     check(f'track {TRACK}', (AC_INSTALL / 'content' / 'tracks' / TRACK).is_dir())
 
@@ -112,6 +115,15 @@ def rlsetup_side():
           missing, required=False)
     check('--critic-init checkpoint runs/mac/D2/bcn/seed0/checkpoints/best.zip',
           (REPO / 'runs' / 'mac' / 'D2' / 'bcn' / 'seed0' / 'checkpoints' / 'best.zip').exists(), missing, required=False)
+    # F1 driver bcn_f1_r5 at 7M (ac_server_f1r5.ps1 / ac_worker_f1r5.ps1 / ac_calibrate_f1r5.ps1)
+    check('F1R5 steering calibration (this PC, setup bcn_f1_best)', (work / 'steering-f1r5.json').exists(),
+          'run ac_calibrate_f1r5.ps1', required=False)
+    for name, path in (('F1R5 source actor', REPO / 'runs' / 'ac' / 'source_actor_bcn_f1_r5_7m' / 'manifest.json'),
+                       ('F1R5 reference line', REPO / 'runs' / 'ac' / 'ocd_line_reference_bcn_f1_r5_7m.json'),
+                       ('F1R5 --critic-init checkpoint',
+                        REPO / 'models' / 'bcn_f1_r5_step7000k' / 'seed0' / 'checkpoints' / 'last.zip')):
+        check(f'{name} {path.relative_to(REPO).as_posix()}', path.exists(),
+              '' if path.exists() else 'copy it from the Mac', required=False)
 
 
 def live():

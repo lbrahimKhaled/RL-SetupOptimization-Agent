@@ -100,6 +100,12 @@ def _profile_fields(saved, n):
     if (np.any(np.diff(arrays['s_path_m']) <= 0) or np.any(arrays['v_qss_mps'] <= 0)
             or np.any(arrays['v_start_mps'] <= 0) or not np.isin(arrays['corner'], (0., 1.)).all()):
         raise ValueError('v2 reference profile out of range (increasing s_path, speeds > 0, corner 0/1)')
+    if 'post_apex_w' in profile:  # R5 sources only (ac_ocd_reference.py with env.reward.apex_split)
+        w = np.asarray(profile['post_apex_w'], dtype=float)
+        if w.shape != (n,) or not np.isfinite(w).all() or np.any(w < 0) or np.any(w > 1) \
+                or np.any(w[arrays['corner'] == 0] != 0):
+            raise ValueError('v2 reference profile.post_apex_w must be one value in [0, 1] per row, 0 off corners')
+        arrays['post_apex_w'] = w
     length = profile.get('path_length_m')
     # A closing duplicate row (first = last point) sits exactly one lap on.
     if not _numeric(length) or length <= 0 or arrays['s_path_m'][-1]-arrays['s_path_m'][0] > length+1e-6:
@@ -122,12 +128,17 @@ class Profile:
     its wrapped difference, as OCD's ds. v_qss(station): R4 corner-table speed [m/s] (QSS on xi_ref).
     v_start_min(station, distance): minimum of the env's QSS profile on Track.path, which sets
     OCD's start speed. corner(station): 1 inside a corner window (flag of the row segment).
+    post_apex_w(station): R5 post-apex blend weight w in [0, 1] (rlsetup.driving.env.post_apex_weight at
+    the row's s_path), held over the row segment like corner(), so w and the window flag always come
+    from the same row (rows are ~1.5 m apart on Barcelona, the blend is 20 m long). None if the
+    reference has no post_apex_w field (non-R5 source).
     """
     def __init__(self, fields, geometry):
         n = len(geometry.ref)  # Geometry drops a closing duplicate row
         self.geometry, self.length = geometry, fields['path_length_m']
         self.s_path_rows = fields['s_path_m'][:n]
         self.v_rows, self.corner_rows = fields['v_qss_mps'][:n], fields['corner'][:n]
+        self.w_rows = fields['post_apex_w'][:n] if 'post_apex_w' in fields else None
         self.v_start_rows = fields['v_start_mps'][:n]
         self.settle = fields['settle']
         self._x = np.r_[geometry.stations[:-1], geometry.length]
@@ -152,10 +163,18 @@ class Profile:
         """Minimum start-QSS speed over [start, start + distance] stations (1 m spacing)."""
         return self.v_start(start+np.arange(0., max(distance, 0.)+1., 1.))
 
-    def corner(self, station):
+    def _row(self, station):
         station = float(station) % self.geometry.length
         i = int(np.searchsorted(self.geometry.stations, station, side='right')-1)
-        return bool(self.corner_rows[min(i, len(self.corner_rows)-1)])
+        return min(i, len(self.corner_rows)-1)
+
+    def corner(self, station):
+        return bool(self.corner_rows[self._row(station)])
+
+    def post_apex_w(self, station):
+        if self.w_rows is None:
+            raise ValueError('reference has no profile.post_apex_w (needed by an apex-split source)')
+        return float(self.w_rows[self._row(station)])
 
     def corner_windows(self):
         """(entry, exit) AC stations of each run of corner rows, in lap order (exit may wrap past 0)."""
@@ -465,6 +484,14 @@ class RewardTerms:
                      g = max(0, 1 - ((v - v*) / (speed_sigma v*))^2); Phi_v(s') = 0 after a terminal failure.
     line penalty     min(line_k max(0, |e| - line_free_m), line_cap) max(0, ds) when the decision ends in a
                      corner window (OCD applies it per 50 Hz tick; here once per 25 Hz decision).
+    R5 apex split    (docs/specs/R5_apex_split.md §2; apex_split on) with w = post-apex blend weight at the
+                     decision end (reference profile.post_apex_w): the line penalty becomes
+                     [(1 - w) min(line_k_pre max(0, |e| - line_free_pre_m), line_cap)
+                      + w min(line_k max(0, |e| - line_free_m), line_cap)] max(0, ds), and the exit term
+                     exit_k w h(v / v_qss) max(0, ds), h(rho) = max(0, 1 - ((1 - min(rho, 1)) / exit_sigma)^2),
+                     v [m/s] and v_qss (corner-table speed) at the decision end, is added. The blend length
+                     and manual split points (apex_blend_m, split_units, split_at_m) are baked into
+                     post_apex_w by scripts/ac_ocd_reference.py; the file is bound to the source config.
     All zero (R1 only) for sources trained without them.
     """
     speed_k: float = 0.
@@ -472,25 +499,61 @@ class RewardTerms:
     line_k: float = 0.
     line_free_m: float = .5
     line_cap: float = .5
+    apex_split: bool = False
+    line_k_pre: float = .141
+    line_free_pre_m: float = .2
+    exit_k: float = 0.
+    exit_sigma: float = .3
+
+    # The AC R1 above hard-codes these source values.
+    FIXED = dict(mode='time_pbrs', a=1., b=1., shaping_k=1., penalty_const=100., gamma=GAMMA)
+    NUMERIC = ('speed_k', 'speed_sigma', 'line_k', 'line_free_m', 'line_cap', 'line_k_pre', 'line_free_pre_m',
+               'exit_k', 'exit_sigma')
+    # Only used by mode 'ref_tracking' (RewardConfig): no effect on a time_pbrs reward, any value.
+    INERT = ('c', 'w', 'penalty_base', 'penalty_kappa', 'recovery_time_s')
+    # Baked into the reference file's post_apex_w (apex_split on); neutral values otherwise.
+    BAKED = dict(apex_blend_m=20., split_units=[], split_at_m=[])
 
     @classmethod
     def from_source(cls, config):
         rw = config.get('env', {}).get('reward')
         if not isinstance(rw, dict):
             raise ValueError('source config has no env.reward')
-        # The AC R1 above hard-codes these source values; any other source reward is unsupported.
-        for key, value in dict(mode='time_pbrs', a=1., b=1., shaping_k=1., penalty_const=100., gamma=GAMMA).items():
+        for key, value in cls.FIXED.items():
             if rw.get(key) != value:
                 raise ValueError(f'unsupported source env.reward.{key}={rw.get(key)!r} (AC implements {value!r})')
-        values = {name: rw.get(name, getattr(cls, name)) for name in
-                  ('speed_k', 'speed_sigma', 'line_k', 'line_free_m', 'line_cap')}
-        if any(not _numeric(v) or v < 0 for v in values.values()) or values['speed_sigma'] <= 0:
+        known = set(cls.FIXED) | set(cls.NUMERIC) | set(cls.INERT) | set(cls.BAKED) | {'apex_split'}
+        for key in sorted(set(rw)-known):
+            raise ValueError(f'unsupported source env.reward.{key}={rw[key]!r} (not implemented in AC)')
+        apex_split = rw.get('apex_split', False)
+        if type(apex_split) is not bool:
+            raise ValueError('source env.reward.apex_split must be a boolean')
+        if not apex_split:
+            for key, neutral in cls.BAKED.items():
+                if key in rw and rw[key] != neutral:
+                    raise ValueError(f'unsupported source env.reward.{key}={rw[key]!r} without apex_split')
+        values = {name: rw.get(name, getattr(cls, name)) for name in cls.NUMERIC}
+        if any(not _numeric(v) or v < 0 for v in values.values()) or values['speed_sigma'] <= 0 \
+                or values['exit_sigma'] <= 0:
             raise ValueError('source reward terms must be finite and nonnegative')
-        return cls(**{k: float(v) for k, v in values.items()})
+        if values['exit_k'] > 0 and not apex_split:
+            raise ValueError('source env.reward.exit_k > 0 needs apex_split')
+        if apex_split and values['line_k'] <= 0:
+            raise ValueError('source env.reward.apex_split needs line_k > 0')
+        return cls(**{k: float(v) for k, v in values.items()}, apex_split=apex_split)
 
     @property
     def active(self):
         return self.speed_k > 0 or self.line_k > 0
+
+    def identity(self):
+        """JSON-ready terms for chunk metadata (replay identity). Without apex_split exactly the R4 dict."""
+        d = dict(speed_k=self.speed_k, speed_sigma=self.speed_sigma, line_k=self.line_k,
+                 line_free_m=self.line_free_m, line_cap=self.line_cap)
+        if self.apex_split:  # chunk metadata values are numbers or strings (learn.read_chunk)
+            d.update(apex_split='reference_post_apex_w', line_k_pre=self.line_k_pre,
+                     line_free_pre_m=self.line_free_pre_m, exit_k=self.exit_k, exit_sigma=self.exit_sigma)
+        return d
 
     def phi_v(self, speed, v_qss):
         if not self.speed_k:
@@ -498,10 +561,22 @@ class RewardTerms:
         x = (speed-v_qss)/(self.speed_sigma*v_qss)
         return self.speed_k*max(0., 1.-x*x)
 
-    def line_penalty(self, abs_e, ds, in_corner):
+    def line_penalty(self, abs_e, ds, in_corner, w=0.):
+        """w: post-apex weight (apex_split only; ignored otherwise)."""
         if not self.line_k or not in_corner or ds <= 0:
             return 0.
-        return min(self.line_k*max(0., abs_e-self.line_free_m), self.line_cap)*ds
+        post = min(self.line_k*max(0., abs_e-self.line_free_m), self.line_cap)
+        if not self.apex_split:
+            return post*ds
+        pre = min(self.line_k_pre*max(0., abs_e-self.line_free_pre_m), self.line_cap)
+        return ((1.-w)*pre+w*post)*ds
+
+    def exit_term(self, speed, v_qss, ds, in_corner, w):
+        """R5 exit-speed reward (added) of one decision; 0 unless apex_split with exit_k > 0."""
+        if not (self.apex_split and self.exit_k) or not in_corner or ds <= 0 or w <= 0:
+            return 0.
+        h = max(0., 1.-((1.-min(speed/v_qss, 1.))/self.exit_sigma)**2)
+        return self.exit_k*w*h*ds
 
 
 def controls(action, steering, seq, *, saturation='reject', steer_lock_rad=.6):
@@ -858,6 +933,9 @@ def collect(config, actor_bundle, calibration, *, reference, output, execute=Fal
     stall_speed, stall_time = float(source_env.get('stall_speed_mps', 3.)), float(source_env.get('stall_time_s', 2.))
     if terms.active and profile is None:
         raise ValueError('the source reward has R4 terms: use a v2 reference file (ac_ocd_reference.py --source-run)')
+    if terms.apex_split and profile.w_rows is None:
+        raise ValueError('the source reward has R5 apex-split terms: use a v2 reference file with '
+                         'profile.post_apex_w (ac_ocd_reference.py --source-run)')
     if profile is not None:
         if track['ocd_profile']['source_config_sha256'] != actor.manifest['source']['config_sha256']:
             raise ValueError('v2 reference file was made for a different source run config')
@@ -904,7 +982,7 @@ def collect(config, actor_bundle, calibration, *, reference, output, execute=Fal
                     steer_lock_rad=actor.steer_lock_rad, start=None)
     if profile is not None:
         # MDP terms beyond legacy R1; part of the replay identity (learn.replay_identity).
-        metadata['source_terms'] = dict(asdict(terms), progress='ocd_track_path', start='ocd_settle',
+        metadata['source_terms'] = dict(terms.identity(), progress='ocd_track_path', start='ocd_settle',
                                         stall_speed_mps=stall_speed, stall_time_s=stall_time)
     generator = None
     if config.exploration_std_scale > 0:
@@ -975,7 +1053,13 @@ def collect(config, actor_bundle, calibration, *, reference, output, execute=Fal
                 if terms.active:
                     phi_v_next = 0. if failure else terms.phi_v(speed, profile.v_qss(station))
                     value += GAMMA*phi_v_next-phi_v
-                    value -= terms.line_penalty(abs(e), ds_reward, profile.corner(station))
+                    in_corner = profile.corner(station)
+                    if terms.apex_split:  # R5: blended line penalty and exit-speed term at the decision end
+                        w = profile.post_apex_w(station)
+                        value -= terms.line_penalty(abs(e), ds_reward, in_corner, w)
+                        value += terms.exit_term(speed, profile.v_qss(station), ds_reward, in_corner, w)
+                    else:
+                        value -= terms.line_penalty(abs(e), ds_reward, in_corner)
                     phi_v = phi_v_next
                 # OCD (time_pbrs): speed < stall_speed for > stall_time is a truncation, no penalty.
                 stall_s = stall_s+dt if speed < stall_speed else 0.

@@ -1,5 +1,35 @@
 # HANDOFF — read this first to resume (last updated 25 Oct 2026)
 
+## 20 Nov 2026 — R5 stopped, 7M saved for AC, speed branch proposed (read first)
+- **The R5 run `bcn_f1_r5` (Mac) stopped at 10.35M** by Ibrahim. SIGINT was ignored, so it was stopped with SIGTERM.
+  - The keeper is stopped. Full run folder: `runs/mac/D2/bcn_f1_r5/seed0`, with the replay buffer at 10.35M.
+  - TensorBoard is still on port 6009.
+  - Best lap: 84.87 s at 4.95M (4-6M was the fastest window). After the lr floor (6.2M), laps got about 0.5-1 s slower and stochastic laps got safer (93-98% clean).
+- **7M saved for Assetto Corsa:** `models/bcn_f1_r5_step7000k/` (README inside, not committed). `last.zip` = step 7,000,000; its eval had a clean 85.27 s lap and 9/10 stochastic laps.
+  - AC actor bundle: `runs/ac/source_actor_bcn_f1_r5_7m`, equal to the SB3 policy to 5e-6.
+- **AC reward port (rl-coder): DONE, not committed, not launched.** Details: `docs/handoff/AC_R5_coder.md`.
+  - The AC worker now applies the R5 terms. R4 rewards are byte-identical. AC + R5 tests: 356 passed. The full suite has NOT been run yet.
+  - Files: `rlsetup/assetto/driving.py`, `scripts/ac_ocd_reference.py`, `tests/test_ac_r5.py`, `platforms/windows/ac/lenovo/START_LENOVO_F1R5.cmd`. To commit with them: `data/corner_table_276bbf9a604e.json` (the R5 reference depends on it).
+  - Ready to use (local, under `runs/`): `runs/ac/ocd_line_reference_bcn_f1_r5_7m.json`, `runs/ac/lenovo-tcp-f1r5-v15.zip`, `runs/ac/tcp-launch/START_MAC_F1R5.command`.
+  - To launch:
+    1. Stop the R4 AC server (`runs/ac/tcp-f1r4-001`; the R5 learner uses the same port 2350).
+    2. Run `START_MAC_F1R5.command`.
+    3. On the Lenovo: unzip v15, copy `steering-f1r4.json` (and optionally `tcp-worker-f1r4-001\heights.npz` into `tcp-worker-f1r5-001\`), then run `START_LENOVO_F1R5.cmd` (teleport starts on).
+- **Full throttle:** measured on the 4.95M and 7M deterministic laps.
+  - The throttle pedal never reaches 0.99; it is at 0.96 at the 90th percentile and >= 0.9 on about 1/3 of the lap.
+  - Throttle and brake are on together only 1.2% of the lap.
+  - n_steps = 3 is already on; ent_coef auto, target -3, alpha 0.067 at the end.
+  - Research: `docs/research/full_throttle_sac.md`. The tanh-correction entropy cost keeps the mean off the bound. Scaling the potential-based speed reward does not change it, and no source supports a higher lr. Precedent: Toyota (arXiv:2412.03803) maps 0.5 to 100% throttle; GT Sophy uses a fixed alpha of 0.01.
+- **Pending, Ibrahim's call:** speed branch `bcn_f1_r5_speed` from `runs/mac/D2/bcn_f1_r5/seed0/checkpoints/step_6000000.zip`. Lead's proposal:
+  - throttle top-end remap (full at a = 0.85, unchanged below 0.5);
+  - target entropy -6;
+  - lr 1e-4 held for 1M, then decaying to 1e-5 over 1M;
+  - exit_k x2 (corner terms about 6.5% of progress);
+  - everything else R5;
+  - empty buffer, so expect a dip.
+  - Optional first: a 10-min critic-slope diagnostic at 6M.
+  - The remap must also be applied to the AC pedal mapping if that driver goes to AC.
+
 ## 27 Oct 2026 — Mac vs Windows (read first if you are on the Windows box)
 - Two machines: the Mac (M4, CPU, forkserver, `.venv`) and Windows (i9-14900 + RTX 4000 Ada, CUDA, spawn, conda `C:\Users\imk14\ocdenv`). Per-machine launchers, overrides and run roots (`runs/mac/D2`, `runs/windows/D2`) are in [platforms/](../../platforms/README.md). Mac paths in the sections below (`/Users/ibrahimkhaled/...`, `caffeinate`) apply to the Mac only.
 - Windows: launch long runs with `platforms\windows\start_detached.ps1` (hidden `Start-Process`); `nohup &` from Git Bash dies with its shell. Live run `runs/D2/sf70h_win/seed0` (pre-split root, see the 27 Oct section at the end); resume commands in `platforms/windows/README.md`.

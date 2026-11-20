@@ -1,0 +1,9 @@
+# This repo's Python packages on Windows, installed by setup_pc.ps1 AFTER torch (CUDA or CPU build,
+# chosen there) and ocd_first_lap's requirements.txt. Versions: platforms/windows/README.md
+# (i9 PC: SB3 / sb3-contrib 2.9.0, gymnasium 1.4.0); tensorboard / pytest as on the Mac venv.
+# StagedSAC (rlsetup/driving/agent.py) relies on SB3 2.9.0 internals: keep that pin.
+stable-baselines3==2.9.0
+sb3-contrib==2.9.0
+gymnasium==1.4.0
+tensorboard==2.21.0
+pytest==9.1.1

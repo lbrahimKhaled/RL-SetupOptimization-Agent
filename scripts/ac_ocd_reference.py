@@ -15,7 +15,11 @@ s_path_m (Track.path arc length of the row, unwrapped), v_qss_mps (R4 corner-tab
 v_start_mps (the env QSS profile that sets OCD's start speed), corner (1 inside an R4 corner
 window), plus the run's settle/stall settings and car geometry. The QSS profile and corner table
 are the training's own files in data/, found and verified by the keys in the run's provenance.json.
-The file is bound to the run's config.json by SHA-256.
+A QSS profile the training recomputed in memory (no data/ file with its key; qss_profile.load_or_build
+does that when the cached key does not match) is recomputed the same way here, only if the current
+cache key equals the provenance key. The file is bound to the run's config.json by SHA-256.
+R5 sources (env.reward.apex_split): each row also carries post_apex_w, the post-apex blend weight
+rlsetup.driving.env.post_apex_weight at the row's s_path with the env's split map (0 outside windows).
 """
 from __future__ import annotations
 
@@ -59,19 +63,33 @@ def _sha_file(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def training_profiles(run, env):
-    """The run's own QSS profile and corner table from data/, verified against provenance.json."""
+def _key_sha(key):
+    return hashlib.sha256(json.dumps(key, sort_keys=True).encode()).hexdigest()
+
+
+def training_profiles(run, env, track=None):
+    """The run's own QSS profile and corner table from data/, verified against provenance.json.
+    qss_file is None when the profile had to be recomputed in memory (needs `track`)."""
     from rlsetup.driving import corners, qss_profile
     provenance = json.loads((run/'provenance.json').read_text())
     want = provenance['qss']['cache_key_sha256']
-    qss = None
+    qss = qss_file = None
     for path in sorted((ROOT/'data').glob('qss_profile_*.npz')):
         candidate = qss_profile.load(path)
-        if hashlib.sha256(json.dumps(candidate.meta['key'], sort_keys=True).encode()).hexdigest() == want:
+        if _key_sha(candidate.meta['key']) == want:
             qss, qss_file = candidate, path
             break
+    if qss is None and track is not None:
+        from rlsetup.driving.setups import get as get_setup
+        setup = get_setup(env['setup'])
+        args = dict(car=env['car'], ers=env['ers'], brake_torque_Nm=env['max_brake_torque_Nm'])
+        if _key_sha(qss_profile.cache_key(track, setup, args['car'], args['ers'], args['brake_torque_Nm'])) == want:
+            qss = qss_profile.compute(track, setup, **args)[0]  # as load_or_build on a key mismatch
+            if _key_sha(qss.meta['key']) != want:
+                raise SystemExit('recomputed QSS profile does not carry the training cache key')
     if qss is None:
-        raise SystemExit(f'no data/qss_profile_*.npz with the training cache key {want[:12]}')
+        raise SystemExit(f'no data/qss_profile_*.npz with the training cache key {want[:12]} '
+                         '(and the current code/track give a different key)')
     key = (provenance.get('r4') or {}).get('corner_table_key') or \
         ((provenance.get('r2') or {}).get('corner_table') or {}).get('key')
     table = table_file = None
@@ -84,6 +102,28 @@ def training_profiles(run, env):
     if table is None and (reward.get('speed_k', 0) > 0 or reward.get('line_k', 0) > 0):
         raise SystemExit('the run uses R4 terms but its provenance names no corner table')
     return qss, qss_file, table, table_file
+
+
+def post_apex_profile(table, reward, s_path):
+    """R5 post-apex weight w per Track.path station (rlsetup.driving.env.post_apex_weight; 0 outside the
+    corner windows) with the env's manual split map (DrivingEnv.__init__: split_units are 1-based and the
+    point must lie in that unit's window). Returns (w array, description dict)."""
+    from rlsetup.driving.config import RewardConfig
+    from rlsetup.driving.env import post_apex_weight
+    blend = float(reward.get('apex_blend_m', RewardConfig.apex_blend_m))
+    split = {}
+    for u, x in zip(reward.get('split_units', ()), reward.get('split_at_m', ())):
+        if u > len(table.units) or not table.in_window(x, u-1):
+            raise SystemExit(f'split point U{u} at {x} m is not inside that corner window')
+        split[u-1] = float(x)
+    w = np.zeros(len(s_path))
+    for i, s in enumerate(s_path):
+        k = table.unit_at(s)
+        if k is not None:
+            w[i] = post_apex_weight(table, s, k, blend, split.get(k))
+    return w, dict(apex_blend_m=blend, split_units=list(reward.get('split_units', ())),
+                   split_at_m=list(reward.get('split_at_m', ())),
+                   rule='rlsetup.driving.env.post_apex_weight at the row s_path_m (last apex or split point)')
 
 
 def settle_block(env):
@@ -169,7 +209,7 @@ def main(argv=None):
                       np.linalg.norm(geometry.ref-geometry.right, axis=1))
     extra = {}
     if env is not None:
-        qss, qss_file, table, table_file = training_profiles(args.source_run, env)
+        qss, qss_file, table, table_file = training_profiles(args.source_run, env, track)
         ocd_rows = rows@rot.T+trans  # AC -> OCD
         s_raw, hint = np.empty(len(rows)), None
         for i, xy in enumerate(ocd_rows):
@@ -188,9 +228,17 @@ def main(argv=None):
                                        else 'env QSS profile on Track.path'),
                          corner_share=float(corner.mean())),
             settle=settle_block(env))
+        if env['reward'].get('apex_split', False):
+            if table is None:
+                raise SystemExit('apex_split source without a corner table')
+            w, how = post_apex_profile(table, env['reward'], s_path)
+            extra['profile'].update(post_apex_w=w.tolist(), post_apex=how)
         source_binding = dict(run=str(args.source_run), source_config_sha256=hashlib.sha256(config_bytes).hexdigest(),
                               reference=env['reference'], car=env['car'], setup=env['setup'],
-                              qss_file=qss_file.name, qss_file_sha256=_sha_file(qss_file),
+                              qss_file=qss_file.name if qss_file else None,
+                              qss_file_sha256=_sha_file(qss_file) if qss_file else None,
+                              **({} if qss_file else dict(
+                                  qss_recomputed_key_sha256=_key_sha(qss.meta['key']))),
                               corner_table_file=table_file.name if table_file else None,
                               corner_table_sha256=_sha_file(table_file) if table_file else None)
     report = dict(
@@ -218,6 +266,8 @@ def main(argv=None):
         summary.update(settle=report['settle'], profile=dict(
             corner_share=p['corner_share'], v_qss_range_mps=[min(p['v_qss_mps']), max(p['v_qss_mps'])],
             s_path_span_m=p['s_path_m'][-1]-p['s_path_m'][0], path_length_m=p['path_length_m']))
+        if 'post_apex_w' in p:
+            summary['profile'].update(post_apex=p['post_apex'], post_apex_w_mean=float(np.mean(p['post_apex_w'])))
     print(json.dumps(summary, indent=2))
 
 
