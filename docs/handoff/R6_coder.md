@@ -151,7 +151,7 @@ in this sample. That is information, not a result: it is one deterministic lap a
 - D6: `evals_to_tb.py` scalars (an addition beyond the spec).
 - Smoke preset: `max_wall_h` 1.0 as a safety cap. The gate is also checked in the smoke, after only 5 blocks.
 
-## 5. Launch commands (not run; updated 21 Nov 2026)
+## 5. Launch and resume commands (updated 21 Nov 2026)
 
 Smoke (150k; no offline phase; gate checked once; online critic 20k; dirty tree allowed). The new run name keeps
 the failed `bcn_f1_r6_smoke` folder:
@@ -168,15 +168,33 @@ What to check after the smoke:
 - `retry.retry_episodes` > 0 and `crash_emphasis.factor` 3 from step 0.
 - the unfreeze event at 20k.
 
-4M run. First commit (strict_provenance, QA m4: include `tests/test_r6.py`, `tests/r6_golden.py`,
-`scripts/r6_prelaunch.py`), then:
+The 4M run uses **preset `bcn_f1_r6` and run name `bcn_f1_r6b`**. After the original 100k-freeze run
+collapsed, the amended run used a 20k freeze. Its checkpoints and logs are under
+`runs/mac/D2/bcn_f1_r6b/seed0`.
 
-    cd /Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent
-    PYTHONPATH=/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap-f1 OCD_FIRST_LAP=/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap-f1 \
-      caffeinate -dimsu nohup platforms/mac/train.sh --preset bcn_f1_r6 --seed 0 --run-name bcn_f1_r6 \
-      >> runs/mac/bcn_f1_r6_stdout.log 2>&1 &
-    # once the log shows "throttle gate: ... <= tol" and learn() has started:
-    nohup runs/mac/keeper_f1_nostop.sh bcn_f1_r6 >> runs/mac/keeper_bcn_f1_r6.log 2>&1 &
+The launch used the clean `9912dc0` checkout for strict provenance and supplied the 20k override
+explicitly. The managed sandbox denied the forkserver socket. The successful launch used
+`vec_start_method=spawn` with the same four workers. This is the recorded launch command.
 
-Run dir: `runs/mac/D2/bcn_f1_r6/seed0`. Start the keeper only after the gate: before `last.zip` exists, a resume
-fails, and the keeper would retry 5 times.
+    export R6B_MAIN=/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent
+    export R6B_OCD=/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap-f1
+    cd "$R6B_MAIN/runs/mac/r6b_code_9912dc0"
+    PYTHON_BIN="$R6B_MAIN/.venv/bin/python" RUNS_ROOT="$R6B_MAIN/runs/mac/D2" \
+      PYTHONPATH="$R6B_OCD" OCD_FIRST_LAP="$R6B_OCD" \
+      caffeinate -dimsu nohup platforms/mac/train.sh --preset bcn_f1_r6 --seed 0 --run-name bcn_f1_r6b \
+      --set warm.critic_warmup_steps=20000 --set vec_start_method=spawn \
+      --init-from "$R6B_MAIN/runs/mac/D2/bcn_f1_r5/seed0/checkpoints/step_7000000.zip" \
+      --init-buffer "$R6B_MAIN/runs/mac/D2/bcn_f1_r5/seed0/replay_buffer.pkl" \
+      >> "$R6B_MAIN/runs/mac/bcn_f1_r6b_stdout.log" 2>&1 &
+
+The legacy keeper uses the run name as the preset, so it would try the nonexistent preset
+`bcn_f1_r6b`. If training stops with a saved `last.zip`, resume manually from the same clean
+checkout. Resume reads the 20k freeze and spawn method from the saved `config.json`.
+
+    export R6B_MAIN=/Users/ibrahimkhaled/Documents/RL-SetupOptimization-Agent
+    export R6B_OCD=/Users/ibrahimkhaled/Desktop/RESEARCH/ocd_first_lap-f1
+    cd "$R6B_MAIN/runs/mac/r6b_code_9912dc0"
+    PYTHON_BIN="$R6B_MAIN/.venv/bin/python" RUNS_ROOT="$R6B_MAIN/runs/mac/D2" \
+      PYTHONPATH="$R6B_OCD" OCD_FIRST_LAP="$R6B_OCD" \
+      caffeinate -dimsu nohup platforms/mac/train.sh --resume --preset bcn_f1_r6 --seed 0 --run-name bcn_f1_r6b \
+      >> "$R6B_MAIN/runs/mac/bcn_f1_r6b_stdout.log" 2>&1 &

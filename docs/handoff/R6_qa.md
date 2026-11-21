@@ -90,3 +90,17 @@ never ran.
 
 Provenance and determinism: config, rlsetup commit and diff sha, ocd_first_lap commit, QSS key and
 relabel stats are recorded; the gate batch is seeded with `cfg.seed`; the golden hash reproduces.
+
+## 4M run collapse (21 Nov 2026, 18:02) and diagnosis
+- `bcn_f1_r6` (offline phase removed, gate 0.0006 passed) collapsed at 190k (rollback 180k, collapse guard
+  ~520 m vs 1433 m baseline); keeper resume collapsed again at 200k; keeper stopped.
+- Cause: the 100k online critic-only phase. With the actor frozen, Q on the deterministic lap fell
+  236 -> 190 (50k) -> 23 (100k) while MC stayed 235.6; critic loss 52 -> 283; twin-critic spread
+  (Q_mean - Q_min) 0.33 -> 6.9. The collapse is uniform over throttle 0..1 and over old and new buffer rows.
+- Control `diag_r5_frozen100k` (R5 map, no remap/relabel, same 100k freeze): Q 236 -> 228 -> 183 -> 116 -> 45,
+  spread 0.31 -> 6.2. **The throttle remap is not the cause; a 100k frozen-actor phase is.**
+- Smoke (`bcn_f1_r6_smoke2`, 20k freeze) is identical to the 4M run up to 18k; it unfroze at 20k, the spread
+  stayed 0.5-0.9 and Q tracked MC (+-7) for 130k steps. R3/R4/R5 also used a 20k freeze (R1 Amendment 1 cut 100k
+  -> 20k); the 100k phase had never run before.
+- Likely mechanism (not proven): with a fixed policy nothing offsets clipped double-Q underestimation; the
+  twin critics drift apart and min() pulls every bootstrap target down, accelerating.

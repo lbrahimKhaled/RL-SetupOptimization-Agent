@@ -113,6 +113,12 @@ every other env field must still match.
 > as a one-shot pre-training check on the loaded critic after the relabel (tol 1 %; warmup.jsonl row at grad_steps 0).
 > learn() then starts with the online critic phase at R5's lifetime lr (scale 0.01: critic 3e-6), actor and alpha
 > frozen for 100k steps (20k in the smoke), retries and crash factor 3 from step 0. Item 1 below no longer runs.
+>
+> **Amendment 2, 21 Nov 2026 (Ibrahim): online critic phase 100k -> 20k.** The `bcn_f1_r6` 4M run collapsed after
+> the 100k frozen-actor phase (critic drift with the actor frozen). A control with R5's own map and the same 100k
+> freeze collapsed the same way (Q 236 -> 45), so the cause is the freeze length, not the remap (diagnosis in
+> `docs/handoff/R6_qa.md`). `bcn_f1_r6` now freezes actor + alpha for 20k steps, as the smoke and R3-R5. Item 2 below
+> reads 20,000. New run name `bcn_f1_r6b`; the `bcn_f1_r6` folder is the collapsed run and is kept.
 1. **Offline critic: 50,000 grad steps** on the relabelled buffer (blocks of 1,000), critic lr **3e-5**
    (scale 0.1, this phase only; R5's floor 3e-6 is too slow to refit a re-parameterised input slice, my
    judgement; the gate below decides). New gate in warmup.jsonl: on a fixed batch of 4,096 relabelled rows

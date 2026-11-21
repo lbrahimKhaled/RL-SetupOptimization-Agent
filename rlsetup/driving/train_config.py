@@ -678,11 +678,14 @@ def _bcn_f1_r6():
     map up to 0.70, then pedal 1.0 at a = 0.85), warm-started from bcn_f1_r5 step_7000000.zip with its replay
     buffer (10.35M) relabelled exactly to the new map (warm.throttle_relabel). No offline critic phase (Ibrahim,
     21 Nov 2026, after the smoke's gate failed at 3e-5: 0.0006 -> 0.0193 in 5k steps, judged lr drift on a fixed
-    buffer); the throttle gate (<= 1 %) is checked once on the loaded critic before learn(). Then 100k env steps of
-    online critic phase at the schedule's lr (scale 0.01, critic 3e-6; actor + alpha frozen), then the unfreeze with actor lr 1e-4 (inherited) x the lr schedule. lifetime_schedules: the lr decay,
+    buffer); the throttle gate (<= 1 %) is checked once on the loaded critic before learn(). Then 20k env steps of
+    online critic phase at the schedule's lr (scale 0.01, critic 3e-6; actor + alpha frozen; as R3-R5 and the smoke.
+    Was 100k until 21 Nov 2026: that 4M run collapsed from frozen-actor critic drift, reproduced without the remap,
+    docs/handoff/R6_qa.md), then the unfreeze with actor lr 1e-4 (inherited) x the lr schedule. lifetime_schedules: the lr decay,
     retries and crash emphasis read num_timesteps + 7M, so lr scale 0.01 and retries / crash emphasis from step 0,
     as R5 at 7M. 4M steps, no plateau stop; reward, corner terms (never fade -> best_aided.zip), apex split, line,
-    setup, alpha, gamma, n-step, batch, UTD, guard 0.4 unchanged. Run name: bcn_f1_r6 (runs/mac/D2)."""
+    setup, alpha, gamma, n-step, batch, UTD, guard 0.4 unchanged. Run name: bcn_f1_r6b (runs/mac/D2; bcn_f1_r6 =
+    the collapsed 100k-freeze run)."""
     c = _bcn_f1_r5()
     return replace(c, preset='bcn_f1_r6', total_timesteps=4_000_000, max_wall_h=None, init_from=BCN_F1_R6_INIT,
                    lifetime_schedules=True,
@@ -690,7 +693,7 @@ def _bcn_f1_r6():
                    agent=replace(c.agent, init_mode='warm'),
                    warm=replace(c.warm, init_buffer=BCN_F1_R6_BUFFER, relabel=False, speed_relabel=False,
                                 throttle_relabel=True, offline_critic_grad_steps=0, offline_critic_lr_scale=None,
-                                critic_warmup_steps=100_000),
+                                critic_warmup_steps=20_000),
                    stop=replace(c.stop, plateau=False))
 
 

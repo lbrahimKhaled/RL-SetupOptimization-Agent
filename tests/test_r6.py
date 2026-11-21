@@ -351,7 +351,7 @@ def test_bcn_f1_r6_preset_and_config_json():
     # offline warm-up removed (Ibrahim, 21 Nov 2026): gate checked once before learn(), online phase at the schedule
     assert (w.throttle_relabel, w.relabel, w.speed_relabel, w.offline_critic_grad_steps, w.offline_critic_lr_scale,
             w.critic_warmup_steps, w.actor_lr, w.critic_check_tol, w.throttle_gate_tol) == \
-           (True, False, False, 0, None, 100_000, 1e-4, .08, .01)
+           (True, False, False, 0, None, 20_000, 1e-4, .08, .01)
     assert c.agent.learning_rate * c.lr_decay.scale(7_000_000) == pytest.approx(3e-6)
     assert c.init_from.endswith('runs/mac/D2/bcn_f1_r5/seed0/checkpoints/step_7000000.zip')
     assert w.init_buffer.endswith('runs/mac/D2/bcn_f1_r5/seed0/replay_buffer.pkl')
