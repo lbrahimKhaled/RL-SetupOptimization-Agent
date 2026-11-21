@@ -87,11 +87,13 @@ class RetryCallback(BaseCallback):
     """EnvConfig.retry: switches crash retries on in every training env once learn() reaches
     retry.start_step (demo collection and BC never retry) and counts, between evaluations, the episodes that started as a retry
     (first decision flagged warm-up) and the share of warm-up transitions (`eval_extra`). Refuses a replay
-    buffer without the warm-up mask, which would silently train on the run-up."""
+    buffer without the warm-up mask, which would silently train on the run-up. `offset` (TrainConfig.lifetime_schedules,
+    R6 §2.3): start_step is compared with num_timesteps + offset (0 = this run's steps, as before)."""
 
-    def __init__(self, start_step=0):
+    def __init__(self, start_step=0, offset=0):
         super().__init__()
         self.start_step = int(start_step)
+        self.offset = int(offset)
         self.on = False
         self.reset_counts()
 
@@ -100,7 +102,7 @@ class RetryCallback(BaseCallback):
         self._new = None
 
     def _switch(self):
-        if not self.on and self.model.num_timesteps >= self.start_step:
+        if not self.on and self.model.num_timesteps + self.offset >= self.start_step:
             self.training_env.env_method('set_retry', True)
             self.on = True
 
@@ -138,15 +140,18 @@ class RetryCallback(BaseCallback):
 class CrashEmphasisCallback(BaseCallback):
     """TrainConfig.crash_emphasis: sets the replay buffer's crash_horizon (decisions in horizon_s) at the
     start, so crashes are marked from step 0, and crash_factor = factor once num_timesteps >= start_step
-    (1 before). `eval_extra` reports the marked share of the stored transitions."""
+    (1 before). `eval_extra` reports the marked share of the stored transitions. `offset` (lifetime_schedules, R6
+    §2.3): start_step is compared with num_timesteps + offset."""
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, offset=0):
         super().__init__()
         self.cfg = cfg
+        self.offset = int(offset)
 
     def _set(self):
         rb = self.model.replay_buffer
-        rb.crash_factor = float(self.cfg.factor) if self.model.num_timesteps >= self.cfg.start_step else 1.
+        on = self.model.num_timesteps + self.offset >= self.cfg.start_step
+        rb.crash_factor = float(self.cfg.factor) if on else 1.
 
     def _on_training_start(self):
         rb = self.model.replay_buffer
@@ -171,14 +176,16 @@ class CrashEmphasisCallback(BaseCallback):
 class LrDecayCallback(BaseCallback):
     """TrainConfig.lr_decay: model.lr_scale = cfg.scale(num_timesteps) before every rollout step, so the
     next train() call (StagedSAC._update_learning_rate) uses it. Disabled: model.lr_scale = None (clears
-    a scale pickled with a checkpoint of a decaying run)."""
+    a scale pickled with a checkpoint of a decaying run). `offset` (lifetime_schedules, R6 §2.3): the schedule is read
+    at num_timesteps + offset."""
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, offset=0):
         super().__init__()
         self.cfg = cfg.check()
+        self.offset = int(offset)
 
     def _set(self):
-        self.model.lr_scale = self.cfg.scale(self.model.num_timesteps)
+        self.model.lr_scale = self.cfg.scale(self.model.num_timesteps + self.offset)
 
     def _on_training_start(self):
         self._set()

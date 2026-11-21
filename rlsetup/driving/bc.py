@@ -30,13 +30,19 @@ def _split(n_episodes, cfg):
     return np.sort(perm[n_val:]), np.sort(perm[:n_val])
 
 
-def pedal(a, pedal_deadzone=True):
-    """Action -> pedal in [0, 1] (demo_driver.action_to_inputs)."""
+def pedal(a, pedal_deadzone=True, throttle_remap=None):
+    """Action -> pedal in [0, 1] (demo_driver.action_to_inputs). `throttle_remap` (R6; pass it for throttle
+    actions only): demo_driver.throttle_pedal; None = the R3 map, unchanged."""
     a = np.asarray(a, dtype=float)
+    if throttle_remap is not None:
+        from .demo_driver import throttle_pedal
+        from .config import check_throttle_remap
+        check_throttle_remap(throttle_remap, pedal_deadzone)
+        return np.asarray(throttle_pedal(a, throttle_remap), dtype=float)
     return np.clip((a + .5) / 1.5, 0., 1.) if pedal_deadzone else (a + 1.) / 2.
 
 
-def train_bc(actor, demos, cfg, *, seed, slip_gain=5., pedal_deadzone=True, log=print):
+def train_bc(actor, demos, cfg, *, seed, slip_gain=5., pedal_deadzone=True, log=print, throttle_remap=None):
     """Fit `actor` (SB3 SAC Actor, modified in place to the best epoch) to `demos`
     (`demos.load_demos` dict). Returns a JSON-ready report."""
     t0 = time.perf_counter()
@@ -110,10 +116,10 @@ def train_bc(actor, demos, cfg, *, seed, slip_gain=5., pedal_deadzone=True, log=
             m = b == k
             row = {'slip_lo': float(edges[k]), 'slip_hi': float(edges[k + 1]), 'n': int(m.sum())}
             if m.any():
-                row['bc_throttle_pedal'] = float(pedal(pred[m, 1], pedal_deadzone).mean())
-                row['executed_throttle_pedal'] = float(pedal(executed[m, 1], pedal_deadzone).mean())
+                row['bc_throttle_pedal'] = float(pedal(pred[m, 1], pedal_deadzone, throttle_remap).mean())
+                row['executed_throttle_pedal'] = float(pedal(executed[m, 1], pedal_deadzone, throttle_remap).mean())
                 if 'actions_clean' in d:
-                    row['demo_throttle_pedal'] = float(pedal(d['actions_clean'][vi][m, 1], pedal_deadzone).mean())
+                    row['demo_throttle_pedal'] = float(pedal(d['actions_clean'][vi][m, 1], pedal_deadzone, throttle_remap).mean())
             rows.append(row)
         report['throttle_vs_rear_slip'] = rows
     return report

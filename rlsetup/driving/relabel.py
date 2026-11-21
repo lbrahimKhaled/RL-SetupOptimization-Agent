@@ -390,3 +390,66 @@ def relabel_speed_profile(rb, env_cfg_src, env_cfg_dst, table, grid, *, max_unre
     if terms_on:
         stats['sha256_bonuses'] = hashlib.sha256(np.ascontiguousarray(rb.bonuses[:n]).tobytes()).hexdigest()
     return stats, s_rec
+
+
+# --- R6 throttle relabel (docs/specs/R6_throttle_remap.md §2.1) -------------------------------------------------
+THROTTLE_RELABEL_TOL = 1e-6      # abort (init_mismatch) if max |pedal_new(v_new) - pedal_old(v)| exceeds this
+
+
+def relabel_throttle_values(v, src_remap, dst_remap):
+    """Throttle actions v (any shape) written under the source map -> the action with the same pedal under the
+    target map: v_new = throttle_action(throttle_pedal(v, src), dst), cast back to v's dtype. Values below both
+    knees (both maps are the same R3 expression there) are returned bitwise unchanged; so are all values when
+    src == dst. remap None = the R3 map (knee at +inf). Returns (v_new, changed mask)."""
+    from .demo_driver import throttle_action, throttle_pedal
+    v = np.asarray(v)
+    if src_remap is not None and dst_remap is not None and tuple(map(float, src_remap)) == tuple(map(float, dst_remap)):
+        return v.copy(), np.zeros(v.shape, bool)
+    knee = min(math.inf if r is None else float(r[0]) for r in (src_remap, dst_remap))
+    changed = v.astype(np.float64) > knee
+    out = v.copy()
+    if changed.any():
+        p = np.asarray(throttle_pedal(v[changed].astype(np.float64), src_remap), dtype=float)
+        # p > p_knee > 0 here, so the released branch of the inverse never applies
+        out[changed] = np.asarray(throttle_action(p, dst_remap), dtype=float).astype(v.dtype)
+    return out, changed
+
+
+def throttle_relabel_error(v_old, v_new, src_remap, dst_remap):
+    """max |pedal_dst(v_new) - pedal_src(v_old)| (float64 pedals of the stored values), 0 for empty input."""
+    from .demo_driver import throttle_pedal
+    if np.size(v_old) == 0:
+        return 0.
+    a = np.asarray(throttle_pedal(np.asarray(v_new, np.float64).ravel(), dst_remap), dtype=float)
+    b = np.asarray(throttle_pedal(np.asarray(v_old, np.float64).ravel(), src_remap), dtype=float)
+    return float(np.max(np.abs(a - b)))
+
+
+def relabel_throttle(rb, src_remap, dst_remap, obs_indices):
+    """R6: relabel every stored throttle ACTION of SB3 buffer `rb` (rows: all if rb.full else [:pos]) in place
+    from map src_remap to dst_remap (relabel_throttle_values): actions[..., 1] and the throttle slots
+    `obs_indices` (env.throttle_obs_indices) of observations and next_observations. Nothing else changes (rewards,
+    dones, timeouts, bonus, crash marks, warm-up mask, steering, brake). Returns JSON-ready stats: rows,
+    transitions, action_cells / obs_cells / next_obs_cells changed, max_abs_dpedal (over every changed cell),
+    tol, src / dst remap, obs_indices, aborted (max_abs_dpedal > tol; the buffer is then left untouched)."""
+    upper = rb.buffer_size if rb.full else rb.pos
+    idx = [int(i) for i in obs_indices]
+    arrays = [('action_cells', rb.actions, [1]), ('obs_cells', rb.observations, idx)]
+    if getattr(rb, 'next_observations', None) is not None:      # optimize_memory_usage keeps none
+        arrays.append(('next_obs_cells', rb.next_observations, idx))
+    stats = {'rows': int(upper), 'transitions': int(upper) * int(rb.n_envs), 'obs_indices': idx,
+             'src_remap': None if src_remap is None else [float(x) for x in src_remap],
+             'dst_remap': None if dst_remap is None else [float(x) for x in dst_remap], 'tol': THROTTLE_RELABEL_TOL}
+    new, err = {}, 0.
+    for key, arr, cols in arrays:
+        old = arr[:upper][..., cols]
+        v, changed = relabel_throttle_values(old, src_remap, dst_remap)
+        new[key] = v
+        stats[key] = int(changed.sum())
+        err = max(err, throttle_relabel_error(old[changed], v[changed], src_remap, dst_remap))
+    stats['max_abs_dpedal'] = err
+    stats['aborted'] = bool(err > THROTTLE_RELABEL_TOL)
+    if not stats['aborted']:
+        for key, arr, cols in arrays:
+            arr[:upper, ..., cols] = new[key]
+    return stats

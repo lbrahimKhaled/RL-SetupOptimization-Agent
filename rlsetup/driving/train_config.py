@@ -162,6 +162,19 @@ class WarmStartConfig:
     speed_relabel_max_unresolved: float = .001
     fallback_steps: int = 200_000
     probe_before_m: float = 150.
+    # R6 (docs/specs/R6_throttle_remap.md §2; omitted from config.json while all at their defaults):
+    # throttle_relabel: relabel every stored throttle action of the init buffer from the source map to
+    # env.throttle_remap (agent.preload_buffer); the warm-start env check then ignores throttle_remap.
+    # offline_critic_lr_scale: lr multiplier (model.lr_scale) of the offline critic phase only (None: the lifetime
+    # schedule's scale with TrainConfig.lifetime_schedules, else unscaled as before). Gate of that phase: on
+    # throttle_gate_batch relabelled rows (old throttle above the knee) mean |Q_min_new(s_new, a_new) -
+    # Q_min_src(s_old, a_old)| / mean |Q_min_src| (Q_src = the loaded critic) must be <= throttle_gate_tol after
+    # the last block and not higher than throttle_gate_blocks - 1 blocks earlier; else the run stops before learn().
+    throttle_relabel: bool = False
+    offline_critic_lr_scale: float | None = None
+    throttle_gate_batch: int = 4096
+    throttle_gate_tol: float = .01
+    throttle_gate_blocks: int = 5
 
 
 @dataclass(frozen=True)
@@ -272,6 +285,8 @@ R2_AGENT_KEYS = ('low_noise_envs', 'low_noise_std_scale')
 R3_WARM_KEYS = ('pre_exit_horizon', 'pre_exit_warn_q', 'pre_exit_warn_blocks')   # omitted like the R2 blocks
 R4_WARM_KEYS = ('speed_relabel', 'speed_relabel_max_unresolved', 'fallback_steps', 'probe_before_m')
 R4_EVAL_KEYS = ('full_throttle_pedal', 'brake_pedal')   # omitted (at defaults) unless an R4 term is on
+R6_WARM_KEYS = ('throttle_relabel', 'offline_critic_lr_scale', 'throttle_gate_batch', 'throttle_gate_tol',
+                'throttle_gate_blocks')                 # omitted while all at their defaults
 
 
 @dataclass(frozen=True)
@@ -291,6 +306,9 @@ class TrainConfig:
     focus_update: FocusUpdateConfig = field(default_factory=FocusUpdateConfig)         # R2 (focus)
     lr_decay: LrDecayConfig = field(default_factory=LrDecayConfig)     # omitted from config.json while off
     crash_emphasis: CrashEmphasisConfig = field(default_factory=CrashEmphasisConfig)   # omitted while off
+    lifetime_schedules: bool = False     # R6 §2.3: LrDecay / Retry / CrashEmphasis callbacks read num_timesteps +
+                                         # status lifetime_steps_offset (warm start: the source's lifetime steps),
+                                         # so a warm-started run continues the source's schedules. Omitted while off
     init_from: str | None = None        # model .zip for init_mode 'warm' (absolute; CLI --init-from);
                                          # its run folder (zip's parents[1]) must hold config.json
     strict_provenance: bool = True       # refuse a run / resume with uncommitted tracked rlsetup changes
@@ -350,6 +368,11 @@ class TrainConfig:
             del d['lr_decay']
         if self.crash_emphasis == CrashEmphasisConfig():
             del d['crash_emphasis']
+        if all(getattr(self.warm, k) == getattr(WarmStartConfig(), k) for k in R6_WARM_KEYS):
+            for k in R6_WARM_KEYS:
+                del d['warm'][k]
+        if not self.lifetime_schedules:
+            del d['lifetime_schedules']
         return d
 
     @property
@@ -640,6 +663,49 @@ def _bcn_f1_r5():
                    crash_emphasis=CrashEmphasisConfig(enabled=True, factor=3., horizon_s=2., start_step=500_000))
 
 
+BCN_F1_R5_RUN = 'runs/mac/D2/bcn_f1_r5/seed0'
+# R6 warm-start source (docs/specs/R6_throttle_remap.md §0, Ibrahim): the 7M checkpoint (= models/bcn_f1_r5_step7000k)
+# and the run's only replay buffer (saved at 10.35M). Absolute, like --init-from.
+BCN_F1_R6_INIT = str(Path(__file__).resolve().parents[2] / BCN_F1_R5_RUN / 'checkpoints' / 'step_7000000.zip')
+BCN_F1_R6_BUFFER = str(Path(__file__).resolve().parents[2] / BCN_F1_R5_RUN / 'replay_buffer.pkl')
+# R6 throttle remap (knee, a_sat) in action units: pedal 0.8 at the knee, 1.0 at 0.85 (spec §1.2)
+R6_THROTTLE_REMAP = (.70, .85)
+
+
+def _bcn_f1_r6():
+    """R6 top-end throttle remap (docs/specs/R6_throttle_remap.md + architect review, 20 Nov 2026; offline critic lr
+    3e-5 decided by Ibrahim): bcn_f1_r5 with only the throttle map changed, env.throttle_remap = (0.70, 0.85) (R3
+    map up to 0.70, then pedal 1.0 at a = 0.85), warm-started from bcn_f1_r5 step_7000000.zip with its replay
+    buffer (10.35M) relabelled exactly to the new map (warm.throttle_relabel). No offline critic phase (Ibrahim,
+    21 Nov 2026, after the smoke's gate failed at 3e-5: 0.0006 -> 0.0193 in 5k steps, judged lr drift on a fixed
+    buffer); the throttle gate (<= 1 %) is checked once on the loaded critic before learn(). Then 100k env steps of
+    online critic phase at the schedule's lr (scale 0.01, critic 3e-6; actor + alpha frozen), then the unfreeze with actor lr 1e-4 (inherited) x the lr schedule. lifetime_schedules: the lr decay,
+    retries and crash emphasis read num_timesteps + 7M, so lr scale 0.01 and retries / crash emphasis from step 0,
+    as R5 at 7M. 4M steps, no plateau stop; reward, corner terms (never fade -> best_aided.zip), apex split, line,
+    setup, alpha, gamma, n-step, batch, UTD, guard 0.4 unchanged. Run name: bcn_f1_r6 (runs/mac/D2)."""
+    c = _bcn_f1_r5()
+    return replace(c, preset='bcn_f1_r6', total_timesteps=4_000_000, max_wall_h=None, init_from=BCN_F1_R6_INIT,
+                   lifetime_schedules=True,
+                   env=replace(c.env, throttle_remap=R6_THROTTLE_REMAP),
+                   agent=replace(c.agent, init_mode='warm'),
+                   warm=replace(c.warm, init_buffer=BCN_F1_R6_BUFFER, relabel=False, speed_relabel=False,
+                                throttle_relabel=True, offline_critic_grad_steps=0, offline_critic_lr_scale=None,
+                                critic_warmup_steps=100_000),
+                   stop=replace(c.stop, plateau=False))
+
+
+def _bcn_f1_r6_smoke():
+    """bcn_f1_r6 compressed to 150k env steps (spec §4): no offline critic phase (as bcn_f1_r6; gate checked once),
+    online critic phase 20k, then 130k RL; eval every 25k with 3 stochastic laps, probe every 5k, checkpoints every
+    25k, dirty tree allowed; max_wall_h 1 is only a safety cap (the step count ends it)."""
+    c = _bcn_f1_r6()
+    return replace(c, preset='bcn_f1_r6_smoke', total_timesteps=150_000, max_wall_h=1., checkpoint_interval=25_000,
+                   strict_provenance=False,
+                   warm=replace(c.warm, critic_warmup_steps=20_000),
+                   eval=replace(c.eval, interval=25_000, stochastic_laps=3),
+                   guard=replace(c.guard, interval=5_000))
+
+
 def _f1_r2_smoke():
     """f1_r2 compressed to 150k env steps (R2-9.2): w = 1 until 60k, fade to 0 at 120k,
     reportable from 150k (gap 30k); eval every 25k with 3 stochastic laps, probe every 5k,
@@ -656,7 +722,7 @@ def _f1_r2_smoke():
 
 PRESETS = {'full': lambda: TrainConfig(preset='full'), 'smoke': _smoke, 'r1_warm': _r1_warm,
            'r1_warm_smoke': _r1_warm_smoke, 'p1_TUM': _p1_tum,
-           'p0_TUMref': _p0_tumref, 'bcn': _bcn, 'bcn_f1_r4': _bcn_f1_r4, 'bcn_f1_r4_w4': _bcn_f1_r4_w4, 'bcn_f1_r4_retry': _bcn_f1_r4_retry, 'bcn_f1_r5': _bcn_f1_r5, 'f1_sha': _f1_sha, 'f1_sha_w35': _f1_sha_w35,
+           'p0_TUMref': _p0_tumref, 'bcn': _bcn, 'bcn_f1_r4': _bcn_f1_r4, 'bcn_f1_r4_w4': _bcn_f1_r4_w4, 'bcn_f1_r4_retry': _bcn_f1_r4_retry, 'bcn_f1_r5': _bcn_f1_r5, 'bcn_f1_r6': _bcn_f1_r6, 'bcn_f1_r6_smoke': _bcn_f1_r6_smoke, 'f1_sha': _f1_sha, 'f1_sha_w35': _f1_sha_w35,
            'f1_best_w35': _f1_best_w35, 'f1_r2': _f1_r2, 'f1_r2_smoke': _f1_r2_smoke, 'f1_r3': _f1_r3,
            'f1_r4': _f1_r4, 'f1_r4_scratch': _f1_r4_scratch}
 

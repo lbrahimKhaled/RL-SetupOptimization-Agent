@@ -23,7 +23,12 @@ RewardConfig.mode selects the reward:
 action       [steering, throttle, brake] in [-1, 1]^3, absolute (clipped to it); steering * the car's
              lock `steer_max_rad` (demo_driver.steer_lock_rad: 0.6 rad = ocd_lap.env.MAX_STEER_RAD
              for every car before sf70h_f1, 0.30 rad for sf70h_f1), + = left;
-             pedals per `EnvConfig.pedal_deadzone` (see demo_driver.action_to_inputs). Each action
+             pedals per `EnvConfig.pedal_deadzone` (see demo_driver.action_to_inputs) and, for the
+             throttle, `EnvConfig.throttle_remap` (R6, docs/specs/R6_throttle_remap.md: R3 map up to the
+             knee k, then pedal 1 at a = s; the settle driver uses the same map). Under the remap the legacy
+             smoothness (du on raw actions) and therefore the legacy lap `cost` / `smoothness` are not
+             comparable with runs without it; `cost_r1` (= time) is, and the time_pbrs reward never
+             contains du (the remap is refused with ref_tracking). Each action
              is held for `action_repeat` base ticks (default 2 -> 25 Hz decisions); the decision's
              reward is the sum of the base-tick rewards; it stops early if a tick ends the episode.
 progress     Track.path arc length (driver-independent; the same for every xi_ref). e and the
@@ -137,6 +142,16 @@ def _zero_costs():
     return dict.fromkeys(COST_KEYS, 0.)
 
 
+def throttle_obs_indices(cfg):
+    """Observation indices that hold a throttle ACTION (R6 relabel, docs/specs/R6_throttle_remap.md §2.1): the last
+    action's throttle and the throttle of each of the history - 1 stacked (ego, last action) entries, for
+    EnvConfig `cfg` (n_preview, history, obs_gear). bcn_f1_r5 (obs 159): [133, 145, 157]."""
+    o = cfg.obs
+    last = EGO_SIZE + 3 + 6 * o.n_preview                     # last action block
+    hist = last + 3 + int(cfg.obs_gear)                       # first history entry
+    return [last + 1] + [hist + j * (EGO_SIZE + 3) + EGO_SIZE + 1 for j in range(o.history - 1)]
+
+
 def post_apex_weight(table, s, k, blend_m, split_m=None):
     """R5 apex split (docs/specs/R5_apex_split.md §2): weight of the 'after the apex' terms at s in window k
     of CornerTable `table`, d = ((s - b_k) mod L) - ((A_k - b_k) mod L), w = clip((d + blend_m / 2) / blend_m,
@@ -194,7 +209,7 @@ class DrivingEnv(OCDRacingEnv):
         # position self.s).
         self.drive_line = ReferenceLine.from_track_path(self.track) if cfg.reference == 'raceline' else self.ref
         self.settle_driver = DemoDriver(self.drive_line, cfg.demo, pedal_deadzone=cfg.pedal_deadzone,
-                                        control_dt_s=self.decision_dt, car=cfg.car)
+                                        control_dt_s=self.decision_dt, car=cfg.car, throttle_remap=cfg.throttle_remap)
         o = cfg.obs
         k = np.arange(1, o.n_preview + 1)
         self.preview_d = o.preview_horizon_m * (k / o.n_preview) ** o.preview_exponent
@@ -256,7 +271,7 @@ class DrivingEnv(OCDRacingEnv):
     # --- actions ------------------------------------------------------------------------------
     def to_inputs(self, action):
         return action_to_inputs(self._validate_action(action).astype(float), self.cfg.pedal_deadzone,
-                                self.steer_max_rad)
+                                self.steer_max_rad, self.cfg.throttle_remap)
 
     # --- geometry -------------------------------------------------------------------------------
     @property

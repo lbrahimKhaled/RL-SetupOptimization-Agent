@@ -28,7 +28,7 @@ def test_invalid_schedules_are_refused_at_run_start(kw):
 
 def test_off_is_omitted_from_config_json_and_on_round_trips():
     for name, make in PRESETS.items():
-        assert ('"lr_decay"' in config_json(make())) == (name in ('bcn_f1_r4_retry', 'bcn_f1_r5')), name   # the only ones with it on
+        assert ('"lr_decay"' in config_json(make())) == (name in ('bcn_f1_r4_retry', 'bcn_f1_r5', 'bcn_f1_r6', 'bcn_f1_r6_smoke')), name   # the only ones with it on
     c = apply_overrides(PRESETS['bcn_f1_r4'](), ['lr_decay.enabled=True', 'lr_decay.start_step=7800000',
                                                  'lr_decay.end_step=9800000', 'lr_decay.floor=0.1'])
     j = json.loads(config_json(c))

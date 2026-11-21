@@ -84,6 +84,13 @@ R4 from scratch (preset f1_r4_scratch, init_mode 'bc'): the demo rewards hold th
 demo dataset stores the entry / exit terms (demos.py) and the prefill writes them to the bonus buffer;
 w(0) is set before the offline warm-up and its Q vs soft MC uses r + w b. Nothing is relabelled.
 init_mode 'bc' honours warm.actor_lr from the unfreeze on (PhaseCallback; warm.actor_lr None: unchanged).
+R6 (docs/specs/R6_throttle_remap.md; presets bcn_f1_r6, bcn_f1_r6_smoke): env.throttle_remap; warm.throttle_relabel
+relabels the init buffer's throttle actions exactly (agent.preload_buffer; stats in status.json / provenance.json
+init_buffer.throttle_relabel; > 1e-6 pedal error -> init_mismatch); the offline critic phase runs at
+warm.offline_critic_lr_scale and logs 'throttle_gate' per block (warmup.jsonl); a failed gate (status
+throttle_gate) stops the run before learn() (state 'throttle_gate_failed', exit 2). With 0 offline grad steps
+(bcn_f1_r6 since 21 Nov) only the pre-training gate value on the loaded critic is checked and no lr override applies. TrainConfig.lifetime_schedules:
+the lr decay, retry and crash-emphasis callbacks read num_timesteps + status lifetime_steps_offset.
 """
 from dataclasses import replace
 from pathlib import Path
@@ -255,6 +262,22 @@ class Run:
                                       f"evaluation after the critic-only phase (critic_not_converged)")
 
 
+def schedule_offset(cfg, status):
+    """Step offset of the lr decay / retry / crash-emphasis schedules (R6 §2.3): status.json lifetime_steps_offset
+    (set by a warm start) when cfg.lifetime_schedules, else 0 (the run's own num_timesteps, as before)."""
+    if not cfg.lifetime_schedules:
+        return 0
+    return int((status or {}).get('lifetime_steps_offset') or 0)
+
+
+def offline_lr_scale(cfg, offset):
+    """model.lr_scale of the offline critic phase (R6 §2.2): warm.offline_critic_lr_scale if set, else with
+    lifetime_schedules the lr decay's scale at the lifetime step `offset`, else None (unscaled, as before)."""
+    if cfg.warm.offline_critic_lr_scale is not None:
+        return float(cfg.warm.offline_critic_lr_scale)
+    return cfg.lr_decay.scale(offset) if cfg.lifetime_schedules else None
+
+
 def _callbacks(run, model, envs, starts, baseline, *, unfreeze_at, guard_start=None, rollbacks=0,
                best_lap2=float('inf'), last_det_clean=None, wall0=(0., 0.), t0=None, buffer_saved_step=None,
                critic_check_at=None, critic_check_done=False, plateau_history=(), best_aided_lap2=float('inf'),
@@ -294,13 +317,14 @@ def _callbacks(run, model, envs, starts, baseline, *, unfreeze_at, guard_start=N
     if cfg.env.r4:
         extras.append(lambda m, n: {'train_r4': stats.eval_r4()})
     from .callbacks import CrashEmphasisCallback, LrDecayCallback, RetryCallback
-    lrd = LrDecayCallback(cfg.lr_decay)        # always: also clears a stale scale when off
+    offset = schedule_offset(cfg, run.status())          # R6 lifetime_schedules (0 otherwise)
+    lrd = LrDecayCallback(cfg.lr_decay, offset)        # always: also clears a stale scale when off
     if cfg.lr_decay.enabled:
         extras.append(lambda m, n: {'lr_scale': m.lr_scale})
-    retry = RetryCallback(cfg.env.retry.start_step) if cfg.env.retry.enabled else None
+    retry = RetryCallback(cfg.env.retry.start_step, offset) if cfg.env.retry.enabled else None
     if retry:
         extras.append(retry.eval_extra)
-    crash = CrashEmphasisCallback(cfg.crash_emphasis) if cfg.crash_emphasis.enabled else None
+    crash = CrashEmphasisCallback(cfg.crash_emphasis, offset) if cfg.crash_emphasis.enabled else None
     if crash:
         extras.append(crash.eval_extra)
     guard = CollapseGuard(lambda m: probe(m, envs['probe'], starts).mean_progress_m, baseline, cfg.guard,
@@ -419,7 +443,27 @@ def _offline_warmup(run, model, demos, val_episodes):
     return rows, summary
 
 
-def _offline_critic(run, model, s_rec=None, table=None):
+def throttle_gate_value(q_new, q_src):
+    """R6 gate: mean |q_new - q_src| / mean |q_src| (NaN for an empty batch or mean |q_src| = 0)."""
+    q_new, q_src = np.asarray(q_new, float), np.asarray(q_src, float)
+    den = float(np.mean(np.abs(q_src))) if q_src.size else 0.
+    return float(np.mean(np.abs(q_new - q_src)) / den) if den > 0. else float('nan')
+
+
+def throttle_gate_passed(values, tol, blocks):
+    """(passed, reason) of the R6 gate over the per-block values: the last value <= tol and not above the value
+    blocks - 1 blocks earlier (not rising over the last `blocks` blocks; with fewer blocks: vs the first)."""
+    if not values or not all(np.isfinite(values)):
+        return False, 'no finite gate value'
+    last, ref = values[-1], values[-min(blocks, len(values))]
+    if last > tol:
+        return False, f'gate {last:.4f} > tol {tol:g}'
+    if last > ref:
+        return False, f'gate rising over the last {min(blocks, len(values))} blocks ({ref:.4f} -> {last:.4f})'
+    return True, f'gate {last:.4f} <= tol {tol:g}, not rising'
+
+
+def _offline_critic(run, model, s_rec=None, table=None, gate=None, gate_log=None):
     """Amendment 1 §B step 4: actor + alpha frozen, cfg.warm.offline_critic_grad_steps critic
     grad steps on the preloaded buffer in blocks of cfg.warm.offline_block; per block the critic
     loss and mean Q_min on a fixed batch of buffer rows (warmup.q_probe_batch) -> warmup.jsonl.
@@ -430,6 +474,9 @@ def _offline_critic(run, model, s_rec=None, table=None):
     R4 (`s_rec` = recovered Track.path s of the stored rows, `table` = corner table): instead, fixed
     batches of rows <= warm.probe_before_m before an entry ('mean_q_pre_entry') and before an exit
     ('mean_q_pre_exit') (buffers.pre_point_cells), same warning rule for each.
+    R6 `gate` = (obs_new, act_new, q_src): per block 'throttle_gate' = throttle_gate_value(Q_min(obs_new,
+    act_new), q_src) (also once before the first block, grad_steps 0); every value is also appended to the list
+    `gate_log` if given. offline_critic_grad_steps = 0: only the probes and the pre-training gate row.
     Returns the warmup.jsonl block records."""
     from ..runs import append_jsonl
     from .buffers import BonusNStepReplayBuffer, pre_exit_cells, pre_point_cells
@@ -457,6 +504,13 @@ def _offline_critic(run, model, s_rec=None, table=None):
         add_probe('mean_q_pre_exit', *pre_exit_cells(rb, w.pre_exit_horizon), cfg.seed + 1,
                   f'with a bonus within {w.pre_exit_horizon} decisions')
     out = []
+    if gate is not None:
+        g0 = throttle_gate_value(q_values(model.critic, gate[0], gate[1])[0], gate[2])
+        append_jsonl(run.dir / 'warmup.jsonl', {'block': None, 'grad_steps': 0, 'throttle_gate': g0,
+                                                'throttle_gate_rows': int(len(gate[2]))})
+        run.log(f'throttle gate before the offline critic phase: {g0:.4f} on {len(gate[2])} rows')
+        if gate_log is not None:
+            gate_log.append(g0)
     done, b = 0, 0
     while done < w.offline_critic_grad_steps:
         k = min(w.offline_block, w.offline_critic_grad_steps - done)
@@ -469,6 +523,11 @@ def _offline_critic(run, model, s_rec=None, table=None):
         for key, batch in probes.items():
             rec[key] = float(q_values(model.critic, *batch)[0].mean())
             model.logger.record(f'warmup/{key}', rec[key])
+        if gate is not None:
+            rec['throttle_gate'] = throttle_gate_value(q_values(model.critic, gate[0], gate[1])[0], gate[2])
+            model.logger.record('warmup/throttle_gate', rec['throttle_gate'])
+            if gate_log is not None:
+                gate_log.append(rec['throttle_gate'])
         append_jsonl(run.dir / 'warmup.jsonl', rec)
         out.append(rec)
         model.logger.record('warmup/critic_loss', rec['critic_loss'])
@@ -476,7 +535,8 @@ def _offline_critic(run, model, s_rec=None, table=None):
         model.logger.dump(step=b)
         run.log(f"offline critic block {b}: {done} grad steps, critic loss {rec['critic_loss']:.3f}, "
                 f"mean Q {rec['mean_q_fixed_batch']:.1f}"
-                + ''.join(f", {key[7:].replace('_', '-')} mean Q {rec[key]:.2f}" for key in probes))
+                + ''.join(f", {key[7:].replace('_', '-')} mean Q {rec[key]:.2f}" for key in probes)
+                + (f", throttle gate {rec['throttle_gate']:.4f}" if gate is not None else ''))
         b += 1
     for key in probes:
         if len(out) < w.pre_exit_warn_blocks:
@@ -594,7 +654,7 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
             t = time.time()
             model.actor.cpu()   # BC and its report are CPU code; the actor goes back to the GPU below
             report = train_bc(model.actor, demos, cfg.bc, seed=cfg.seed, slip_gain=cfg.env.obs.slip_gain,
-                              pedal_deadzone=cfg.env.pedal_deadzone, log=log)
+                              pedal_deadzone=cfg.env.pedal_deadzone, log=log, throttle_remap=cfg.env.throttle_remap)
             model.actor.to(model.device)
             th.save(model.actor.state_dict(), run_dir / 'bc' / 'actor_bc.pt')
             det = flying_lap(model, envs['eval_det'], deterministic=True, seed=cfg.eval.seed)
@@ -664,11 +724,14 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
                                                       'lifetime_steps_offset')}
             prov['init_buffer'] = {k: buf.get(k) for k in ('path', 'sha256', 'transitions', 'bonus_relabel',
                                                            'speed_relabel')}
+            if buf.get('throttle_relabel') is not None:      # R6; key absent otherwise (provenance unchanged)
+                prov['init_buffer']['throttle_relabel'] = buf['throttle_relabel']
             write_json(run_dir / 'provenance.json', prov)
             log(f"warm start from {init['path']} (step {init['src_num_timesteps']}, alpha {init['src_alpha']:.4f}); "
                 f"actor {init['actor_sha256'][:12]}, log alpha {init['log_ent_coef_sha256'][:12]}; optimizers "
                 f"{'loaded' if cfg.warm.load_optimizers else 'fresh'}; buffer {buf['transitions']} transitions "
-                f"({time.time() - t:.1f} s), relabel {buf['relabel']}, bonus relabel {buf['bonus_relabel']}; "
+                f"({time.time() - t:.1f} s), relabel {buf['relabel']}, bonus relabel {buf['bonus_relabel']}, "
+                f"throttle relabel {buf.get('throttle_relabel')}; "
                 f"lifetime offset {init['src_lifetime_steps_offset']} + {init['src_num_timesteps']} = "
                 f"{init['lifetime_steps_offset']}")
             pr = probe(model, envs['probe'], starts)
@@ -686,12 +749,8 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
                               f'(> {cfg.warm.speed_relabel_max_unresolved:.4%}): fresh buffer, {cfg.warm.fallback_steps} '
                               f'frozen-actor transitions before the offline critic phase')
             else:
-                run.status(phase='offline_warmup')
-                t = time.time()
-                _set_bonus_w0(cfg, model)
-                _offline_critic(run, model, aux.get('s'), table)
-                record_phase(run_dir, 'offline_warmup', wall_s=time.time() - t, env_steps=0,
-                             grad_steps=int(model._n_updates))
+                if warm_offline_phase(run, model, cfg, init['lifetime_steps_offset'], aux, table) is not None:
+                    return EXIT_GATE                        # R6 throttle gate failed: stop before learn()
                 unfreeze_at = critic_check_at = cfg.warm.critic_warmup_steps
             aux.clear()
         else:
@@ -721,6 +780,52 @@ def run_pipeline(cfg, run_name, *, allow_dirty=False, argv=None):
             vec.close()
         sys.stdout, sys.stderr = old_out, old_err
         logf.close()
+
+
+def warm_offline_phase(run, model, cfg, lifetime_offset, aux, table):
+    """init_mode 'warm' after the preload: the offline critic phase (cfg.warm.offline_critic_grad_steps; 0 = none,
+    the critic and its lr untouched) and, for an R6 throttle relabel, the throttle gate: its value on the loaded
+    critic before any grad step and after every block (warmup.jsonl), judged by throttle_gate_passed (with 0 offline
+    steps: the single pre-training value against the tol). The R6 lr override (offline_lr_scale) is applied only
+    when there are offline steps; LrDecayCallback sets the schedule's scale when learn() starts. Returns None to
+    continue, or a reason string when the gate failed (status state 'throttle_gate_failed')."""
+    from ..runs import record_phase
+    steps = int(cfg.warm.offline_critic_grad_steps)
+    run.status(phase='offline_warmup')
+    t = time.time()
+    _set_bonus_w0(cfg, model)
+    gate = _throttle_gate_batch(model, (aux or {}).get('throttle_probe'))   # R6 (None otherwise)
+    scale = offline_lr_scale(cfg, lifetime_offset) if steps > 0 else None
+    if scale is not None:                       # R6 §2.2: this phase only; LrDecayCallback sets it next
+        model.lr_scale = scale
+        run.log(f'offline critic phase lr scale {scale:g} (critic lr {cfg.agent.learning_rate * scale:g})')
+    gate_log = []
+    _offline_critic(run, model, (aux or {}).get('s'), table, gate=gate, gate_log=gate_log)
+    record_phase(run.dir, 'offline_warmup', wall_s=time.time() - t, env_steps=0,
+                 grad_steps=int(model._n_updates), **({'lr_scale': scale} if scale is not None else {}))
+    if gate is None:
+        return None
+    ok, why = throttle_gate_passed(gate_log, cfg.warm.throttle_gate_tol, cfg.warm.throttle_gate_blocks)
+    run.status(throttle_gate={'passed': ok, 'reason': why, 'last': gate_log[-1] if gate_log else None,
+                              'values': gate_log, 'offline_grad_steps': steps, 'tol': cfg.warm.throttle_gate_tol,
+                              'rows': int(len(gate[2]))})
+    run.log(f'throttle gate: {why}')
+    if ok:
+        return None
+    run.status(state='throttle_gate_failed', stop_reason=f'throttle gate: {why}')    # spec §2.2: stop, report
+    return why
+
+
+def _throttle_gate_batch(model, probe):
+    """R6 gate batch (obs_new, act_new, q_src) from agent.preload_buffer's aux['throttle_probe'] = (rows, cols,
+    obs_old, act_old): q_src = Q_min of the loaded (source) critic on the original rows, obs / actions new = the
+    relabelled buffer at the same cells. None without a probe or with an empty one."""
+    if probe is None or len(probe[0]) == 0:
+        return None
+    from .evaluate import q_values
+    r, c, obs_old, act_old = probe
+    rb = model.replay_buffer
+    return rb.observations[r, c].copy(), rb.actions[r, c].copy(), q_values(model.critic, obs_old, act_old)[0]
 
 
 def _fallback_offline(run, model, cfg):

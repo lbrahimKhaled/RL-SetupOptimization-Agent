@@ -46,6 +46,14 @@ Conventions
     shaping_e_sum, front_lock_fraction, straights {S<k>: (exit of U<k> -> entry of U<k+1>) mean_g,
     full_throttle_share (throttle pedal >= EvalConfig.full_throttle_pedal), brake_share, top_speed}};
     sto_corners passes count exits only.
+  - R6 (docs/specs/R6_throttle_remap.md §3; every run with lap2_r4): pedals use the run's throttle map
+    (EnvConfig.throttle_remap); per straight also full_throttle_share_99 (throttle pedal >= 0.99), time_s (time
+    spent on the straight: from the end of the decision before its first decision on the straight to the end of
+    its last one, summed over the lap's runs on it), qss_time_s (integral of ds / v_qss over the same Track.path
+    span, corner-table speed, 1 m midpoint rule) and time_lost_s = time_s - qss_time_s; lap2_r4 adds
+    straights_time_s / straights_qss_time_s / straights_time_lost_s (sums) and throttle_action_share_above_sat
+    (share of the lap's decisions with throttle ACTION > throttle_sat_action = the remap's a_sat, 0.85 without
+    a remap).
 """
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -394,21 +402,63 @@ def _in_span(s, a, b, length):
     return (np.asarray(s, dtype=float) - a) % length <= (b - a) % length
 
 
-def _pedals(actions, pedal_deadzone):
-    """(throttle, brake) pedals in [0, 1] of env actions (demo_driver.action_to_inputs)."""
+def _pedals(actions, pedal_deadzone, throttle_remap=None):
+    """(throttle, brake) pedals in [0, 1] of env actions (demo_driver.action_to_inputs); `throttle_remap` (R6)
+    maps the throttle with demo_driver.throttle_pedal, None = the R3 map below, unchanged."""
     a = np.asarray(actions, dtype=float).reshape(-1, 3)
+    if throttle_remap is not None:
+        from .config import check_throttle_remap
+        from .demo_driver import throttle_pedal
+        check_throttle_remap(throttle_remap, pedal_deadzone)
+        return np.asarray(throttle_pedal(a[:, 1], throttle_remap), dtype=float), np.clip((a[:, 2] + .5) / 1.5, 0., 1.)
     if pedal_deadzone:
         return np.clip((a[:, 1] + .5) / 1.5, 0., 1.), np.clip((a[:, 2] + .5) / 1.5, 0., 1.)
     return (a[:, 1] + 1.) / 2., (a[:, 2] + 1.) / 2.
 
 
-def lap_r4(rep, table, cfg, *, pedal_deadzone, lap=2, entry_exit=True):
-    """R4 metrics of lap `lap` (module docstring): (per-unit dict, lap dict)."""
+FULL_THROTTLE_99 = .99           # R6: full_throttle_share_99 threshold (throttle pedal)
+DEFAULT_SAT_ACTION = .85         # R6: throttle action threshold of throttle_action_share_above_sat without a remap
+
+
+def span_qss_time(table, s0, s1, step_m=1.):
+    """Integral of ds / v_qss(s) [s] along Track.path from s0 forward to s1 (wraps), corner-table speed, midpoint
+    rule on <= step_m sub-intervals."""
+    L = float(table.length)
+    d = (float(s1) - float(s0)) % L
+    if d <= 0.:
+        return 0.
+    n = max(1, int(math.ceil(d / step_m)))
+    h = d / n
+    mid = float(s0) + h * (np.arange(n) + .5)
+    return float(np.sum(h / np.asarray(table.speed(mid), dtype=float)))
+
+
+def straight_times(tr, lap_mask, span, table):
+    """(time_s, qss_time_s) on the straight `span` = in-span mask over the lap's decisions (module docstring): per
+    contiguous run of in-span decisions j0..j1 (trace indices), time t[j1] - t[j0 - 1] and the QSS time over
+    s[j0 - 1] -> s[j1]; summed over runs. Decision 0 of the trace has no predecessor: it starts at its own end
+    (counted from there). (None, None) without in-span decisions."""
+    idx = np.flatnonzero(lap_mask)[span]
+    if idx.size == 0:
+        return None, None
+    t, s = tr['time_s'], tr['s']
+    runs = np.split(idx, np.flatnonzero(np.diff(idx) > 1) + 1)
+    time_s = qss_s = 0.
+    for r in runs:
+        a, b = (r[0] - 1 if r[0] > 0 else r[0]), r[-1]
+        time_s += float(t[b] - t[a])
+        qss_s += span_qss_time(table, s[a], s[b])
+    return time_s, qss_s
+
+
+def lap_r4(rep, table, cfg, *, pedal_deadzone, lap=2, entry_exit=True, throttle_remap=None):
+    """R4 metrics of lap `lap` (module docstring): (per-unit dict, lap dict). `throttle_remap`: the run's
+    EnvConfig.throttle_remap (R6), so pedal metrics read the executed pedals."""
     tr = rep.trace
     L = float(table.length)
     m = tr['lap_index'] == lap
     s, v = tr['s'][m], tr['speed'][m]
-    thr, brk = _pedals(tr['actions'][m], pedal_deadzone)
+    thr, brk = _pedals(tr['actions'][m], pedal_deadzone, throttle_remap)
     order = np.arange(int(m.sum()))
     units = {}
     sums = {'entry_sum': 0., 'exit_sum': 0., 'taken_back': 0.}
@@ -442,16 +492,28 @@ def lap_r4(rep, table, cfg, *, pedal_deadzone, lap=2, entry_exit=True):
             d.update({f'rho_{io}': ev['rho'], f'g_{io}': ev['g'], f'kind_{io}': ev['kind'], f'bonus_{io}': ev['bonus']})
             sums['entry_sum' if io == 'in' else 'exit_sum'] += ev['bonus']
     straights = {}
+    tot = {'time_s': 0., 'qss_time_s': 0.}
     for k, u in enumerate(table.units):
         nxt = table.units[(k + 1) % K]
         sm = _in_span(s, u['exit_m'], nxt['start_m'], L)
         g = tr['g_v'][m][sm] if 'g_v' in tr else np.zeros(0)
+        t_s, q_s = straight_times(tr, m, sm, table)
         straights[f'S{k + 1}'] = {
             'mean_g': float(np.nanmean(g)) if g.size else None,
             'full_throttle_share': float(np.mean(thr[sm] >= cfg.full_throttle_pedal)) if sm.any() else None,
+            'full_throttle_share_99': float(np.mean(thr[sm] >= FULL_THROTTLE_99)) if sm.any() else None,
             'brake_share': float(np.mean(brk[sm] >= cfg.brake_pedal)) if sm.any() else None,
-            'top_speed': float(np.nanmax(v[sm])) if sm.any() else None}
+            'top_speed': float(np.nanmax(v[sm])) if sm.any() else None,
+            'time_s': t_s, 'qss_time_s': q_s, 'time_lost_s': None if t_s is None else t_s - q_s}
+        if t_s is not None:
+            tot['time_s'] += t_s
+            tot['qss_time_s'] += q_s
+    sat = DEFAULT_SAT_ACTION if throttle_remap is None else float(throttle_remap[1])
+    a_thr = np.asarray(tr['actions'][m], dtype=float).reshape(-1, 3)[:, 1]
     out = dict(sums, terms_sum=sums['entry_sum'] + sums['exit_sum'] - sums['taken_back'],
+               straights_time_s=tot['time_s'], straights_qss_time_s=tot['qss_time_s'],
+               straights_time_lost_s=tot['time_s'] - tot['qss_time_s'], throttle_sat_action=sat,
+               throttle_action_share_above_sat=float(np.mean(a_thr > sat)) if a_thr.size else None,
                mean_g=float(np.nanmean(tr['g_v'][m])) if 'g_v' in tr and m.any() else None,
                shaping_v_sum=float(np.sum(tr['shaping_v'][m])) if 'shaping_v' in tr else None,
                **({'line_penalty_sum': float(np.sum(tr['line_penalty'][m]))} if 'line_penalty' in tr else {}),
@@ -485,7 +547,7 @@ def evaluate_model(model, envs, cfg, *, laps_path=None):
     r4 = env_cfg is not None and env_cfg.r4 and getattr(det_env, 'corners', None) is not None
     if r4:
         units, lap = lap_r4(det, det_env.corners, cfg, pedal_deadzone=env_cfg.pedal_deadzone,
-                            entry_exit=env_cfg.entry_exit_on)
+                            entry_exit=env_cfg.entry_exit_on, throttle_remap=getattr(env_cfg, 'throttle_remap', None))
         out.update(lap2_entry_exit=units, lap2_r4=lap)
     if table is not None:
         if env_cfg is not None and env_cfg.entry_exit_on:

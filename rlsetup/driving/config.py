@@ -263,6 +263,20 @@ class RetryConfig:
             raise ValueError(f'invalid retry config {self}')
 
 
+def check_throttle_remap(remap, pedal_deadzone=True):
+    """(k, s) as floats if `remap` is a valid R6 throttle remap (docs/specs/R6_throttle_remap.md §1.1): two finite
+    numbers with -0.5 < k < s <= 1, used with the pedal deadzone. ValueError otherwise."""
+    try:
+        k, s = (float(x) for x in remap)
+    except (TypeError, ValueError):
+        raise ValueError(f'throttle_remap must be (knee, a_sat), got {remap!r}') from None
+    if not (math.isfinite(k) and math.isfinite(s) and -.5 < k < s <= 1.):
+        raise ValueError(f'throttle_remap needs -0.5 < knee < a_sat <= 1, got {remap!r}')
+    if not pedal_deadzone:
+        raise ValueError('throttle_remap needs pedal_deadzone=True')
+    return k, s
+
+
 TRAINING_AID_KEYS = ('corner_bonus', 'focus')   # EnvConfig blocks that are not part of the driver definition
 
 
@@ -283,6 +297,10 @@ class EnvConfig:
                                          # line and the QSS profile stay on Track.path either way
     action_repeat: int = 2               # 2 x 50 Hz base ticks -> 25 Hz decisions (R2.3)
     pedal_deadzone: bool = True          # R3, pending Ibrahim: pedal = clip((a + .5) / 1.5, 0, 1)
+    throttle_remap: tuple | None = None  # R6 (docs/specs/R6_throttle_remap.md §1): (knee k, a_sat s) in action
+                                         # units; throttle pedal = the R3 map up to k, then linear to 1 at s
+                                         # (demo_driver.throttle_pedal). None = the R3 map (omitted from to_dict).
+                                         # Needs pedal_deadzone, -0.5 < k < s <= 1, reward mode time_pbrs
     obs_gear: bool = False               # R4.3, pending Ibrahim: add gear / 8 to the observation
     max_episode_s: float = 60.           # training truncation after hand-over. PLACEHOLDER
     settle_s: float = 2.                 # settle phase before hand-over (R5); 0 = no settle
@@ -304,6 +322,13 @@ class EnvConfig:
     corner_bonus: CornerBonusConfig = field(default_factory=CornerBonusConfig)   # R2 training aid
     focus: FocusConfig = field(default_factory=FocusConfig)                      # R2 training aid
     retry: RetryConfig = field(default_factory=RetryConfig)    # crash retries; omitted from to_dict while off
+
+    def __post_init__(self):
+        if self.throttle_remap is not None:
+            check_throttle_remap(self.throttle_remap, self.pedal_deadzone)
+            if self.reward.mode == 'ref_tracking':
+                # reward (1) charges du on raw actions: the remap would change the reward (R6 §1.3)
+                raise ValueError("throttle_remap needs reward mode 'time_pbrs' (ref_tracking charges raw action rates)")
 
     @property
     def speed_on(self):
@@ -350,4 +375,6 @@ class EnvConfig:
                 del d['corner_bonus'][k]
         if self.retry == RetryConfig():
             del d['retry']
+        if self.throttle_remap is None:      # R6: configs, demo keys and hashes without the remap unchanged
+            del d['throttle_remap']
         return d

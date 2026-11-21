@@ -93,12 +93,15 @@ def scalars_of(e):
     # --- R4 (docs/specs/R4_review.md req 6); absent keys -> nothing written ---
     r4 = e.get('lap2_r4') or {}
     for k in ('entry_sum', 'exit_sum', 'taken_back', 'terms_sum', 'mean_g', 'shaping_v_sum', 'shaping_e_sum',
-              'front_lock_fraction', 'line_penalty_sum'):
+              'front_lock_fraction', 'line_penalty_sum', 'straights_time_lost_s', 'throttle_action_share_above_sat'):
         if k in r4:
             scalars[f'r4/lap2_{k}'] = r4[k]
     for name, st in (r4.get('straights') or {}).items():
         for k in ('mean_g', 'full_throttle_share', 'brake_share', 'top_speed'):
             scalars[f'straight/{k}_{name}'] = st.get(k)
+        for k in ('full_throttle_share_99', 'time_lost_s'):      # R6; absent in older records -> nothing written
+            if k in st:
+                scalars[f'straight/{k}_{name}'] = st[k]
     for unit, c in (e.get('lap2_entry_exit') or {}).items():
         for k in ('rho_in', 'g_in', 'rho_out', 'g_out', 'taken_back', 'brake_onset_m', 'v_min_m_s'):
             if k in c:

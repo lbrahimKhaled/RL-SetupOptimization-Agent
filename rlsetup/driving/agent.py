@@ -38,6 +38,7 @@ starts from a fresh buffer).
 from pathlib import Path
 import hashlib
 import json
+import math
 import numpy as np
 import stable_baselines3
 import torch as th
@@ -209,11 +210,12 @@ def param_digest(obj):
     return h.hexdigest()
 
 
-def _env_without_reward(env):
+def _env_without_reward(env, skip_throttle_remap=False):
     """Env config dict without `reward` and the R2 training-aid blocks (TRAINING_AID_KEYS): the
-    part that must equal the source's for a warm start (missing aid blocks = defaults)."""
+    part that must equal the source's for a warm start (missing aid blocks = defaults). R6:
+    `skip_throttle_remap` (warm.throttle_relabel on) also leaves out env.throttle_remap."""
     from .config import TRAINING_AID_KEYS
-    skip = ('reward', *TRAINING_AID_KEYS)
+    skip = ('reward', *TRAINING_AID_KEYS) + (('throttle_remap',) if skip_throttle_remap else ())
     return json.loads(json.dumps({k: v for k, v in env.items() if k not in skip}, sort_keys=True))
 
 
@@ -223,7 +225,8 @@ def warm_start(model, init_from, cfg):
     n_steps, target_entropy, policy class, net_arch, n_critics and critic LayerNorm are equal, and
     the source run's
     config.json (at Path(init_from).parents[1]) has the same EnvConfig apart from `reward` and
-    the R2 training-aid blocks (corner_bonus, focus), with an equal reward.gamma. Copies the policy state (actor, critic, critic_target; only
+    the R2 training-aid blocks (corner_bonus, focus), with an equal reward.gamma; env.throttle_remap (R6) may differ
+    only with cfg.warm.throttle_relabel (the buffer is then relabelled by preload_buffer). Copies the policy state (actor, critic, critic_target; only
     actor.* with cfg.warm.load_critics=False) and, with cfg.warm.load_alpha, log_ent_coef in
     place. Optimizers, replay buffer, num_timesteps and _n_updates stay fresh; no output-bias
     init. cfg.warm.load_optimizers: also the actor / critic / ent_coef optimizer state_dicts.
@@ -264,8 +267,12 @@ def warm_start(model, init_from, cfg):
     if ln(src) != ln(model):
         bad.append(f'critic LayerNorm {ln(src)} != {ln(model)}')
     src_env = src_cfg.get('env') or {}
-    if _env_without_reward(src_env) != _env_without_reward(cfg.env.to_dict()):
+    relabel = bool(getattr(w, 'throttle_relabel', False))      # R6: the throttle map may differ only then
+    if _env_without_reward(src_env, True) != _env_without_reward(cfg.env.to_dict(), True):
         bad.append('env config (without reward) differs from the source run')
+    elif not relabel and src_env.get('throttle_remap') != cfg.env.to_dict().get('throttle_remap'):
+        bad.append(f"env.throttle_remap {src_env.get('throttle_remap')} != "
+                   f"{cfg.env.to_dict().get('throttle_remap')} (needs warm.throttle_relabel)")
     if (src_env.get('reward') or {}).get('gamma') != cfg.env.reward.gamma:
         bad.append(f"reward.gamma {(src_env.get('reward') or {}).get('gamma')} != {cfg.env.reward.gamma}")
     if bad:
@@ -329,7 +336,13 @@ def preload_buffer(model, path, init_from, cfg, *, table=None, grid=None, aux=No
     the run's corner `table` and xi_ref TrackGrid `grid`; the source must be time_pbrs without the
     speed potential (refused before the load otherwise); an unresolved share above
     cfg.warm.speed_relabel_max_unresolved raises RelabelUnresolved (model buffer untouched).
-    `aux` (dict): receives 's', the recovered Track.path s of every stored row (NaN: unresolved)."""
+    `aux` (dict): receives 's', the recovered Track.path s of every stored row (NaN: unresolved).
+    R6 (cfg.warm.throttle_relabel; docs/specs/R6_throttle_remap.md §2.1): every stored throttle action (actions and
+    the obs / next_obs throttle slots, env.throttle_obs_indices) is relabelled exactly from the source config's
+    env.throttle_remap (absent = R3 map) to cfg.env.throttle_remap (relabel.relabel_throttle); stats in
+    'throttle_relabel'; InitMismatch if max |delta pedal| > 1e-6 (buffer not adopted). Before the relabel
+    aux['throttle_probe'] = (rows, cols, obs_old, act_old) of a fixed batch (warm.throttle_gate_batch, seed
+    cfg.seed) of rows with an old throttle action above the target knee, for the offline critic gate."""
     from stable_baselines3.common.save_util import load_from_pkl
     from .callbacks import cut_nstep_chains
     from .config import EnvConfig
@@ -342,7 +355,8 @@ def preload_buffer(model, path, init_from, cfg, *, table=None, grid=None, aux=No
         raise InitMismatch(f'init_buffer {path} missing')
     src_env = None
     speed = cfg.warm.speed_relabel
-    if cfg.warm.relabel or speed or isinstance(model.replay_buffer, BonusNStepReplayBuffer):
+    throttle = bool(getattr(cfg.warm, 'throttle_relabel', False))
+    if cfg.warm.relabel or speed or throttle or isinstance(model.replay_buffer, BonusNStepReplayBuffer):
         cfg_path = Path(init_from).resolve().parents[1] / 'config.json'
         src_env = config_from_dict(EnvConfig, json.loads(cfg_path.read_text())['env'])
     if speed:                # R4: refuse before loading the 1.3 GB file
@@ -354,8 +368,12 @@ def preload_buffer(model, path, init_from, cfg, *, table=None, grid=None, aux=No
             _check_speed_relabel(src_env, cfg.env)
         except ValueError as e:
             raise InitMismatch(f'cannot speed-relabel {path}: {e}') from None
-    if cfg.env.entry_exit_on and not speed and src_env.corner_bonus.enabled:
-        raise InitMismatch(f'{path} holds exit bonuses; the R4 entry / exit terms need warm.speed_relabel')
+    if cfg.env.entry_exit_on and not speed and src_env.corner_bonus.enabled and (
+            src_env.corner_bonus != cfg.env.corner_bonus or src_env.reward != cfg.env.reward):
+        # a buffer written with these same entry / exit terms AND the same reward (R5 -> R6) needs no relabel;
+        # anything else does (QA m2: stale rewards otherwise)
+        raise InitMismatch(f'{path} holds exit bonuses or rewards of another reward / corner-term config; the R4 '
+                           'entry / exit terms need warm.speed_relabel')
     pair = lambda cb: (float(cb.bonus), float(cb.floor_ratio))
     bonus_src = bonus_dst = None
     if (isinstance(model.replay_buffer, BonusNStepReplayBuffer) and src_env.corner_bonus.enabled
@@ -365,6 +383,8 @@ def preload_buffer(model, path, init_from, cfg, *, table=None, grid=None, aux=No
             check_bonus_relabel(bonus_src, bonus_dst)
         except ValueError as e:
             raise InitMismatch(f'cannot relabel the bonuses of {path}: {e}') from None
+    if throttle and cfg.env.throttle_remap is None and src_env.throttle_remap is None:
+        raise InitMismatch('warm.throttle_relabel needs env.throttle_remap in this run or the source run')
     if cfg.warm.relabel:     # R2-10.10: refuse before loading the 1.3 GB file
         if src_env.reward.mode != 'ref_tracking':
             raise InitMismatch(f'cannot relabel {path}: the source reward is already {src_env.reward.mode!r} '
@@ -389,6 +409,19 @@ def preload_buffer(model, path, init_from, cfg, *, table=None, grid=None, aux=No
             bonus_stats = relabel_bonuses(rb, bonus_src, bonus_dst)
         except ValueError as e:
             raise InitMismatch(f'cannot relabel the bonuses of {path}: {e}') from None
+    throttle_stats = None
+    if throttle:             # R6: exact relabel of the stored throttle actions (before any other relabel reads them)
+        from .env import throttle_obs_indices
+        from .relabel import relabel_throttle
+        if src_env.obs != cfg.env.obs or src_env.obs_gear != cfg.env.obs_gear:
+            raise InitMismatch('throttle relabel: observation layout differs from the source')
+        obs_idx = throttle_obs_indices(cfg.env)
+        if aux is not None:
+            aux['throttle_probe'] = _throttle_probe(rb, cfg, obs_idx)
+        throttle_stats = relabel_throttle(rb, src_env.throttle_remap, cfg.env.throttle_remap, obs_idx)
+        if throttle_stats['aborted']:
+            raise InitMismatch(f"throttle relabel of {path}: max |delta pedal| {throttle_stats['max_abs_dpedal']:.3g} "
+                               f"> {throttle_stats['tol']:g}")
     stats = None
     if cfg.warm.relabel:
         stats = relabel_to_time_pbrs(rb, src_env, cfg.env)
@@ -411,4 +444,18 @@ def preload_buffer(model, path, init_from, cfg, *, table=None, grid=None, aux=No
     lab = rb.labelled_fraction() if isinstance(rb, BonusNStepReplayBuffer) else None
     return {'path': str(path), 'sha256': h.hexdigest(), 'rows': int(rb.size()), 'transitions': int(rb.size() * rb.n_envs),
             'full': bool(rb.full), 'cut_row': None if cut is None else int(cut), 'relabel': stats,
-            'adopted': adopted, 'labelled_fraction': lab, 'bonus_relabel': bonus_stats, 'speed_relabel': speed_stats}
+            'adopted': adopted, 'labelled_fraction': lab, 'bonus_relabel': bonus_stats, 'speed_relabel': speed_stats,
+            'throttle_relabel': throttle_stats}
+
+
+def _throttle_probe(rb, cfg, obs_idx):
+    """R6 gate batch (docs/specs/R6_throttle_remap.md §2.2): (rows, cols, obs_old, act_old) of
+    cfg.warm.throttle_gate_batch stored transitions (seed cfg.seed, without replacement) whose throttle action
+    lies above the target knee, copied before the relabel. Empty arrays if there are none."""
+    upper = rb.buffer_size if rb.full else rb.pos
+    k = float(cfg.env.throttle_remap[0]) if cfg.env.throttle_remap is not None else math.inf
+    r, c = np.nonzero(rb.actions[:upper, :, 1].astype(np.float64) > k)
+    n = min(int(cfg.warm.throttle_gate_batch), len(r))
+    pick = np.sort(np.random.default_rng(cfg.seed).choice(len(r), size=n, replace=False)) if n else np.zeros(0, int)
+    r, c = r[pick], c[pick]
+    return r, c, rb.observations[r, c].copy(), rb.actions[r, c].copy()

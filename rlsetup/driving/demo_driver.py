@@ -13,6 +13,12 @@ Pedal mapping (R3), throttle and brake alike:
     pedal_deadzone=True:  pedal = clip((a + 0.5) / 1.5, 0, 1); inverse a = -0.5 + 1.5 pedal for
                           pedal > 0, a = released_pedal_action (-0.8) for pedal = 0
     pedal_deadzone=False: pedal = (a + 1) / 2 (ocd_first_lap OCDRacingEnv); inverse a = 2 pedal - 1
+R6 top-end throttle remap (EnvConfig.throttle_remap = (k, s), docs/specs/R6_throttle_remap.md §1.1; throttle only,
+the brake keeps the R3 map; needs the deadzone), p_k = (k + 0.5) / 1.5:
+    pedal(a)   = clip((a + 0.5) / 1.5, 0, 1)                for a <= k  (the R3 expression, bitwise)
+               = min(1, p_k + (1 - p_k) (a - k) / (s - k))   for a >  k  (pedal 1 at a = s and above)
+    inverse(p) = released_pedal_action for p = 0; -0.5 + 1.5 p for 0 < p <= p_k; k + (s - k) (p - p_k) / (1 - p_k)
+throttle_remap None takes the R3 code paths unchanged.
 Steering: steering_rad = a * lock, positive = left (OCD yaw convention); lock = `steer_lock_rad(car)`
 = the car's CarSpec.steer_max_rad (OCD's actuator limit) where the CarSpec defines one, else 0.6 rad
 (MAX_STEER_RAD). 0.6 rad for every car before sf70h_f1 (bit-identical); sf70h_f1 0.30 rad, so the
@@ -23,6 +29,7 @@ import numpy as np
 from ocd_lap.backend import Inputs
 from ocd_lap import cars
 from ocd_lap.env import MAX_STEER_RAD
+from .config import check_throttle_remap
 
 
 def steer_lock_rad(car):
@@ -33,34 +40,72 @@ def steer_lock_rad(car):
     return float(getattr(spec, 'steer_max_rad', MAX_STEER_RAD))
 
 
-def action_to_inputs(a, pedal_deadzone, steer_max_rad=MAX_STEER_RAD):
-    """Validated action array (3,) -> pedal `Inputs`; steering = a[0] * steer_max_rad [rad]."""
+def throttle_pedal(a, remap):
+    """Throttle action(s) a [action units] -> pedal in [0, 1] (module docstring); scalar in -> float out, arrays
+    elementwise (float64). remap None: the R3 deadzone map clip((a + 0.5) / 1.5, 0, 1)."""
+    x = np.asarray(a, dtype=float)
+    p = np.clip((x + .5) / 1.5, 0., 1.)
+    if remap is not None:
+        k, s = check_throttle_remap(remap)
+        pk = (k + .5) / 1.5
+        p = np.where(x > k, np.minimum(1., pk + (1. - pk) * (x - k) / (s - k)), p)
+    return float(p) if p.ndim == 0 else p
+
+
+def throttle_action(p, remap, released=-.8):
+    """Inverse of `throttle_pedal`: pedal(s) p in [0, 1] -> action [action units] (released for p = 0; p = 1 -> s);
+    scalar in -> float out. remap None: -0.5 + 1.5 p (the R3 inverse)."""
+    x = np.asarray(p, dtype=float)
+    a = -.5 + 1.5 * x
+    if remap is not None:
+        k, s = check_throttle_remap(remap)
+        pk = (k + .5) / 1.5
+        a = np.where(x > pk, k + (s - k) * (x - pk) / (1. - pk), a)
+    a = np.where(x > 0., a, released)
+    return float(a) if a.ndim == 0 else a
+
+
+def action_to_inputs(a, pedal_deadzone, steer_max_rad=MAX_STEER_RAD, throttle_remap=None):
+    """Validated action array (3,) -> pedal `Inputs`; steering = a[0] * steer_max_rad [rad]. `throttle_remap`
+    (R6, deadzone only): the throttle uses `throttle_pedal`; None = the R3 map below, unchanged."""
     if pedal_deadzone:
         pedal = lambda x: float(min(1., max(0., (x + .5) / 1.5)))
+        if throttle_remap is not None:      # below the knee the R3 expression on a[1] as given (dtype kept, bitwise)
+            k = check_throttle_remap(throttle_remap)[0]
+            thr = pedal(a[1]) if a[1] <= k else throttle_pedal(float(a[1]), throttle_remap)
+            return Inputs(float(a[0]) * steer_max_rad, thr, pedal(a[2]))
         return Inputs(float(a[0]) * steer_max_rad, pedal(a[1]), pedal(a[2]))
+    if throttle_remap is not None:
+        check_throttle_remap(throttle_remap, pedal_deadzone)        # raises: the remap needs the deadzone
     # identical expression to OCDRacingEnv.to_inputs (bitwise-equal inputs at 0.6 rad)
     return Inputs(float(a[0]) * steer_max_rad, (a[1] + 1) / 2, (a[2] + 1) / 2)
 
 
-def pedal_to_action(pedal, pedal_deadzone, released_action=-.8):
+def pedal_to_action(pedal, pedal_deadzone, released_action=-.8, throttle_remap=None):
+    """Pedal -> action. `throttle_remap` set: `pedal` is a throttle pedal and the R6 inverse applies (pass it for
+    the throttle only)."""
+    if throttle_remap is not None:
+        check_throttle_remap(throttle_remap, pedal_deadzone)
+        return throttle_action(pedal, throttle_remap, released_action)
     if pedal_deadzone:
         return -.5 + 1.5 * pedal if pedal > 0. else released_action
     return 2. * pedal - 1.
 
 
 def inputs_to_action(steering_rad, throttle, brake, pedal_deadzone, released_action=-.8,
-                     steer_max_rad=MAX_STEER_RAD):
-    """Pedals -> env action (float32), the inverse of `action_to_inputs`."""
+                     steer_max_rad=MAX_STEER_RAD, throttle_remap=None):
+    """Pedals -> env action (float32), the inverse of `action_to_inputs` (`throttle_remap` on the throttle only)."""
     return np.array([float(np.clip(steering_rad / steer_max_rad, -1., 1.)),
-                     pedal_to_action(throttle, pedal_deadzone, released_action),
+                     pedal_to_action(throttle, pedal_deadzone, released_action, throttle_remap),
                      pedal_to_action(brake, pedal_deadzone, released_action)], dtype=np.float32)
 
 
 class DemoDriver:
     """Pure pursuit on `ref` + speed PI. `control_dt_s` is the interval between `act` calls."""
 
-    def __init__(self, ref, cfg, *, pedal_deadzone, control_dt_s, car='av21'):
+    def __init__(self, ref, cfg, *, pedal_deadzone, control_dt_s, car='av21', throttle_remap=None):
         self.ref, self.cfg = ref, cfg
+        self.throttle_remap = throttle_remap      # R6: the env's throttle map (its inverse gives the action)
         spec = cars.get(car)
         self.rear_axle_m, self.wheelbase_m = spec.rear_axle_m, spec.wheelbase_m
         self.steer_max_rad = steer_lock_rad(spec)
@@ -99,7 +144,7 @@ class DemoDriver:
         throttle, brake = self.pedals(target_mps, state['vx'],
                                       max(abs(state['slip_rl']), abs(state['slip_rr'])))
         return inputs_to_action(steer, throttle, brake, self.pedal_deadzone, self.cfg.released_pedal_action,
-                                self.steer_max_rad)
+                                self.steer_max_rad, self.throttle_remap)
 
 
 class DemoPolicy:
@@ -114,7 +159,7 @@ class DemoPolicy:
         self.fraction = float(fraction)
         e = self.env
         self.driver = DemoDriver(e.drive_line, e.cfg.demo, pedal_deadzone=e.cfg.pedal_deadzone,
-                                 control_dt_s=e.decision_dt, car=e.cfg.car)
+                                 control_dt_s=e.decision_dt, car=e.cfg.car, throttle_remap=e.cfg.throttle_remap)
 
     def reset(self):
         self.driver.reset(self.env.settle_driver.integral)

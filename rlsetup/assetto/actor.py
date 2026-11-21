@@ -102,6 +102,9 @@ def _config(config: dict) -> dict:
     for key, value in expected.items():
         if key not in env or type(env[key]) is not type(value) or env[key] != value:
             raise ValueError(f'unsupported source env.{key}')
+    # R6 top-end throttle remap (docs/specs/R6_throttle_remap.md §1.3): AC controls / settle still use the R3 map.
+    if env.get('throttle_remap') is not None:
+        raise ValueError('unsupported source env.throttle_remap')
     if not isinstance(env.get('car'), str) or env['car'] not in SOURCE_STEER_LOCK_RAD:
         raise ValueError('unsupported source env.car')
     # xi_ref: Track.path or a repo CSV line; AC needs a matching reference file (ac_ocd_reference.py).
