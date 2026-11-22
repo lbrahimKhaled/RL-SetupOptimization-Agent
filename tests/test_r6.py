@@ -86,8 +86,9 @@ def test_presets_and_env_dicts_without_the_remap_are_unchanged():
     for name, make in PRESETS.items():
         c = make()
         assert ('throttle_remap' in c.to_dict()['env']) == name.startswith('bcn_f1_r6'), name
-        assert ('lifetime_schedules' in c.to_dict()) == name.startswith('bcn_f1_r6'), name
-        assert ('throttle_relabel' in c.to_dict()['warm']) == name.startswith('bcn_f1_r6'), name
+        warm_r6 = name in ('bcn_f1_r6', 'bcn_f1_r6_smoke')                          # the scratch presets: no warm start
+        assert ('lifetime_schedules' in c.to_dict()) == warm_r6, name
+        assert ('throttle_relabel' in c.to_dict()['warm']) == warm_r6, name
     assert 'throttle_remap' not in EnvConfig().to_dict()
     assert EnvConfig().to_dict() == dataclasses.replace(EnvConfig(), throttle_remap=None).to_dict()
 
@@ -656,3 +657,117 @@ def test_tiny_warm_run_schedules_gate_and_freeze(tmp_path, offline):
     assert [f for n, f in frozen[n_off:] if n < 30] and all(f for n, f in frozen[n_off:] if n < 30)
     assert not any(f for n, f in frozen[n_off:] if n >= 30)
     assert param_digest(model.actor) != actor0                                     # trained after the unfreeze
+
+
+# --- 22 Nov 2026: from-scratch R6 (bcn_f1_r6_scratch; control bcn_f1_r5) ----------------------------------------
+def test_scratch_presets_are_bcn_f1_r5_plus_the_remap_only():
+    r5 = PRESETS['bcn_f1_r5']()
+    c = PRESETS['bcn_f1_r6_scratch']()
+    assert c.env.throttle_remap == R6 and c.env.reward.mode == 'time_pbrs'
+    assert dataclasses.replace(c, preset='bcn_f1_r5', env=dataclasses.replace(c.env, throttle_remap=None)) == r5
+    assert c.agent.init_mode == 'bc' and c.init_from is None and not c.lifetime_schedules
+    assert (c.env.retry.start_step, c.crash_emphasis.start_step, c.lr_decay.start_step, c.lr_decay.end_step,
+            c.lr_decay.floor, c.guard.threshold, c.stop.plateau) == (500_000, 500_000, 3_000_000, 6_200_000, .01, .4, False)
+    assert train_config_from_dict(json.loads(config_json(c))) == c
+    s = PRESETS['bcn_f1_r6_scratch_smoke']()
+    assert (s.total_timesteps, s.max_wall_h, s.checkpoint_interval, s.strict_provenance, s.eval.interval,
+            s.eval.stochastic_laps, s.guard.interval) == (150_000, 1., 25_000, False, 25_000, 3, 5_000)
+    assert dataclasses.replace(s, preset=c.preset, total_timesteps=c.total_timesteps, max_wall_h=c.max_wall_h,
+                               checkpoint_interval=c.checkpoint_interval, strict_provenance=True, eval=c.eval,
+                               guard=c.guard) == c
+
+
+def test_scratch_demo_key_differs_from_r5():
+    from rlsetup.driving import demos as D
+    qss = SimpleNamespace(meta={'key': {'x': 1}})
+    prov = {'ocd_lap_code_version': 'x'}
+    r5, c = PRESETS['bcn_f1_r5'](), PRESETS['bcn_f1_r6_scratch']()
+    k5, d5 = D.dataset_key(r5.env, r5.demos, qss, prov)
+    k6, d6 = D.dataset_key(c.env, c.demos, qss, prov)
+    assert k5 != k6 and list(d6['env']['throttle_remap']) == [.7, .85] and 'throttle_remap' not in d5['env']
+    assert {k: v for k, v in d6['env'].items() if k != 'throttle_remap'} == d5['env'] and d5['demos'] == d6['demos']
+
+
+def test_demo_driver_acts_through_the_r6_inverse(make_env):
+    """Same state, same demo controller: the R6 driver's action gives the same pedals (<= 2e-7) as the R3 driver's;
+    pedal 1.0 -> a = 0.85; below the knee the actions are bitwise the R3 ones; brake / steering unchanged."""
+    from rlsetup.driving.demo_driver import DemoDriver
+    from rlsetup.driving.config import DemoConfig
+    env = make_env(EnvConfig(reward=PBRS, throttle_remap=R6))
+    from rlsetup.driving.demo_driver import DemoPolicy
+    assert DemoPolicy(env, .5).driver.throttle_remap == R6 and env.settle_driver.throttle_remap == R6
+    mk = lambda remap: DemoDriver(env.drive_line, DemoConfig(), pedal_deadzone=True, control_dt_s=.04,
+                                  throttle_remap=remap)
+    old, new = mk(None), mk(R6)
+    env.reset(seed=4)
+    st = dict(env.state, slip_rl=0., slip_rr=0.)
+    seen = set()
+    for target in np.linspace(0., 90., 61):
+        old.reset(), new.reset()
+        a0, a1 = old.act(st, env.s_drive, target), new.act(st, env.s_drive, target)
+        p0, p1 = action_to_inputs(a0.astype(float), True), env.to_inputs(a1)
+        assert abs(p0.throttle - p1.throttle) <= 2e-7 and p0.brake == p1.brake and a0[[0, 2]].tobytes() == a1[[0, 2]].tobytes()
+        if a0[1] <= .7:
+            assert a1[1] == a0[1]
+            seen.add('below')
+        if p0.throttle == 1.:
+            assert a1[1] == np.float32(.85) and a0[1] == np.float32(1.)
+            seen.add('full')
+    assert seen == {'below', 'full'}
+
+
+def test_demo_episode_runs_on_a_remapped_env(make_env):
+    from rlsetup.driving import demos as D
+    from rlsetup.driving.train_config import DemoDataConfig
+    env = make_env(EnvConfig(reward=PBRS, throttle_remap=R6, max_episode_s=8.))
+    ep = D.run_episode(env, DemoDataConfig(fraction_range=(.6, .6), noise_std=(0., 0., 0.)), 0)
+    thr = ep['actions_clean'][:, 1]
+    assert len(thr) == 200 and ep['cause'] == 'time_limit' and thr.max() <= np.float32(.85)
+    assert (thr > .7).any()                                                          # the upper segment is used
+
+
+def test_bc_runs_with_the_remap_and_reports_executed_pedals():
+    """BC fits actions (map-free loss: same history with and without the remap); the throttle-vs-slip report maps
+    throttle actions through the run's map (R6 pedal >= R3 pedal, > above the knee)."""
+    import torch as th
+    import gymnasium as gym
+    from stable_baselines3.sac.policies import SACPolicy
+    from rlsetup.driving import demos as D
+    from rlsetup.driving.bc import train_bc
+    from rlsetup.driving.train_config import BCConfig
+    rng = np.random.default_rng(0)
+    E, T, dim = 20, 100, 12
+    x = rng.uniform(-1, 1, (E * (T + 1), dim)).astype(np.float32)
+    x[:, 7:9] = rng.uniform(0., .5, (len(x), 2))
+    starts = np.arange(E) * T
+    d = D.with_index({'obs': x, 'ep_start_tr': starts, 'ep_start_obs': starts + np.arange(E),
+                      'terminated': np.zeros(E * T, bool), 'truncated': np.zeros(E * T, bool),
+                      'actions': np.zeros((E * T, 3), np.float32), 'episode': np.repeat(np.arange(E), T)})
+    a = np.stack([np.zeros(E * T), rng.uniform(.5, 1., E * T), np.full(E * T, -.8)], 1).astype(np.float32)
+    d['actions'], d['actions_clean'] = a, a
+    reps = []
+    for remap in (None, R6):
+        th.manual_seed(0)
+        pol = SACPolicy(gym.spaces.Box(-10, 10, (dim,), np.float32), gym.spaces.Box(-1, 1, (3,), np.float32),
+                        lambda _: 3e-4, net_arch=[32, 32])
+        reps.append(train_bc(pol.actor, d, BCConfig(max_epochs=2, batch_size=256), seed=0, log=lambda *_: None,
+                             throttle_remap=remap))
+    r3, r6 = reps
+    assert [h['val_nll'] for h in r3['history']] == [h['val_nll'] for h in r6['history']]
+    rows = [(x3, x6) for x3, x6 in zip(r3['throttle_vs_rear_slip'], r6['throttle_vs_rear_slip']) if x3['n']]
+    assert rows and all(x6['executed_throttle_pedal'] > x3['executed_throttle_pedal'] for x3, x6 in rows)
+    assert all(x6['executed_throttle_pedal'] <= 1. for _, x6 in rows)
+
+
+def test_init_output_bias_pedal_unchanged_by_the_remap():
+    import torch as th
+    from rlsetup.driving.agent import build_model, init_output_bias
+    c = PRESETS['bcn_f1_r6_scratch']()
+    model = build_model(dataclasses.replace(tiny_cfg(), agent=c.agent), DummyVecEnv([TinyEnv]))
+    init_output_bias(model.actor, pedal_deadzone=True, action=c.agent.init_action, log_std=c.agent.init_log_std,
+                     weight_scale=c.agent.init_weight_scale)
+    with th.no_grad():
+        a = th.tanh(model.actor.mu.bias).numpy()
+    assert c.agent.init_action == (0., -.275, -.8) and a[1] == pytest.approx(-.275)
+    assert throttle_pedal(float(a[1]), R6) == throttle_pedal(float(a[1]), None) == pytest.approx(.15)
+    assert E._pedals(a[None], True, R6)[1][0] == 0.                                  # brake released

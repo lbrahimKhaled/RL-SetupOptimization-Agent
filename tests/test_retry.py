@@ -28,7 +28,7 @@ def test_config_validation_omission_and_round_trip():
                                  'fallback_lead_m': 400., 'start_step': 500_000, 'learn_before_m': 150.}
     assert train_config_from_dict(j) == c
     for name, make in PRESETS.items():
-        if name not in ('bcn_f1_r4_retry', 'bcn_f1_r5', 'bcn_f1_r6', 'bcn_f1_r6_smoke'):   # R5, R6 inherit the retries
+        if name not in ('bcn_f1_r4_retry', 'bcn_f1_r5', 'bcn_f1_r6', 'bcn_f1_r6_smoke', 'bcn_f1_r6_scratch', 'bcn_f1_r6_scratch_smoke'):   # R5, R6 inherit the retries
             assert '"retry"' not in config_json(make()), name
 
 

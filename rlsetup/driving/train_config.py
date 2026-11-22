@@ -709,6 +709,28 @@ def _bcn_f1_r6_smoke():
                    guard=replace(c.guard, interval=5_000))
 
 
+def _bcn_f1_r6_scratch():
+    """bcn_f1_r5 from scratch with only the R6 throttle map changed (Ibrahim, 22 Nov 2026): env.throttle_remap =
+    R6_THROTTLE_REMAP (R3 map up to a = 0.70, pedal 1.0 at a = 0.85; docs/specs/R6_throttle_remap.md §1). Everything
+    else is bcn_f1_r5: demos + BC (the demo / settle driver acts through the R6 inverse, so a demo pedal of 1.0 is
+    a = 0.85; the remap is part of the demo dataset key, so R3-map demos are never reused), the R5 reward, retries and
+    crash emphasis from 500k, lr decay 3M -> 6.2M to 1/100, guard 0.4, no step cap, no plateau stop; no warm start,
+    no lifetime schedules. Control: bcn_f1_r5 (its own 0 -> 10.35M curve). Run name: bcn_f1_r6_scratch."""
+    c = _bcn_f1_r5()
+    return replace(c, preset='bcn_f1_r6_scratch', env=replace(c.env, throttle_remap=R6_THROTTLE_REMAP))
+
+
+def _bcn_f1_r6_scratch_smoke():
+    """bcn_f1_r6_scratch compressed like the other smoke presets: 150k env steps (max_wall_h 1 only a safety cap),
+    eval every 25k with 3 stochastic laps, probe every 5k, checkpoints every 25k, dirty tree allowed; demos, BC and
+    the rest as bcn_f1_r6_scratch (retries / crash emphasis start at 500k, so not reached). Control: bcn_f1_r5."""
+    c = _bcn_f1_r6_scratch()
+    return replace(c, preset='bcn_f1_r6_scratch_smoke', total_timesteps=150_000, max_wall_h=1.,
+                   checkpoint_interval=25_000, strict_provenance=False,
+                   eval=replace(c.eval, interval=25_000, stochastic_laps=3),
+                   guard=replace(c.guard, interval=5_000))
+
+
 def _f1_r2_smoke():
     """f1_r2 compressed to 150k env steps (R2-9.2): w = 1 until 60k, fade to 0 at 120k,
     reportable from 150k (gap 30k); eval every 25k with 3 stochastic laps, probe every 5k,
@@ -725,7 +747,8 @@ def _f1_r2_smoke():
 
 PRESETS = {'full': lambda: TrainConfig(preset='full'), 'smoke': _smoke, 'r1_warm': _r1_warm,
            'r1_warm_smoke': _r1_warm_smoke, 'p1_TUM': _p1_tum,
-           'p0_TUMref': _p0_tumref, 'bcn': _bcn, 'bcn_f1_r4': _bcn_f1_r4, 'bcn_f1_r4_w4': _bcn_f1_r4_w4, 'bcn_f1_r4_retry': _bcn_f1_r4_retry, 'bcn_f1_r5': _bcn_f1_r5, 'bcn_f1_r6': _bcn_f1_r6, 'bcn_f1_r6_smoke': _bcn_f1_r6_smoke, 'f1_sha': _f1_sha, 'f1_sha_w35': _f1_sha_w35,
+           'p0_TUMref': _p0_tumref, 'bcn': _bcn, 'bcn_f1_r4': _bcn_f1_r4, 'bcn_f1_r4_w4': _bcn_f1_r4_w4, 'bcn_f1_r4_retry': _bcn_f1_r4_retry, 'bcn_f1_r5': _bcn_f1_r5, 'bcn_f1_r6': _bcn_f1_r6, 'bcn_f1_r6_smoke': _bcn_f1_r6_smoke,
+           'bcn_f1_r6_scratch': _bcn_f1_r6_scratch, 'bcn_f1_r6_scratch_smoke': _bcn_f1_r6_scratch_smoke, 'f1_sha': _f1_sha, 'f1_sha_w35': _f1_sha_w35,
            'f1_best_w35': _f1_best_w35, 'f1_r2': _f1_r2, 'f1_r2_smoke': _f1_r2_smoke, 'f1_r3': _f1_r3,
            'f1_r4': _f1_r4, 'f1_r4_scratch': _f1_r4_scratch}
 
