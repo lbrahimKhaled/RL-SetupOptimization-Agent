@@ -1,0 +1,28 @@
+{
+  "source_run": "bcn_f1_r6b",
+  "source_checkpoint": "best_aided.zip",
+  "source_checkpoint_sha256": "a57d0136aa1a7a7fcafeee7f7e9375fcc7797a8ce088088b0b9ad5152bb69654",
+  "source_config_sha256": "8de900bfe1845b57f21d33aa7643b40d6ad5d28ce156018e90aa3da2baacd831",
+  "a2_job_id": "f26ee947ad1b",
+  "a2_driver_finetune_seed": 13,
+  "a2_driver_steps": 20000,
+  "original_snapshot_sha256": "6e8720d882335ef00dab4e38388806e862d961bad653b221cfacb37da696eb82",
+  "policy_digest": "f5036e9b046ad419bad7bb61bf95145736764f54f89fbf83f61944fd5c7c9312",
+  "assetto_source_archive_sha256": "0308995bbe41e6e75ec4dece6707873ee7b7a016aef7a2e0fbdf4cc76ff3046f",
+  "r6_live_throttle_remap": [
+    0.7,
+    0.85
+  ],
+  "alpha": 0.06073243170976639,
+  "deterministic_flying_s": [
+    83.50383561690202,
+    83.44684930513355,
+    83.51287672237251,
+    83.5057115608642,
+    83.50694444604545
+  ],
+  "selection_best_flying_s": 83.43694444981162,
+  "reporting_best_flying_s": 83.44684930513355,
+  "profile_sha256": "c38d987c883513e19f28ae8f49857cf3f02875ce234f277857dc761c2ab1c981",
+  "source_note": "Exact actor, source critics and targets, and entropy coefficient; fresh AC optimizers and replay."
+}
