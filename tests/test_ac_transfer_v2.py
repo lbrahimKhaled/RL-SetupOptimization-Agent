@@ -85,7 +85,7 @@ class Car:
 
 
 def harness(monkeypatch, tmp_path, *, actions, reward_config=F1_REWARD, car=None, reference_kwargs=None,
-            config_sha=CONFIG_SHA, on_receive=None):
+            config_sha=CONFIG_SHA, on_receive=None, remap=None):
     bundle = tmp_path/'actor'
     bundle.mkdir(exist_ok=True)
     (bundle/'manifest.json').write_text('{}')
@@ -100,6 +100,7 @@ def harness(monkeypatch, tmp_path, *, actions, reward_config=F1_REWARD, car=None
     class Actor:
         manifest = {'source': {'config_sha256': config_sha}}
         steer_lock_rad = .3
+        throttle_remap = remap
         source_config = {'env': {'reward': reward_config, 'stall_speed_mps': 3., 'stall_time_s': 2.}}
         seen = []
         def __init__(self, _path):
@@ -120,9 +121,10 @@ def harness(monkeypatch, tmp_path, *, actions, reward_config=F1_REWARD, car=None
     fake = car or Car()
 
     class FakeSession:
-        def __init__(self, config, steering_map, lock):
+        def __init__(self, config, steering_map, lock, throttle_remap):
             assert lock == .3
-            self.steering_map, self.lock = steering_map, lock
+            assert throttle_remap == remap
+            self.steering_map, self.lock, self.throttle_remap = steering_map, lock, throttle_remap
         def __enter__(self):
             return self
         def __exit__(self, *_args):
@@ -134,7 +136,7 @@ def harness(monkeypatch, tmp_path, *, actions, reward_config=F1_REWARD, car=None
             return self.last
         def send(self, action):
             command = controls(action, self.steering_map, self.last['steps'], saturation='clip',
-                               steer_lock_rad=self.lock)
+                               steer_lock_rad=self.lock, throttle_remap=self.throttle_remap)
             fake.apply(command, None)
             return command
     monkeypatch.setattr(d, 'Session', FakeSession)
@@ -155,6 +157,35 @@ def test_controls_use_the_source_lock():
         controls([1., -1., -1.], s, 3, steer_lock_rad=.6)
     with pytest.raises(ValueError, match='steer_lock_rad'):
         controls([0., -1., -1.], s, 3, steer_lock_rad=0.)
+
+
+def test_r6b_settle_and_policy_keep_source_actions(monkeypatch, tmp_path):
+    remap = (.70, .85)
+    info = track_info()
+    g = Geometry(info, reference='centerline')
+    stopped = Car().step()
+    old_settle = d.SettleDriver(SETTLE, g)
+    r6_settle = d.SettleDriver(SETTLE, g, remap)
+
+    # Both settle drivers command exactly full throttle in pedal space.
+    old_action = old_settle.act(stopped, 0., 20., .04)
+    action = r6_settle.act(stopped, 0., 20., .04)
+    assert old_action[1] == 1.
+    assert action[1] == pytest.approx(.85)
+    np.testing.assert_array_equal(action[[0, 2]], old_action[[0, 2]])
+    old = controls(old_action, steering(), 1, steer_lock_rad=.3)
+    assert controls(action, steering(), 1, steer_lock_rad=.3, throttle_remap=remap) == old
+    assert old['acc'] == 1. and old['brake'] == -1. and not old['enable_gear_shift']
+
+    bundle, calibration, reference, *_ = harness(
+        monkeypatch, tmp_path, actions=[[0., .8, .25]], remap=remap)
+    run(bundle, calibration, reference, tmp_path/'r6b.npz', max_steps=4)
+    with np.load(tmp_path/'r6b.npz', allow_pickle=False) as chunk:
+        assert json.loads(chunk['metadata_json'].item())['start']['outcome'] == 'handover'
+        np.testing.assert_array_equal(chunk['actions'], np.tile(np.float32([0., .8, .25]), (4, 1)))
+        np.testing.assert_array_equal(chunk['next_obs'][:, 133], chunk['actions'][:, 1])
+        np.testing.assert_allclose(chunk['command'][:, 1], 13./15., atol=1e-7)
+        np.testing.assert_array_equal(chunk['command'][:, 2], np.zeros(4))
 
 
 def test_reward_terms_follow_the_source_config():

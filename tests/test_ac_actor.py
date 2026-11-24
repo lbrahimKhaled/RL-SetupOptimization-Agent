@@ -212,6 +212,29 @@ def test_invalid_manifest(source, tmp_path, mutation):
         ActorRuntime(output)
 
 
+def test_throttle_remap_is_part_of_the_bundle_contract(source, tmp_path):
+    legacy = ActorRuntime(bundle(source, tmp_path))
+    assert legacy.throttle_remap is None
+    assert 'throttle_remap' not in legacy.manifest['source_action']
+    assert legacy.manifest['source_action']['pedal_formula'] == 'clip((a+0.5)/1.5,0,1)'
+
+    source[2]['env']['throttle_remap'] = [.70, .85]
+    source[-1]()
+    path = export_actor(source[3], source[4], tmp_path / 'r6b')
+    runtime = ActorRuntime(path)
+    assert runtime.throttle_remap == (.70, .85)
+    assert source_contract_sha256(runtime.manifest) != source_contract_sha256(legacy.manifest)
+    obs = np.linspace(-1., 1., 159, dtype=np.float32)
+    np.testing.assert_array_equal(runtime.predict(obs), legacy.predict(obs))
+
+    manifest_path = path / 'manifest.json'
+    manifest = json.loads(manifest_path.read_bytes())
+    manifest['source_action']['throttle_remap'][1] = .9
+    manifest_path.write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match='contract'):
+        ActorRuntime(path)
+
+
 @pytest.mark.parametrize('file', ['actor.pt', 'config.json', 'manifest.json'])
 def test_incomplete_bundle(source, tmp_path, file):
     output = bundle(source, tmp_path)

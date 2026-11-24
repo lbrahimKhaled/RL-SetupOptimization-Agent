@@ -1,6 +1,6 @@
 # AC worker for the F1 driver bcn_f1_r5 on THIS PC: the Lenovo's START_LENOVO_F1R5.cmd with the learner
 # on 127.0.0.1, this PC's own steering calibration and the local token (token.ps1).
-# Before: AC on track (Ferrari SF70H, Barcelona GP, Hotlap, setup bcn_f1_best loaded, Vjoy controls,
+# Before: AC on track (Ferrari SF70H, Barcelona GP, Hotlap, the chosen -SetupId setup loaded, Vjoy controls,
 # 100 FPS cap, sensors_par on), ac_calibrate_f1r5.ps1 done once, ac_server_f1r5.ps1 running in another
 # window. Runs until Ctrl+C; run it again (same -WorkDir) to continue from the last committed actor.
 #   powershell -ExecutionPolicy Bypass -File platforms\windows\ac\ac_worker_f1r5.ps1
@@ -11,7 +11,8 @@ param(
     [int]$Port = 2350,
     [string]$Calibration = 'runs\windows\ac\steering-f1r5.json',
     [string]$Reference = 'runs\ac\ocd_line_reference_bcn_f1_r5_7m.json',
-    [string]$TeleportDir = ''
+    [string]$TeleportDir = '',
+    [string]$SetupId = 'bcn_f1_best'
 )
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '..\env.ps1')
@@ -38,7 +39,7 @@ $token = . (Join-Path $PSScriptRoot 'token.ps1')
 Set-KeepAwake -Display
 $ErrorActionPreference = 'Continue'
 & $OcdPython -m rlsetup.assetto.distributed worker --server 127.0.0.1 --port $Port --token-file $token `
-    --calibration $Calibration --setup-id bcn_f1_best --work-dir $WorkDir --ac-host 127.0.0.1 `
+    --calibration $Calibration --setup-id $SetupId --work-dir $WorkDir --ac-host 127.0.0.1 `
     --reference ocd_path --reference-file $Reference --max-steps 3750 --max-wall-s 180 `
     --explore-std-scale 0.3 --eval-every 10 --reconnect-attempts 20 --max-consecutive-failures 5 `
     --teleport-dir $TeleportDir --execute

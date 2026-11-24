@@ -18,6 +18,8 @@ import numpy as np
 import torch
 from torch import nn
 
+from ..driving.config import check_throttle_remap
+
 
 @dataclass(frozen=True)
 class NetworkSpec:
@@ -102,9 +104,11 @@ def _config(config: dict) -> dict:
     for key, value in expected.items():
         if key not in env or type(env[key]) is not type(value) or env[key] != value:
             raise ValueError(f'unsupported source env.{key}')
-    # R6 top-end throttle remap (docs/specs/R6_throttle_remap.md §1.3): AC controls / settle still use the R3 map.
-    if env.get('throttle_remap') is not None:
-        raise ValueError('unsupported source env.throttle_remap')
+    remap = env.get('throttle_remap')
+    if remap is not None:
+        if not isinstance(remap, list) or any(type(value) not in (int, float) for value in remap):
+            raise ValueError('source env.throttle_remap must be a numeric [knee, saturation] pair')
+        check_throttle_remap(remap)
     if not isinstance(env.get('car'), str) or env['car'] not in SOURCE_STEER_LOCK_RAD:
         raise ValueError('unsupported source env.car')
     # xi_ref: Track.path or a repo CSV line; AC needs a matching reference file (ac_ocd_reference.py).
@@ -150,6 +154,18 @@ def _manifest(config: dict, source: dict, config_sha: str, weights_sha: str) -> 
             raise ValueError('invalid SHA256')
     network = asdict(NETWORK)
     network['hidden'] = list(NETWORK.hidden)
+    action = {
+        'names': ['steering', 'throttle', 'brake'], 'bounds': [-1., 1.],
+        'steering_lock_rad': SOURCE_STEER_LOCK_RAD[env['car']], 'steering_positive': 'left',
+        'pedal_formula': 'clip((a+0.5)/1.5,0,1)', 'decision_hz': 25.,
+        'meaning': 'normalized source policy actions; AC controls require separately calibrated mapping',
+    }
+    if env.get('throttle_remap') is not None:
+        action.update(
+            throttle_remap=list(check_throttle_remap(env['throttle_remap'])),
+            pedal_formula='brake and throttle below knee: clip((a+0.5)/1.5,0,1); throttle above knee: '
+                          'linear from knee pedal to full pedal at saturation, then clipped',
+        )
     return {
         'schema': SCHEMA, 'version': VERSION, 'network': network,
         'weights': {'file': WEIGHTS_FILE, 'sha256': weights_sha, 'dtype': 'float32', 'device': 'cpu'},
@@ -167,12 +183,7 @@ def _manifest(config: dict, source: dict, config_sha: str, weights_sha: str) -> 
             'normalization': 'fixed source scales; rear slip clip(5*slip,-5,5); final clip; no running normalization',
             'construction': 'caller must construct all 159 values; no padding, defaults or AC telemetry mapping',
         },
-        'source_action': {
-            'names': ['steering', 'throttle', 'brake'], 'bounds': [-1., 1.],
-            'steering_lock_rad': SOURCE_STEER_LOCK_RAD[env['car']], 'steering_positive': 'left',
-            'pedal_formula': 'clip((a+0.5)/1.5,0,1)', 'decision_hz': 25.,
-            'meaning': 'normalized source policy actions; AC controls require separately calibrated mapping',
-        },
+        'source_action': action,
     }
 
 
@@ -375,6 +386,8 @@ class ActorRuntime:
         self.source_config = _json(config_data)
         # Road-wheel angle of steering action +-1 the source policy was trained with [rad].
         self.steer_lock_rad = float(manifest['source_action']['steering_lock_rad'])
+        remap = manifest['source_action'].get('throttle_remap')
+        self.throttle_remap = None if remap is None else tuple(remap)
 
     def _observation(self, observation: np.ndarray) -> torch.Tensor:
         if (not isinstance(observation, np.ndarray) or observation.dtype != np.float32

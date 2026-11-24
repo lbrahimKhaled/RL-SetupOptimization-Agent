@@ -414,13 +414,15 @@ def test_preload_relabels_exactly_and_records_stats(tmp_path):
         preload_buffer(build_model(none, DummyVecEnv([TinyEnv])), default_init_buffer(path), path, none)
 
 
-def test_ac_refuses_a_remapped_source_config():
+def test_ac_validates_the_r6_source_config():
     from rlsetup.assetto.actor import _config
     env = json.loads(json.dumps(PRESETS['bcn_f1_r5']().env.to_dict()))
     cfg = {'env': env, 'seed': 0, 'preset': 'bcn_f1_r5', 'agent': {'net_arch': [256, 256, 256]}}
     _config(cfg)                                                                    # R5: accepted, unchanged
-    with pytest.raises(ValueError, match='throttle_remap'):
-        _config(dict(cfg, env=dict(env, throttle_remap=[.7, .85])))
+    _config(dict(cfg, env=dict(env, throttle_remap=[.7, .85])))
+    for invalid in ([.85, .7], [.7, 1.1], [.7, float('nan')], ['.7', .85], [False, .85], [.7], '.7,.85'):
+        with pytest.raises(ValueError, match='throttle_remap'):
+            _config(dict(cfg, env=dict(env, throttle_remap=invalid)))
     _config(dict(cfg, env=dict(env, throttle_remap=None)))
 
 

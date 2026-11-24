@@ -19,6 +19,7 @@ import time
 
 import numpy as np
 
+from ..driving.config import check_throttle_remap
 from .actor import ActorRuntime, SOURCE_OBS, _json, source_contract_sha256
 from .management import ConnectionConfig, ManagementClient
 from .telemetry import CaptureConfig, _numeric, _open_socket, _packet
@@ -579,17 +580,25 @@ class RewardTerms:
         return self.exit_k*w*h*ds
 
 
-def controls(action, steering, seq, *, saturation='reject', steer_lock_rad=.6):
-    """AC command for a source action; steering action +-1 = +-steer_lock_rad road-wheel angle
-    (the source car's lock: 0.6 rad sf70h_tum, 0.30 rad sf70h_f1; ActorRuntime.steer_lock_rad)."""
+def controls(action, steering, seq, *, saturation='reject', steer_lock_rad=.6, throttle_remap=None):
+    """AC command for a normalized source action, with calibrated steering and the source pedal maps.
+
+    The R6 remap only changes throttle above the knee; brake keeps its source deadzone mapping.
+    """
     action = np.asarray(action)
     if action.shape != (3,) or not np.isfinite(action).all() or np.any(abs(action) > 1):
         raise ValueError('finite normalized action[3] required')
     if not _numeric(steer_lock_rad) or not 0 < steer_lock_rad <= 1:
         raise ValueError('steer_lock_rad must be in (0, 1] rad')
-    pedals = np.clip((action[1:]+.5)/1.5, 0, 1)
-    return dict(steer=steering.command(steer_lock_rad*float(action[0]), saturation=saturation), acc=float(2*pedals[0]-1),
-                brake=float(2*pedals[1]-1), server_steps=int(seq),
+    throttle, brake = np.clip((action[1:]+.5)/1.5, 0, 1)
+    if throttle_remap is not None:
+        knee, full = check_throttle_remap(throttle_remap)
+        source_throttle = float(action[1])
+        if source_throttle > knee:
+            knee_pedal = (knee+.5)/1.5
+            throttle = min(1., knee_pedal+(1.-knee_pedal)*(source_throttle-knee)/(full-knee))
+    return dict(steer=steering.command(steer_lock_rad*float(action[0]), saturation=saturation), acc=float(2*throttle-1),
+                brake=float(2*brake-1), server_steps=int(seq),
                 enable_gear_shift=False, shift_up=False, shift_down=False)
 
 
@@ -608,8 +617,9 @@ class SettleDriver:
     rear-slip traction control. Returns source actions (pedal_deadzone inverse, released pedal
     action when a pedal is 0), so the policy's history at hand-over holds settle actions as in OCD.
     """
-    def __init__(self, settle, geometry):
+    def __init__(self, settle, geometry, throttle_remap=None):
         self.c, self.geometry = settle, geometry
+        self.throttle_remap = None if throttle_remap is None else check_throttle_remap(throttle_remap)
         self.integral = 0.
 
     def act(self, packet, station, target_mps, dt):
@@ -631,7 +641,13 @@ class SettleDriver:
             throttle *= max(0., 1.-(slip-c['traction_slip_start'])/c['traction_slip_span'])
         brake = min(c['brake_cap'], max(0., -u))
         pedal = lambda p: -.5+1.5*p if p > 0. else c['released_pedal_action']
-        return np.array([np.clip(steer/lock, -1., 1.), pedal(throttle), pedal(brake)], dtype=np.float32)
+        throttle_action = pedal(throttle)
+        if self.throttle_remap is not None:
+            knee, full = self.throttle_remap
+            knee_pedal = (knee+.5)/1.5
+            if throttle > knee_pedal:
+                throttle_action = knee+(full-knee)*(throttle-knee_pedal)/(1.-knee_pedal)
+        return np.array([np.clip(steer/lock, -1., 1.), throttle_action, pedal(brake)], dtype=np.float32)
 
 
 @dataclass(frozen=True)
@@ -673,9 +689,10 @@ class CollectConfig:
 
 class Session:
     """Fresh contiguous UDP telemetry and counter echo; releases before disconnect."""
-    def __init__(self, config, steering, steer_lock_rad=.6):
+    def __init__(self, config, steering, steer_lock_rad=.6, throttle_remap=None):
         self.config, self.steering = config, steering
         self.steer_lock_rad = steer_lock_rad  # source car lock; parked/hold commands only steer 0
+        self.throttle_remap = throttle_remap
         self.sock = None
         self.last = None
         self.received = None
@@ -735,7 +752,7 @@ class Session:
         if self.last is None or time.monotonic()-self.received > self.config.max_dt:
             raise ValueError('cannot control stale telemetry')
         command = controls(action, self.steering, self.last['steps'], saturation=self.config.steering_saturation,
-                           steer_lock_rad=self.steer_lock_rad)
+                           steer_lock_rad=self.steer_lock_rad, throttle_remap=self.throttle_remap)
         self.sock.send(json.dumps(command, allow_nan=False).encode())
         return command
 
@@ -800,7 +817,7 @@ def _settle(session, observation, profile, geometry, state, current, config, dea
         fraction = float(c['eval_speed_fraction'])
     else:
         fraction = float(np.random.default_rng(config.exploration_seed).uniform(*c['start_speed_fraction']))
-    driver, action, obs = SettleDriver(c, geometry), RELEASE_ACTION, None
+    driver, action, obs = SettleDriver(c, geometry, session.throttle_remap), RELEASE_ACTION, None
     elapsed, hold_from, dt = 0., None, .04
     start = dict(mode='ocd_settle', fraction=fraction, outcome=None)
     _, _, (station, _, _) = state(current)
@@ -876,7 +893,7 @@ def _teleport_start(session, observation, profile, geometry, state, current, con
     if number(current, 'numberOfTyresOut') >= 1 or abs(wrap(yaw-heading)) > .5:
         start.update(outcome='teleport_misplaced', heading_error_rad=float(wrap(yaw-heading)))
         return None, current, start
-    driver, action, obs = SettleDriver(c, geometry), RELEASE_ACTION, None
+    driver, action, obs = SettleDriver(c, geometry, session.throttle_remap), RELEASE_ACTION, None
     observation.reset()
     observation.build(current, action)
     warm, gear, stable = 0., number(current, 'actualGear'), 0.
@@ -989,7 +1006,7 @@ def collect(config, actor_bundle, calibration, *, reference, output, execute=Fal
         import torch
         generator = torch.Generator(device='cpu').manual_seed(config.exploration_seed)
     try:
-        with Session(config, steering, actor.steer_lock_rad) as session:
+        with Session(config, steering, actor.steer_lock_rad, actor.throttle_remap) as session:
             def state(packet):
                 pos = np.array([number(packet, 'world_position_x'), number(packet, 'world_position_y')])
                 yaw = number(packet, 'yaw')
