@@ -152,6 +152,16 @@ def measured_map(phases, baseline, config):
     pairs = [(wrap(row['angle_rad'] - baseline), row['command'])
              for row in phases if row['command'] != 0]
     pairs.append((wrap(circular_mean(centers) - baseline), 0.))
+    # AC's steering lock can be reached at half the controller range. A full
+    # command then repeats the same angle with small settling noise; retain the
+    # half-range sample so inversion uses the first measured lock command.
+    saturated_commands = []
+    if config.full_range:
+        angles = {command: angle for angle, command in pairs}
+        for command in (-1., 1.):
+            if abs(wrap(angles[command]-angles[command/2])) <= config.settling_rad:
+                saturated_commands.append(command)
+        pairs = [pair for pair in pairs if pair[1] not in saturated_commands]
     by_command = sorted(pairs, key=lambda item: item[1])
     differences = [b[0] - a[0] for a, b in zip(by_command, by_command[1:])]
     if not (all(d > 1e-5 for d in differences) or all(d < -1e-5 for d in differences)):
@@ -160,7 +170,8 @@ def measured_map(phases, baseline, config):
     if not pairs[0][0] < 0 < pairs[-1][0]:
         raise ValueError('measured steering does not straddle neutral')
     return {'angle_rad': [p[0] for p in pairs], 'command': [p[1] for p in pairs],
-            'baseline_angle_rad': baseline, 'validated': config.full_range}
+            'baseline_angle_rad': baseline, 'validated': config.full_range,
+            'saturated_commands': saturated_commands}
 
 
 class Receiver:

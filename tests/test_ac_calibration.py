@@ -64,6 +64,28 @@ def test_small_probe_not_validated():
     assert not c.measured_map(phases(config), .012, config)['validated']
 
 
+@pytest.mark.parametrize('sign', [-1, 1])
+@pytest.mark.parametrize('noise', [-.000008, 0., .000008])
+def test_full_lock_saturation_retains_first_lock_command(sign, noise):
+    config = c.CalibrationConfig('host', True)
+    rows = [{'command': v, 'angle_rad': .012+sign*.6*max(-.5, min(.5, v))
+             +(noise if abs(v) == 1 else 0.)} for v in config.phases]
+    result = c.measured_map(rows, .012, config)
+    assert result['validated']
+    assert result['saturated_commands'] == [-1., 1.]
+    assert result['command'] == [sign*v for v in [-.5, -.25, -.1, 0., .1, .25, .5]]
+    assert result['angle_rad'][0] == pytest.approx(-.3)
+    assert result['angle_rad'][-1] == pytest.approx(.3)
+
+
+def test_full_lock_reversal_beyond_settling_tolerance_rejected():
+    config = c.CalibrationConfig('host', True)
+    rows = phases(config)
+    rows[4]['angle_rad'] = rows[3]['angle_rad']-.02
+    with pytest.raises(ValueError, match='nonmonotonic'):
+        c.measured_map(rows, .012, config)
+
+
 @pytest.mark.parametrize('change', ['incomplete', 'zero', 'nonmonotonic', 'center'])
 def test_bad_map_rejected(change):
     config = c.CalibrationConfig('host', True)

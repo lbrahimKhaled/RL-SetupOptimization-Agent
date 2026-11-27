@@ -13,6 +13,7 @@ Command-line tools. Run from the repo root.
 | `evals_to_tb.py` | Mirror `evals.jsonl` into TensorBoard (`tb_evals/`; warm-started runs also `tb_evals_lifetime/` on the lifetime step axis, chained over warm starts) |
 | `r4_dry_check.py` | R4 dry check: builds `--preset f1_r4` (lifetime offset) and relabels the f1_best_w35 buffer in memory (chain / anchor / F_v / entry-exit stats; the file is not written) |
 | `keeper_check.py` | Keeper stop / no-resume checks (reportable clean lap 2 <= the run's `trigger_lap2_s`, 95 s; any evaluation for a never-fade run (R3); R2 run ended itself) and the `pgrep -f` pattern of a run (`pattern RUN`, no prefix matches) |
+| `ac_dashboard.py` | Read-only mobile AC dashboard: `--learner runs/windows/ac/tcp-r6b-pert4-001 --worker runs/windows/ac/tcp-worker-r6b-pert4-001 --reference models/bcn_r6b_pert4_ac/barcelona_reference.json`. Serves on 127.0.0.1:8765; expose with `cloudflared tunnel --no-autoupdate --url http://127.0.0.1:8765`. Reads logs and Windows shared memory without taking the driver's UDP connection. |
 | `bench_env.py` | D1 env throughput and demo-driver lap benchmark |
 | `comparison/` | Data for the TUM vs OCD vs RL comparison: `export_tum_lap.py` (TUM's own lap, run in TUM's venv), `tum_pure_pursuit.py` (TUM's lap in OCD by pure pursuit), `export_rl_laps.py` (the RL driver's laps). Output and docs in [comparison/](../comparison/README.md) |
 | `bench/` | Throwaway throughput measurements (vec env, SAC speed); not part of the pipeline. Windows driver: `platforms/windows/bench.ps1` |
