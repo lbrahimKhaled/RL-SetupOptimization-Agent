@@ -59,9 +59,9 @@ if ($PSCmdlet.ShouldProcess($saved, 'copy Vjoy.ini, WASD.ini')) {
     Copy-Item -Force (Join-Path $libs 'Vjoy.ini'), (Join-Path $libs 'WASD.ini') $saved
 }
 
-# CSP: keep reading controller (vJoy) input when AC is not the focused window. Without it, a screen
-# lock or a click on another window freezes the car on its last input (18 Nov 2026: the worker failed
-# 5 preparations and exited). Only an existing [CONTROL] INACTIVE_ONLY_WHEN_COVERED line is changed.
+# CSP: keep reading controller (vJoy) input when AC is not the focused window. Only an existing
+# [CONTROL] INACTIVE_ONLY_WHEN_COVERED line is changed. This does not survive a policy refresh that
+# re-enumerates devices (18 / 25 Nov 2026); ac_supervise.ps1 restarts AC for that (README step 8).
 $csp = Join-Path $AcDocs 'cfg\extension\general.ini'
 if ($PSCmdlet.ShouldProcess($csp, '[CONTROL] INACTIVE_ONLY_WHEN_COVERED=1')) {
     New-Item -ItemType Directory -Force (Split-Path $csp) | Out-Null

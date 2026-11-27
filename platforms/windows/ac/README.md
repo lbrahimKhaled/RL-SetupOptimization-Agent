@@ -26,7 +26,8 @@ State on 17 Nov 2026: AC is installed, CSP is installed, the SF70H and Barcelona
 2. **Custom Shaders Patch:** done. The plugin's car reset needs it.
    **64-bit AC without admin:** the plugin only works in 64-bit `acs.exe` (its `system\x64` libs; `launcher.ini` must have `X86=0`). 64-bit `acs.exe` needs the VC++ 2013 x64 runtime, which Steam can't install without admin (the admin prompt on every launch). Without it, AC quits in about 2 s with `0xC000007B`. Fix used here: `msvcp120.dll` and `msvcr120.dll` (x64, Microsoft-signed, extracted from Steam's `_CommonRedist\vcredist\2013\vcredist_x64.exe`) are in `%LOCALAPPDATA%\ac-vcruntime-x64`, and that folder is on the user PATH. Restart Steam and Content Manager after changing PATH. With admin, running that installer does the same thing.
 3. **Plugin, socket libs, controller presets:** done by `install_ac_plugin.ps1`. It copied `sensors_par` into `assettocorsa\apps\python`, the socket DLLs and Lib into `system\x64`, and `Vjoy.ini` / `WASD.ini` into `Documents\Assetto Corsa\cfg\controllers\savedsetups`. On the Lenovo this was done by hand: dragging the files into Content Manager and the AC folders. To redo it, close AC and run it again.
-   It also sets CSP `[CONTROL] INACTIVE_ONLY_WHEN_COVERED=1` in `Documents\Assetto Corsa\cfg\extension\general.ini`. Without it, AC ignores vJoy as soon as its window loses focus, so a screen lock froze the car on its last input on 18 Nov and the worker exited. The setting is read when AC starts. Whether it also holds while the PC is **locked** (the lock screen may count as covering AC) has not been tested yet.
+   It also sets CSP `[CONTROL] INACTIVE_ONLY_WHEN_COVERED=1` in `Documents\Assetto Corsa\cfg\extension\general.ini`, so AC keeps reading vJoy when its window is not focused. Locking the PC is fine: on 24–25 Nov the R6b run trained for about 11 h with the PC locked.
+   **What does stop training: domain policy refreshes.** On 18 Nov (08:33) and 25 Nov (04:22) a security-policy push (`SceCli` 1704, `GroupPolicy` 1500/1502) made Windows re-enumerate devices. `custom_shaders_patch.log` shows `WM_DEVICECHANGE` remove and arrive. AC binds controllers only at start-up, so it loses vJoy for good: the car freezes on its last input, every preparation times out, and the worker exits after 5 failures. The CSP setting does not help with this. Only a fresh `acs.exe` recovers, which is what `ac_supervise.ps1` automates (step 8).
 4. **Content Manager settings:**
    - Settings > Assetto Corsa > Video: **framerate limit 100** (the plugin ticks at 100 Hz). Windowed or borderless makes it easier to keep the window focused.
    - Settings > Assetto Corsa > Apps (Python apps): enable **sensors_par**.
@@ -41,6 +42,23 @@ State on 17 Nov 2026: AC is installed, CSP is installed, the SF70H and Barcelona
    ```
    Learner settings (from `START_MAC_FULL.command`): `--batch-size 256 --buffer-size 300000 --warmup-transitions 5000 --critic-updates 1000 --transitions-per-update 4 --updates 0 --critic-init runs\mac\D2\bcn\seed0\checkpoints\best.zip --keep-learners 2 --max-no-update 20`. The first 5,000 transitions (about 200 s of driving) use the source actor unchanged; then 1,000 critic-only updates; then one update per 4 new transitions. Progress: `runs\windows\ac\server-001\progress.jsonl`.
    The worker settings are the Lenovo's (`START_LENOVO_FULL.cmd` v11): `ocd_path` reference (`data\ac\ocd_path_reference_barcelona.json`), 3750 steps / 180 s per drive, exploration 0.3, an evaluation drive every 10th, and 5 consecutive failures allowed. Ctrl+C stops it; run it again to continue.
+
+8. **Unattended (weekends): `ac_supervise.ps1`.** Run it once the learner is up. Defaults are the R6b pert4 run: setup `r6b`, learner port 2352, `tcp-worker-r6b-pert4-001`.
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File platforms\windows\ac\ac_supervise.ps1
+   ```
+   - **Adopting a worker:** a worker already writing to `-WorkDir` is adopted, not restarted.
+   - **When the worker stops** (it gave up, crashed, or wrote nothing for 10 min), the supervisor:
+     1. closes AC (`WM_CLOSE`, then kill) and starts `acs.exe` with the `race.ini` that Content Manager left, with `[DYNAMIC_TRACK]` pinned to 100% grip (`SESSION_START=100`, `RANDOMNESS=0`, `LAP_GAIN=0`). On 25 Nov 2026 a random 85% start grip made every drive crash;
+     2. in the pit menu, opens Setup I/O and loads `ks_barcelona/<Setup>`;
+     3. checks in AC's shared memory that track grip is 100% and that the loaded fuel, brake bias and ERS values match `<Setup>.ini`;
+     4. clicks Drive and starts the worker again.
+   - **Works while locked:** every click is a window message to AC, and the screenshots use `PrintWindow`. All of it was verified on 25 Nov 2026 with the PC locked: a full recovery takes about 30 s.
+   - **Safety:** it never starts the worker on a setup mismatch. If the learner isn't listening, it waits. Failed recoveries are retried with a growing back-off of 1 to 15 min.
+   - **Logs:** `runs\windows\ac\logs\supervisor.jsonl`, with screenshots of each step in `logs\supervisor-shots` (last 40 kept).
+   - **Click layout:** clicks are laid out for AC's 1024x768 window (`video.ini`), and the window is resized back to that if needed. If AC's resolution changes, re-measure the constants in `ac_supervisor.py`.
+   - **Not covered:** a reboot (Windows Update), a learner crash, or a logged-out session.
+   - **Stopping it:** kill the supervisor's python (pid in `logs\supervisor.pid`); the worker keeps running.
 
 ## Learner code (from the Mac branch `ac-barcelona-transfer`, 095d6d8)
 `learn.py`, the newer `distributed.py` (adds `--critic-init`; worker side unchanged), the `tests/test_ac_*` suite, `scripts/ac_*` and `docs/AC_QUICKSTART.md` / `docs/handoff/AC_*.md` are taken from that branch as-is (the rest of the branch, slides and C2 work, is not merged). On this PC the 257 AC tests pass, and so does `scripts/ac_loopback_smoke.py` (real learner and worker processes against a simulated 25 Hz AC, with a random stand-in actor via `--actor-bundle`). The harness needed one Windows fix: ignore `ConnectionResetError` on UDP `recvfrom`, as the real plugin does.
